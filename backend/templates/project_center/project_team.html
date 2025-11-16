@@ -1,0 +1,337 @@
+{% extends "project_center/base.html" %}
+{% load static %}
+
+{% block title %}团队配置 - {{ project.name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'project_pages:project_detail' project.id %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">团队配置</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">{{ project.name }} - 团队配置</h4>
+            <button type="button" class="btn btn-light btn-sm" onclick="addTeamMember()">添加成员</button>
+        </div>
+        <div class="card-body">
+            <form method="post" id="teamForm">
+                {% csrf_token %}
+
+                <!-- 管理团队 -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light fw-semibold">管理团队</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">项目经理 <span class="text-danger">*</span></label>
+                                <select name="project_manager" class="form-select" required>
+                                    <option value="">请选择项目经理</option>
+                                    {% for user in project_managers %}
+                                    <option value="{{ user.id }}" {% if project.project_manager_id == user.id %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 商务团队 -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light fw-semibold">商务团队</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">商务经理</label>
+                                <input type="text" class="form-control" value="{{ project.business_manager.get_full_name|default:project.business_manager.username }}" readonly>
+                                <small class="text-muted">由系统自动带入项目商务负责人，如需调整请在项目信息中修改。</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 内部技术团队 -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light fw-semibold">内部技术团队</div>
+                    <div class="card-body">
+                        {% for entry in profession_entries %}
+                        {% with profession=entry.profession %}
+                        <div class="card mb-3 border-0 border-start border-primary border-3 shadow-sm">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold">{{ profession.name }} 专业</span>
+                                <span class="badge bg-primary-subtle text-primary">内部团队</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">专业负责人</label>
+                                        <select name="profession_{{ profession.code }}_leader" class="form-select">
+                                            <option value="">请选择</option>
+                                            {% for user in professional_leaders %}
+                                            <option value="{{ user.id }}" {% if user.id == entry.internal_leader_id %}selected{% endif %}>
+                                                {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">专业工程师</label>
+                                        <select name="profession_{{ profession.code }}_engineers[]" class="form-select" multiple size="5">
+                                            {% for user in professional_engineers %}
+                                            <option value="{{ user.id }}" {% if user.id in entry.internal_engineer_ids %}selected{% endif %}>
+                                                {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">可多选，按住 Ctrl 键或 Command 键选择多个。</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endwith %}
+                        {% empty %}
+                        <div class="alert alert-info"><i class="bi bi-info-circle"></i> 请先在项目信息中配置服务专业，系统即可生成专业团队配置区域。</div>
+                        {% endfor %}
+                        <div class="row mt-4">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">技术助理</label>
+                                <select name="assistants[]" class="form-select" multiple size="5">
+                                    {% for user in technical_assistants %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_assistants %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">技术助理支持跨专业协作，可多选。</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 外部技术团队 -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light fw-semibold">外部技术团队</div>
+                    <div class="card-body">
+                        {% for entry in profession_entries %}
+                        {% with profession=entry.profession %}
+                        <div class="card mb-3 border-0 border-start border-secondary border-3 shadow-sm">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold">{{ profession.name }} 专业</span>
+                                <span class="badge bg-secondary-subtle text-secondary">外部团队</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">外部专业负责人</label>
+                                        <select name="profession_{{ profession.code }}_external_leader" class="form-select">
+                                            <option value="">请选择</option>
+                                            {% for user in external_leaders %}
+                                            <option value="{{ user.id }}" {% if user.id == entry.external_leader_id %}selected{% endif %}>
+                                                {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">外部专业工程师</label>
+                                        <select name="profession_{{ profession.code }}_external_engineers[]" class="form-select" multiple size="5">
+                                            {% for user in external_engineers %}
+                                            <option value="{{ user.id }}" {% if user.id in entry.external_engineer_ids %}selected{% endif %}>
+                                                {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="text-muted">可多选，按住 Ctrl 键或 Command 键选择多个。</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endwith %}
+                        {% empty %}
+                        <div class="alert alert-info"><i class="bi bi-info-circle"></i> 当前尚未配置外部技术团队，可根据需要在此处补充。</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 内部结算团队 -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light fw-semibold">内部结算团队</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">土建审核人</label>
+                                <select name="cost_reviewer_civil[]" class="form-select" multiple size="5">
+                                    {% for user in cost_reviewers_civil %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_cost_reviewer_civil %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">安装审核人</label>
+                                <select name="cost_reviewer_installation[]" class="form-select" multiple size="5">
+                                    {% for user in cost_reviewers_installation %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_cost_reviewer_installation %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">土建造价师</label>
+                                <select name="cost_civil[]" class="form-select" multiple size="5">
+                                    {% for user in cost_engineers_civil %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_cost_engineer_civil %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">安装造价师</label>
+                                <select name="cost_installation[]" class="form-select" multiple size="5">
+                                    {% for user in cost_engineers_installation %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_cost_engineer_installation %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 外部结算团队 -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light fw-semibold">外部结算团队</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">外部土建审核人</label>
+                                <select name="external_cost_reviewer_civil[]" class="form-select" multiple size="5">
+                                    {% for user in external_cost_reviewers_civil %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_external_cost_reviewer_civil %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">外部安装审核人</label>
+                                <select name="external_cost_reviewer_installation[]" class="form-select" multiple size="5">
+                                    {% for user in external_cost_reviewers_installation %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_external_cost_reviewer_installation %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">外部土建造价师</label>
+                                <select name="external_cost_civil[]" class="form-select" multiple size="5">
+                                    {% for user in external_cost_engineers_civil %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_external_cost_engineer_civil %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">外部安装造价师</label>
+                                <select name="external_cost_installation[]" class="form-select" multiple size="5">
+                                    {% for user in external_cost_engineers_installation %}
+                                    <option value="{{ user.id }}" {% if user.id in selected_external_cost_engineer_installation %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }} - {{ user.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 已配置成员列表 -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">已配置的团队成员</h5>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="addTeamMember()">添加成员</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>团队</th>
+                                        <th>姓名</th>
+                                        <th>岗位</th>
+                                        <th>类型</th>
+                                        <th>专业</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in project.team_members.all %}
+                                    {% if member.is_active %}
+                                    <tr>
+                                        <td>{{ member.get_unit_display }}</td>
+                                        <td>{{ member.user.get_full_name|default:member.user.username }}</td>
+                                        <td>{{ member.get_role_display }}</td>
+                                        <td>{% if member.is_external %}外部{% else %}内部{% endif %}</td>
+                                        <td>{{ member.service_profession.name|default:'-' }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="removeMember({{ member.id }})">移除</button>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">暂未配置团队成员</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'project_pages:project_detail' project.id %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">保存配置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function addTeamMember() {
+    alert('添加成员功能：可以在项目进行中随时添加团队成员');
+}
+
+function removeMember(memberId) {
+    if (confirm('确定要移除该成员吗？')) {
+        fetch(`/api/project/project-teams/${memberId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('移除失败，请稍后再试');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
+

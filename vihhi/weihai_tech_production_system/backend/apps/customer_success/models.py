@@ -92,3 +92,57 @@ class ClientProject(models.Model):
         db_table = 'customer_client_project'
         verbose_name = '客户项目'
         verbose_name_plural = verbose_name
+
+
+class BusinessContract(models.Model):
+    """商务合同信息"""
+    project = models.OneToOneField('project_center.Project', on_delete=models.CASCADE, related_name='business_contract', verbose_name='项目')
+    contract_number = models.CharField(max_length=100, blank=True, verbose_name='合同编号')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='合同金额')
+    contract_date = models.DateField(null=True, blank=True, verbose_name='合同日期')
+    attachment = models.FileField(upload_to='business_contracts/%Y/%m/', null=True, blank=True, verbose_name='合同附件')
+    notes = models.TextField(blank=True, verbose_name='备注')
+    created_time = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
+    updated_time = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'business_contract'
+        verbose_name = '商务合同'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f"{self.project.project_number if self.project_id else '未知项目'} 合同"
+
+
+class BusinessPaymentPlan(models.Model):
+    """商务合同回款计划"""
+    STATUS_CHOICES = [
+        ('pending', '待回款'),
+        ('partial', '部分回款'),
+        ('completed', '已完成'),
+        ('overdue', '已逾期'),
+        ('cancelled', '已取消'),
+    ]
+
+    contract = models.ForeignKey(BusinessContract, on_delete=models.CASCADE, related_name='payment_plans', verbose_name='合同')
+    phase_name = models.CharField(max_length=100, verbose_name='回款阶段')
+    phase_description = models.TextField(blank=True, verbose_name='阶段描述')
+    planned_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='计划金额')
+    planned_date = models.DateField(verbose_name='计划日期')
+    actual_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='实际金额')
+    actual_date = models.DateField(null=True, blank=True, verbose_name='实际日期')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='状态')
+    trigger_condition = models.CharField(max_length=100, blank=True, verbose_name='触发条件')
+    condition_detail = models.CharField(max_length=200, blank=True, verbose_name='付款条件详情')
+    notes = models.TextField(blank=True, verbose_name='备注')
+    created_time = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
+    updated_time = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'business_payment_plan'
+        verbose_name = '商务回款计划'
+        verbose_name_plural = verbose_name
+        ordering = ['planned_date']
+
+    def __str__(self):
+        return f"{self.contract_id} - {self.phase_name}"

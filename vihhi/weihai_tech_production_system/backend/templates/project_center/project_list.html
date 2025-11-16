@@ -1,175 +1,649 @@
 {% extends "project_center/base.html" %}
 {% load static %}
 
-{% block title %}项目总览看板 - 维海科技生产信息化管理系统{% endblock %}
+{% block title %}项目总览 - 维海科技生产信息化管理系统{% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active">项目总览</li>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+:root {
+    --vh-primary: #142F5B;
+    --vh-primary-light: #1F4A85;
+    --vh-primary-muted: #6C7BA8;
+    --vh-accent: #D62828;
+    --vh-accent-light: #F37C7C;
+    --vh-accent-soft: rgba(214, 40, 40, 0.16);
+    --vh-neutral: #E4E8F4;
+    --vh-surface: #F6F7FD;
+}
+
+.project-dashboard {
+    color: #1f2937;
+}
+
+.project-dashboard .card {
+    border-radius: 18px;
+    border: 1px solid rgba(20, 47, 91, 0.08);
+    box-shadow: 0 14px 32px rgba(20, 47, 91, 0.08);
+}
+
+.project-dashboard .card-header {
+    background: var(--vh-surface);
+    border-bottom: 1px solid var(--vh-neutral);
+}
+
+.project-dashboard .card-title {
+    color: var(--vh-primary);
+    font-weight: 600;
+}
+
+.project-dashboard .display-4 {
+    color: var(--vh-primary);
+}
+
+.project-dashboard .text-primary {
+    color: var(--vh-primary) !important;
+}
+
+.project-dashboard .badge-accent {
+    background: var(--vh-accent);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+}
+
+.project-dashboard .btn-primary {
+    background: var(--vh-accent);
+    border-color: var(--vh-accent);
+    box-shadow: 0 12px 20px rgba(214, 40, 40, 0.2);
+}
+
+.project-dashboard .btn-primary:hover {
+    background: #b61f1f;
+    border-color: #b61f1f;
+}
+
+.project-dashboard .btn-outline-primary {
+    color: var(--vh-primary);
+    border-color: var(--vh-primary);
+}
+
+.project-dashboard .btn-outline-primary:hover,
+.project-dashboard .btn-outline-primary:focus {
+    background: var(--vh-primary);
+    color: #fff;
+}
+
+.project-dashboard .btn-light {
+    border-color: rgba(20, 47, 91, 0.08);
+    color: var(--vh-primary);
+}
+
+.project-dashboard .nav-tabs {
+    border-bottom: none;
+}
+
+.project-dashboard .nav-tabs .nav-link {
+    border: none;
+    color: var(--vh-primary-muted);
+    font-weight: 600;
+}
+
+.project-dashboard .nav-tabs .nav-link.active {
+    color: var(--vh-accent);
+    background: transparent;
+    border-bottom: 3px solid var(--vh-accent);
+    border-radius: 0;
+}
+
+.project-dashboard .progress-bar {
+    background: var(--vh-accent);
+}
+
+.project-dashboard .list-group-item {
+    border-color: var(--vh-neutral);
+}
+
+.project-dashboard .timeline-item::before {
+    background: var(--vh-accent);
+}
+
+.project-dashboard .badge.bg-light {
+    background: var(--vh-accent-soft) !important;
+    color: var(--vh-primary) !important;
+}
+
+.bg-accent {
+    background: var(--vh-accent) !important;
+    color: #fff !important;
+}
+
+.text-accent {
+    color: var(--vh-accent) !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- 筛选条件区域 -->
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">筛选条件</h5>
-        </div>
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-2">
-                    <label class="form-label">时间范围</label>
-                    <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+<div class="container-fluid py-4 project-dashboard">
+    <div class="row">
+        <div class="col-xl-9 col-lg-8">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">选择项目</label>
+                            <select name="project" class="form-select">
+                                <option value="">全部项目</option>
+                                {% for item in project_filters %}
+                                <option value="{{ item.id }}" {% if selected_project_id == item.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ item.project_number }} - {{ item.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">时间范围</label>
+                            <div class="d-flex gap-2">
+                                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+                                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">服务类型</label>
+                            <select name="service_type" class="form-select">
+                                <option value="">全部</option>
+                                {% for service_type in service_types %}
+                                <option value="{{ service_type.id }}" {% if selected_service_type_id == service_type.id|stringformat:"s" %}selected{% endif %}>{{ service_type.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">视图模式</label>
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-primary active">概览</button>
+                                <button type="button" class="btn btn-outline-primary">详细</button>
+                                <button type="button" class="btn btn-outline-primary">管理</button>
+                            </div>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> 应用筛选</button>
+                                <a href="{% url 'project_pages:project_list' %}" class="btn btn-light">重置</a>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">&nbsp;</label>
-                    <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">所属子公司</label>
-                    <select name="subsidiary" class="form-select">
-                        <option value="">全部</option>
-                        {% for value, label in subsidiary_choices %}
-                        <option value="{{ value }}" {% if request.GET.subsidiary == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">服务类型</label>
-                    <select name="service_type" class="form-select">
-                        <option value="">全部</option>
-                        {% for value, label in service_types %}
-                        <option value="{{ value }}" {% if request.GET.service_type == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">项目负责人</label>
-                    <select name="project_manager" class="form-select">
-                        <option value="">全部</option>
-                        {% for manager in project_managers %}
-                        <option value="{{ manager.id }}" {% if request.GET.project_manager == manager.id|stringformat:"s" %}selected{% endif %}>{{ manager.get_full_name|default:manager.username }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">项目状态</label>
-                    <select name="status" class="form-select" multiple>
-                        {% for value, label in status_choices %}
-                        <option value="{{ value }}" {% if value in request.GET.getlist.status %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-12">
-                    <button type="submit" class="btn btn-primary">查询</button>
-                    <a href="{% url 'project_pages:project_list' %}" class="btn btn-secondary">重置</a>
-                </div>
-            </form>
-        </div>
-    </div>
+            </div>
 
-    <!-- 统计卡片区域 -->
-    <div class="row mb-4">
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h3 class="text-primary">{{ total_projects }}</h3>
-                    <p class="text-muted mb-0">项目总数</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h3 class="text-success">{{ active_projects }}</h3>
-                    <p class="text-muted mb-0">进行中项目</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h3 class="text-info">{{ completed_projects }}</h3>
-                    <p class="text-muted mb-0">本月完工项目</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h3 class="text-warning">¥{{ total_contract_amount|floatformat:2 }}</h3>
-                    <p class="text-muted mb-0">总合同金额</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h3 class="text-danger">¥{{ total_estimated_savings|floatformat:2 }}</h3>
-                    <p class="text-muted mb-0">预计总节省金额</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 项目列表区域 -->
-    <div class="card">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">项目列表</h5>
-            <a href="{% url 'project_pages:project_create' %}" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-circle"></i> 新建项目
-            </a>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                {% for project in projects %}
-                <div class="col-md-6 mb-3">
-                    <div class="card h-100">
+            <div class="row g-4 mb-4">
+                <div class="col-xl-4">
+                    <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <h6 class="mb-1">{{ project.project_number }}</h6>
-                                    <h5 class="mb-0">{{ project.name }}</h5>
-                                </div>
-                                <span class="badge bg-{% if project.status == 'in_progress' %}success{% elif project.status == 'completed' %}info{% else %}secondary{% endif %}">
-                                    {{ project.get_status_display }}
-                                </span>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0">项目健康度</h5>
+                                <span class="badge badge-accent">综合评分</span>
                             </div>
-                            <div class="mb-2">
-                                <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar" role="progressbar" style="width: 50%"></div>
-                                </div>
-                                <small class="text-muted">进度: 50%</small>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="text-muted">
-                                        <i class="bi bi-person"></i> {{ project.project_manager.get_full_name|default:project.project_manager.username|default:"未分配" }}
-                                    </small>
-                                </div>
-                                <div>
-                                    <span class="badge bg-success rounded-pill">●</span>
-                                    <small class="text-muted">健康</small>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <small class="text-muted">最新动态：项目已创建</small>
-                            </div>
-                            <div class="mt-3">
-                                <a href="{% url 'project_pages:project_detail' project.id %}" class="btn btn-sm btn-outline-primary">查看详情</a>
+                            <div class="display-4 fw-bold text-primary"><span id="summary-health-score">{{ summary.average_health_score }}</span></div>
+                            <div class="text-muted mb-3">上次更新：<span id="summary-last-updated">{{ summary.last_updated|date:"Y-m-d H:i" }}</span></div>
+                            <div class="row gy-2 small text-muted">
+                                <div class="col-6">进度健康：<span class="text-dark fw-semibold" id="summary-progress-rate">{{ summary.average_progress_percent }}%</span></div>
+                                <div class="col-6">质量健康：<span class="text-dark fw-semibold" id="summary-quality-score">{{ primary_metric.quality_score|default:"80" }}</span></div>
+                                <div class="col-6">成本健康：<span class="text-muted">已迁移至商务中心</span></div>
+                                <div class="col-6">风险健康：<span class="text-dark fw-semibold" id="summary-risk-score">{{ primary_metric.risk_score|default:"90" }}</span></div>
+                                <div class="col-12">客户满意：<span class="text-dark fw-semibold">评估中</span></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                {% empty %}
-                <div class="col-12">
-                    <div class="alert alert-info text-center">
-                        <i class="bi bi-info-circle"></i> 暂无项目数据
+                <div class="col-xl-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">进度概览</h5>
+                            <canvas id="progressRing" height="160"></canvas>
+                            <div class="row text-center small mt-3">
+                                <div class="col">
+                                    <div class="fw-semibold" id="summary-active-count">{{ summary.active_count }}</div>
+                                    <div class="text-muted">进行中</div>
+                                </div>
+                                <div class="col">
+                                    <div class="fw-semibold" id="summary-completed-count">{{ summary.completed_count }}</div>
+                                    <div class="text-muted">已完成</div>
+                                </div>
+                                <div class="col">
+                                    <div class="fw-semibold" id="summary-milestone-complete">{{ milestone_summary.data.0 }}</div>
+                                    <div class="text-muted">里程碑完成</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                {% endfor %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header border-bottom-0">
+                    <ul class="nav nav-tabs card-header-tabs" id="dashboardTabs" role="tablist">
+                        <li class="nav-item"><button class="nav-link active" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress" type="button" role="tab">进度跟踪</button></li>
+                        <li class="nav-item"><button class="nav-link" id="quality-tab" data-bs-toggle="tab" data-bs-target="#quality" type="button" role="tab">质量监控</button></li>
+                        <li class="nav-item"><button class="nav-link" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button" role="tab">团队协作</button></li>
+                        <li class="nav-item"><button class="nav-link" id="risk-tab" data-bs-toggle="tab" data-bs-target="#risk" type="button" role="tab">风险监控</button></li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="progress" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-lg-8">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <h6 class="card-title mb-0">项目进度趋势</h6>
+                                                <span class="badge bg-light text-dark">甘特概览</span>
+                                            </div>
+                                            <canvas id="progressTrendChart" height="220"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="card shadow-sm border-0 mb-3"><div class="card-body"><h6 class="card-title">里程碑完成情况</h6><canvas id="milestoneChart" height="160"></canvas></div></div>
+                                    <div class="card shadow-sm border-0">
+                                        <div class="card-body small">
+                                            <h6 class="card-title">延迟任务提醒</h6>
+                                            <ul class="list-unstyled mb-0">
+                                                {% for reminder in delayed_task_reminders %}
+                                                <li class="d-flex justify-content-between py-1 {% if not forloop.last %}border-bottom{% endif %} position-relative">
+                                                    <div class="pe-3">
+                                                        {% if reminder.url %}
+                                                        <a href="{{ reminder.url }}" class="text-decoration-none stretched-link">{{ reminder.project_name }} · {{ reminder.name }}</a>
+                                                        {% else %}
+                                                        {{ reminder.project_name }} · {{ reminder.name }}
+                                                        {% endif %}
+                                                    </div>
+                                                    <span class="{% if reminder.delay_days >= 3 %}text-danger{% elif reminder.delay_days >= 1 %}text-warning{% else %}text-success{% endif %}">
+                                                        延迟 {{ reminder.delay_days }} 天
+                                                    </span>
+                                                </li>
+                                                {% empty %}
+                                                <li class="d-flex justify-content-between py-1 text-muted">
+                                                    <span>暂无延迟任务</span>
+                                                    <span>--</span>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="quality" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-4"><div class="card shadow-sm border-0"><div class="card-body"><h6 class="card-title">质量意见统计</h6><canvas id="qualityPieChart" height="180"></canvas></div></div></div>
+                                <div class="col-md-8"><div class="card shadow-sm border-0 h-100"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-2"><h6 class="card-title mb-0">审核通过率趋势</h6><span class="text-muted small">最近六周</span></div><canvas id="qualityTrendChart" height="200"></canvas></div></div></div>
+                                <div class="col-12"><div class="card shadow-sm border-0"><div class="card-body small"><h6 class="card-title">质量预警</h6><div class="d-flex gap-3 flex-wrap"><div class="alert alert-warning flex-fill mb-0"><strong>结构专业：</strong> 待审核意见 5 条，需要复核。</div><div class="alert alert-danger flex-fill mb-0"><strong>项目B：</strong> 质量红线触发，请立即处理。</div></div></div></div></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="team" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-lg-8"><div class="card shadow-sm border-0 h-100"><div class="card-body"><h6 class="card-title">任务负荷热力图</h6><canvas id="teamHeatmap" height="220"></canvas></div></div></div>
+                                <div class="col-lg-4">
+                                    <div class="card shadow-sm border-0 mb-3"><div class="card-body small"><h6 class="card-title">在线状态</h6><ul class="list-unstyled mb-0"><li class="d-flex justify-content-between py-1 border-bottom"><span>李明 · 项目经理</span><span class="badge bg-success">在线</span></li><li class="d-flex justify-content-between py-1 border-bottom"><span>周杰 · 机电工程师</span><span class="badge bg-warning text-dark">外出中</span></li><li class="d-flex justify-content-between py-1"><span>王丽 · 结构负责人</span><span class="badge bg-secondary">离线</span></li></ul></div></div>
+                                    <div class="card shadow-sm border-0"><div class="card-body small"><h6 class="card-title">协作动态</h6><div class="timeline"><div class="timeline-item mb-3"><div class="fw-semibold">任务分配</div><div class="text-muted">王丽 指派 结构优化到 张伟</div><div class="text-muted small">30分钟前</div></div><div class="timeline-item mb-3"><div class="fw-semibold">文件交付</div><div class="text-muted">项目A 上传施工图审查报告</div><div class="text-muted small">2小时前</div></div><div class="timeline-item"><div class="fw-semibold">会议纪要</div><div class="text-muted">生成《每周协调会议纪要》</div><div class="text-muted small">昨天</div></div></div></div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="risk" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-lg-7"><div class="card shadow-sm border-0 h-100"><div class="card-body"><h6 class="card-title">风险矩阵</h6><canvas id="riskMatrixChart" height="240"></canvas></div></div></div>
+                                <div class="col-lg-5"><div class="card shadow-sm border-0 h-100"><div class="card-body small"><h6 class="card-title">重点风险列表</h6><ul class="list-group list-group-flush">{% for item in risk_matrix %}<li class="list-group-item d-flex justify-content-between align-items-center"><div><div class="fw-semibold">{{ item.name }}</div><div class="text-muted">概率 {{ item.probability }} · 影响 {{ item.impact }}</div></div><span class="badge bg-danger">高</span></li>{% empty %}<li class="list-group-item text-muted text-center">暂无风险记录</li>{% endfor %}</ul></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-outline-primary btn-sm">任务中心</a>
+                        <a href="#" class="btn btn-outline-primary btn-sm">生产质量</a>
+                        <a href="#" class="btn btn-outline-primary btn-sm">结算管理</a>
+                        <a href="#" class="btn btn-outline-primary btn-sm">客户门户</a>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-light btn-sm" href="{% url 'project_pages:project_list_export' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"><i class="bi bi-file-earmark-arrow-down"></i> 导出报告</a>
+                        <button class="btn btn-light btn-sm"><i class="bi bi-share"></i> 分享视图</button>
+                        <button class="btn btn-light btn-sm" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> 刷新数据</button>
+                        <button class="btn btn-primary btn-sm"><i class="bi bi-gear"></i> 页面设置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-4">
+            <div class="sticky-top" style="top: 90px;">
+                <div class="card shadow-sm mb-4"><div class="card-body"><h6 class="card-title">项目基本信息</h6>{% with project=projects.first %}{% if project %}<div class="small text-muted"><div class="mb-2"><strong>项目编号：</strong>{{ project.project_number }}</div><div class="mb-2"><strong>项目名称：</strong>{{ project.name }}</div><div class="mb-2"><strong>服务类型：</strong>{{ project.service_type.name|default:"未设置" }}</div><div class="mb-2"><strong>甲方单位：</strong>{{ project.client_company_name|default:"—" }}</div><div class="mb-2"><strong>设计单位：</strong>{{ project.design_company|default:"—" }}</div><div class="mb-2"><strong>项目周期：</strong>{{ project.start_date|default:"--" }} ~ {{ project.end_date|default:"--" }}</div><span class="badge badge-accent">{{ project.get_status_display }}</span></div>{% else %}<p class="text-muted mb-0">请选择项目以查看详细信息。</p>{% endif %}{% endwith %}</div></div>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title">快速操作</h6>
+                        <div class="d-grid gap-2">
+                            {% for action in quick_actions %}
+                            <a href="{{ action.url }}" class="btn btn-outline-primary btn-sm">{{ action.label }}</a>
+                            {% empty %}
+                            <div class="text-muted small text-center">暂无可用操作</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h6 class="card-title">消息与提醒</h6>
+                        <ul class="list-group list-group-flush">
+                            {% for notice in notifications %}
+                            <li class="list-group-item d-flex justify-content-between align-items-start position-relative">
+                                <div class="pe-3">
+                                    <div class="fw-semibold">
+                                        {% if notice.url %}
+                                        <a href="{{ notice.url }}" class="text-decoration-none stretched-link">{{ notice.title }}</a>
+                                        {% else %}
+                                        {{ notice.title }}
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">{{ notice.time }}</small>
+                                </div>
+                                <span class="badge bg-info text-dark align-self-center">{{ notice.type|upper }}</span>
+                            </li>
+                            {% empty %}
+                            <li class="list-group-item text-muted text-center">暂无消息</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
+{% block extra_scripts %}
+{{ progress_trends|json_script:"progress-data" }}
+{{ milestone_summary|json_script:"milestone-data" }}
+{{ risk_matrix|json_script:"risk-data" }}
+{{ quality_distribution|json_script:"quality-data" }}
+{{ quality_trend|json_script:"quality-trend-data" }}
+{{ summary_json|json_script:"summary-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    document.querySelectorAll('.project-card').forEach(card => {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => {
+            const url = card.getAttribute('data-detail-url');
+            if (url) {
+                window.location.href = url;
+            }
+        });
+    });
+
+    const getJsonData = (id, fallback) => {
+        const el = document.getElementById(id);
+        if (!el) {
+            return fallback;
+        }
+        try {
+            return JSON.parse(el.textContent);
+        } catch (err) {
+            console.warn('解析 JSON 失败:', id, err);
+            return fallback;
+        }
+    };
+
+    const themeStyles = getComputedStyle(document.documentElement);
+    const colors = {
+        primary: (themeStyles.getPropertyValue('--vh-primary') || '#142F5B').trim(),
+        primaryLight: (themeStyles.getPropertyValue('--vh-primary-light') || '#1F4A85').trim(),
+        primaryMuted: (themeStyles.getPropertyValue('--vh-primary-muted') || '#6C7BA8').trim(),
+        accent: (themeStyles.getPropertyValue('--vh-accent') || '#D62828').trim(),
+        accentLight: (themeStyles.getPropertyValue('--vh-accent-light') || '#F37C7C').trim(),
+        accentSoft: (themeStyles.getPropertyValue('--vh-accent-soft') || 'rgba(214,40,40,0.16)').trim(),
+        neutral: (themeStyles.getPropertyValue('--vh-neutral') || '#E4E8F4').trim(),
+    };
+
+    const charts = {
+        progressRing: null,
+        progressTrend: null,
+        milestone: null,
+        qualityDistribution: null,
+        qualityTrend: null,
+        riskMatrix: null,
+    };
+
+    const initialData = {
+        summary: getJsonData('summary-data', {}),
+        progress_trends: getJsonData('progress-data', { labels: [], progress: [] }),
+        milestone_summary: getJsonData('milestone-data', { labels: [], data: [] }),
+        risk_matrix: getJsonData('risk-data', []),
+        quality_distribution: getJsonData('quality-data', { labels: [], data: [] }),
+        quality_trend: getJsonData('quality-trend-data', { labels: [], quality_scores: [] }),
+    };
+
+    const setText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = text;
+        }
+    };
+
+    const formatNumber = (value, digits = 0) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) {
+            return '—';
+        }
+        return Number(value).toFixed(digits);
+    };
+
+    const formatPercent = (value) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) {
+            return '—';
+        }
+        return `${formatNumber(value, 1)}%`;
+    };
+
+    const updateSummary = (summary) => {
+        setText('summary-health-score', formatNumber(summary.average_health_score || 0, 1));
+        setText('summary-progress-rate', formatPercent(summary.average_progress_percent || 0));
+        setText('summary-quality-score', formatNumber(summary.average_quality_score || summary.average_health_score || 0, 0));
+        setText('summary-risk-score', formatNumber(summary.average_risk_score || 90, 0));
+        setText('summary-active-count', summary.active_count ?? 0);
+        setText('summary-completed-count', summary.completed_count ?? 0);
+        setText('summary-milestone-complete', summary.milestone_completed_total ?? 0);
+
+        if (summary.last_updated) {
+            const date = new Date(summary.last_updated);
+            setText('summary-last-updated', isNaN(date.getTime()) ? summary.last_updated : date.toLocaleString());
+        }
+    };
+
+    const buildRiskDatasets = (riskData) => riskData.map(item => ({
+        label: item.name,
+        data: [{ x: item.probability, y: item.impact, r: 10 }],
+        backgroundColor: colors.accentSoft,
+        borderColor: colors.accent,
+        borderWidth: 1,
+    }));
+
+    const renderCharts = (data) => {
+        const summary = data.summary || {};
+        updateSummary(summary);
+
+        const avgProgress = summary.average_progress_percent || 0;
+        const progressRingCtx = document.getElementById('progressRing');
+        if (progressRingCtx) {
+            const ringData = [avgProgress, Math.max(0, 100 - avgProgress)];
+            if (charts.progressRing) {
+                charts.progressRing.data.datasets[0].data = ringData;
+                charts.progressRing.update();
+            } else {
+                charts.progressRing = new Chart(progressRingCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['已完成', '剩余'],
+                        datasets: [{
+                            data: ringData,
+                            backgroundColor: [colors.accent, colors.neutral],
+                            borderWidth: 0,
+                        }],
+                    },
+                    options: { plugins: { legend: { display: false } }, cutout: '75%' },
+                });
+            }
+        }
+
+        const progressTrendCtx = document.getElementById('progressTrendChart');
+        if (progressTrendCtx) {
+            const chartData = data.progress_trends || { labels: [], progress: [] };
+            if (charts.progressTrend) {
+                charts.progressTrend.data.labels = chartData.labels;
+                charts.progressTrend.data.datasets[0].data = chartData.progress;
+                charts.progressTrend.update();
+            } else {
+                charts.progressTrend = new Chart(progressTrendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [
+                            {
+                                label: '进度 (%)',
+                                data: chartData.progress,
+                                borderColor: colors.primary,
+                                tension: 0.3,
+                                fill: false,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true, max: 100 } },
+                    },
+                });
+            }
+        }
+
+        const milestoneCtx = document.getElementById('milestoneChart');
+        if (milestoneCtx) {
+            const chartData = data.milestone_summary || { labels: [], data: [] };
+            if (charts.milestone) {
+                charts.milestone.data.labels = chartData.labels;
+                charts.milestone.data.datasets[0].data = chartData.data;
+                charts.milestone.update();
+            } else {
+                charts.milestone = new Chart(milestoneCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            data: chartData.data,
+                            backgroundColor: [colors.primary, colors.accent, colors.primaryMuted],
+                        }],
+                    },
+                    options: { plugins: { legend: { position: 'bottom' } } },
+                });
+            }
+        }
+
+        const qualityPieCtx = document.getElementById('qualityPieChart');
+        if (qualityPieCtx) {
+            const chartData = data.quality_distribution || { labels: [], data: [] };
+            if (charts.qualityDistribution) {
+                charts.qualityDistribution.data.labels = chartData.labels;
+                charts.qualityDistribution.data.datasets[0].data = chartData.data;
+                charts.qualityDistribution.update();
+            } else {
+                charts.qualityDistribution = new Chart(qualityPieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            data: chartData.data,
+                            backgroundColor: [colors.primary, colors.primaryLight, colors.accent],
+                        }],
+                    },
+                    options: { plugins: { legend: { position: 'bottom' } } },
+                });
+            }
+        }
+
+        const qualityTrendCtx = document.getElementById('qualityTrendChart');
+        if (qualityTrendCtx) {
+            const chartData = data.quality_trend || { labels: [], quality_scores: [] };
+            if (charts.qualityTrend) {
+                charts.qualityTrend.data.labels = chartData.labels;
+                charts.qualityTrend.data.datasets[0].data = chartData.quality_scores;
+                charts.qualityTrend.update();
+            } else {
+                charts.qualityTrend = new Chart(qualityTrendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            label: '质量评分',
+                            data: chartData.quality_scores,
+                            borderColor: colors.primaryLight,
+                            backgroundColor: colors.primaryLight,
+                            tension: 0.25,
+                            fill: false,
+                        }],
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true, max: 100 } },
+                    },
+                });
+            }
+        }
+
+        const riskMatrixCtx = document.getElementById('riskMatrixChart');
+        if (riskMatrixCtx) {
+            const chartData = data.risk_matrix || [];
+            if (charts.riskMatrix) {
+                charts.riskMatrix.data.datasets = buildRiskDatasets(chartData);
+                charts.riskMatrix.update();
+            } else {
+                charts.riskMatrix = new Chart(riskMatrixCtx, {
+                    type: 'bubble',
+                    data: {
+                        datasets: buildRiskDatasets(chartData),
+                    },
+                    options: {
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { title: { display: true, text: '发生概率' }, min: 0, max: 100 },
+                            y: { title: { display: true, text: '影响程度' }, min: 0, max: 100 },
+                        },
+                    },
+                });
+            }
+        }
+    };
+
+    const fetchDashboardData = () => {
+        const query = window.location.search || '';
+        const url = `/api/project/dashboard-charts/${query}`;
+        fetch(url, { headers: { 'Accept': 'application/json' } })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => renderCharts(data))
+            .catch(err => console.warn('刷新仪表盘数据失败:', err));
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCharts(initialData);
+        fetchDashboardData();
+    });
+</script>
+{% endblock %}

@@ -1,38 +1,11 @@
-# Django
-*.pyc
-*~
-__pycache__
-db.sqlite3
-media
-
-# Environment variables
-.env
-.venv
-
-# IDE
-.vscode
-.idea
-
-# Static files
-/staticfiles/
-
-# Database
-*.db
-
-# Logs
+.venv/
+__pycache__/
+*.py[cod]
 *.log
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Node
-node_modules/
-npm-debug.log*
-
-# Coverage
-.coverage
-htmlcov/
-
-# PyCharm
-.idea/
+*.sqlite3
+.env
+*.env.local
+*.egg-info/
+staticfiles/
+media/
+tmp/

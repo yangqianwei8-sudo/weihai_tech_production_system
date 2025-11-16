@@ -73,13 +73,18 @@ TEMPLATES = [
 ]
 
 # Database configuration
-# 根据环境变量选择数据库
-if os.getenv('DATABASE_URL'):
+# 优先使用环境变量 DATABASE_URL；若未配置，则使用最新的云端数据库连接
+DEFAULT_DATABASE_URL = "postgresql://postgres:zdg7xx28@dbconn.sealosbja.site:38013/postgres"
+database_url = os.getenv('DATABASE_URL', DEFAULT_DATABASE_URL).strip()
+if database_url and "dbconn.sealosbja.site:45978" in database_url:
+    database_url = database_url.replace("dbconn.sealosbja.site:45978", "dbconn.sealosbja.site:38013")
+
+if database_url:
     # 使用生产环境数据库（如 PostgreSQL）
     import dj_database_url
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
+            default=database_url,
             conn_max_age=600,
             conn_health_checks=True,
         )
@@ -92,6 +97,21 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '25') or 25)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False') == 'True'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@example.com')
+
+# 企业微信（WeCom）配置
+WECOM_AGENT_ID = os.getenv('WECOM_AGENT_ID')
+WECOM_CORP_ID = os.getenv('WECOM_CORP_ID')
+WECOM_AGENT_SECRET = os.getenv('WECOM_AGENT_SECRET')
+WECOM_DEFAULT_TO_USER = os.getenv('WECOM_DEFAULT_TO_USER', '')
 
 # REST Framework configuration
 REST_FRAMEWORK = {
@@ -128,6 +148,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 # Use Whitenoise compressed storage in production
 if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
