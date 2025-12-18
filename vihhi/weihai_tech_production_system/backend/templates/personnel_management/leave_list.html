@@ -1,0 +1,154 @@
+{% extends "personnel_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">请假管理</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .content-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 12px 32px rgba(20, 47, 91, 0.08);
+        border: 1px solid rgba(20, 47, 91, 0.08);
+    }
+</style>
+{% endblock %}
+
+{% block personnel_content %}
+
+    <!-- 内容区域 -->
+    <div class="content-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0">请假申请列表</h3>
+            <a href="{% url 'personnel_pages:leave_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 新增请假
+            </a>
+        </div>
+
+        <!-- 筛选栏 -->
+        <form method="get" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="search" class="form-control" placeholder="搜索请假单号、员工姓名..." value="{{ current_search }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="leave_type" class="form-select">
+                        <option value="">全部类型</option>
+                        {% for code, label in leave_type_choices %}
+                        <option value="{{ code }}" {% if current_leave_type == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="status" class="form-select">
+                        <option value="">全部状态</option>
+                        {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if current_status == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                    <a href="{% url 'personnel_pages:leave_management' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 清除
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        <!-- 数据表格 -->
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>请假单号</th>
+                        <th>员工</th>
+                        <th>请假类型</th>
+                        <th>开始日期</th>
+                        <th>结束日期</th>
+                        <th>请假天数</th>
+                        <th>状态</th>
+                        <th>审批人</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leave_obj in leaves %}
+                    <tr>
+                        <td><code>{{ leave_obj.leave_number }}</code></td>
+                        <td>{{ leave_obj.employee.name }} <small class="text-muted">({{ leave_obj.employee.employee_number }})</small></td>
+                        <td>{{ leave_obj.get_leave_type_display }}</td>
+                        <td>{{ leave_obj.start_date|date:"Y-m-d" }}</td>
+                        <td>{{ leave_obj.end_date|date:"Y-m-d" }}</td>
+                        <td>{{ leave_obj.days }} 天</td>
+                        <td>
+                            {% if leave_obj.status == 'draft' %}
+                            <span class="badge bg-secondary">草稿</span>
+                            {% elif leave_obj.status == 'pending' %}
+                            <span class="badge bg-warning">待审批</span>
+                            {% elif leave_obj.status == 'approved' %}
+                            <span class="badge bg-success">已批准</span>
+                            {% elif leave_obj.status == 'rejected' %}
+                            <span class="badge bg-danger">已拒绝</span>
+                            {% else %}
+                            <span class="badge bg-secondary">已取消</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ leave_obj.approver.get_full_name|default:leave_obj.approver.username|default:"-" }}</td>
+                        <td>
+                            <a href="{% url 'personnel_pages:leave_detail' leave_obj.id %}" class="btn btn-sm btn-outline-primary me-1" title="查看详情">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if leave_obj.status in 'draft,pending' %}
+                            <a href="{% url 'personnel_pages:leave_update' leave_obj.id %}" class="btn btn-sm btn-outline-secondary" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">暂无数据</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="分页导航">
+            <ul class="pagination justify-content-center mt-4">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_leave_type %}&leave_type={{ current_leave_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">上一页</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_leave_type %}&leave_type={{ current_leave_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">下一页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            暂无数据或加载失败
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

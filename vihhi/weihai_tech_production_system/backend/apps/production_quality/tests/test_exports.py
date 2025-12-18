@@ -11,7 +11,7 @@ from django.core.management import call_command
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.production_quality.models import OpinionReview, ProductionStatistic
 
 User = get_user_model()

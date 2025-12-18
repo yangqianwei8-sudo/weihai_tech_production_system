@@ -23,8 +23,8 @@ from django.conf import settings
 from openpyxl import Workbook
 from django.utils.html import format_html, format_html_join
 
-from .models import (
-    Project,
+from backend.apps.production_management.models import (
+    DesignStage,
     ProjectTeam,
     ProjectTeamChangeLog,
     ProjectTeamNotification,
@@ -42,10 +42,19 @@ from .models import (
     ServiceType,
     ServiceProfession,
 )
+from backend.apps.production_management.models import Project
 from .serializers import ProjectSerializer, ProjectCreateSerializer
 
 from backend.apps.system_management.models import User, Department
 from backend.apps.system_management.services import get_user_permission_codes
+# calculate_output_value 改为延迟导入，避免在数据库表不存在时导致模块加载失败
+
+# 延迟导入 production_quality 模块，避免循环依赖
+try:
+    from backend.apps.production_quality.models import Opinion, OpinionStatus
+except ImportError:
+    Opinion = None
+    OpinionStatus = None
 
 logger = logging.getLogger(__name__)
 ROLE_LABELS = dict(ProjectTeam.ROLE_CHOICES)
@@ -90,43 +99,31 @@ PROJECT_CENTER_NAV_ITEMS = [
     {
         'id': 'project_list',
         'label': '项目总览',
-        'url_name': 'project_pages:project_list',
-        'permissions': ('project_center.view_all', 'project_center.view_assigned'),
+        'url_name': 'production_pages:project_list',
+        'permissions': ('production_management.view_all', 'production_management.view_assigned'),
     },
     {
         'id': 'project_tasks',
         'label': '任务工作台',
-        'url_name': 'project_pages:project_task_dashboard',
-        'permissions': ('project_center.view_assigned',),
+        'url_name': 'production_pages:project_task_dashboard',
+        'permissions': ('production_management.view_assigned',),
     },
     {
         'id': 'project_create',
         'label': '新建项目',
-        'url_name': 'project_pages:project_create',
-        'permissions': ('project_center.create',),
-    },
-    {
-        'id': 'project_query',
-        'label': '项目查询',
-        'url_name': 'project_pages:project_query',
-        'permissions': ('project_center.view_all', 'project_center.view_assigned'),
-    },
-    {
-        'id': 'project_team_config',
-        'label': '团队配置',
-        'url_name': 'project_pages:project_team_config',
-        'permissions': ('project_center.configure_team',),
+        'url_name': 'production_pages:project_create',
+        'permissions': ('production_management.create',),
     },
     {
         'id': 'project_monitor',
         'label': '项目监控',
-        'url_name': 'project_pages:project_monitor',
-        'permissions': ('project_center.monitor',),
+        'url_name': 'production_pages:project_monitor',
+        'permissions': ('production_management.monitor',),
     },
     {
         'id': 'project_import_admin',
         'label': '批量导入',
-        'url_name': 'project_pages:project_import_admin',
+        'url_name': 'production_pages:project_import_admin',
         'permissions': (),  # 权限在视图中通过系统管理员判断
         'require_admin': True,
     },
@@ -179,6 +176,20 @@ PROJECT_FLOW_ACTIONS = {
 }
 
 PROJECT_TASK_DEFINITIONS = {
+    'project_complete_info': {
+        'title': '完善项目信息',
+        'description': '请完善项目的客户信息、设计方信息以及其他详细资料，确保项目信息完整准确。',
+        'assigned_role': 'project_manager',
+        'target_unit': 'management',
+        'deadline_hours': 24,
+    },
+    'configure_team': {
+        'title': '配置项目团队',
+        'description': '请为项目配置各专业的负责人、工程师等团队成员，确保团队结构完整。',
+        'assigned_role': 'project_manager',
+        'target_unit': 'management',
+        'deadline_hours': 48,
+    },
     'client_upload_pre_docs': {
         'title': '上传优化前资料',
         'description': '请上传图纸、计算书、模型、任务书等优化前资料，便于我方进行预审。',
@@ -414,12 +425,17 @@ def build_project_create_context(form_data=None, selected_profession_ids=None):
             continue
 
     selected_service_type_id = form_dict.get('service_type', '') if form_dict else ''
+    
+    # 从数据库读取图纸阶段选项
+    design_stages = DesignStage.objects.filter(is_active=True).order_by('order', 'id')
+    design_stages_choices = [(str(ds.id), ds.name) for ds in design_stages]
 
     return {
         'subsidiary_choices': Project.SUBSIDIARY_CHOICES,
         'service_types': service_types,
         'business_types': Project.BUSINESS_TYPES,
-        'design_stages': Project.DESIGN_STAGES,
+        'design_stages': design_stages_choices,
+        'design_stages_objects': design_stages,  # 传递对象列表供模板使用
         'service_professions_map_json': mark_safe(json.dumps(profession_map, ensure_ascii=False)),
         'selected_profession_ids_json': mark_safe(json.dumps(selected_ids_serialized, ensure_ascii=False)),
         'current_year': datetime.datetime.now().year,
@@ -489,16 +505,21 @@ def build_project_edit_context(project, permission_set, form_data=None, user=Non
         'alias': _get_value('alias', project.alias or ''),
         'description': _get_value('description', project.description or ''),
         'service_type': _get_value('service_type', project.service_type_id or ''),
-        'business_type': _get_value('business_type', project.business_type or ''),
-        'design_stage': _get_value('design_stage', project.design_stage or ''),
+        'business_type': _get_value('business_type', project.business_type_id or ''),
+        'design_stage': _get_value('design_stage', project.design_stage_id or ''),
     }
+    
+    # 从数据库读取图纸阶段选项
+    design_stages = DesignStage.objects.filter(is_active=True).order_by('order', 'id')
+    design_stages_choices = [(str(ds.id), ds.name) for ds in design_stages]
 
     context = {
         'project': project,
         'subsidiary_choices': Project.SUBSIDIARY_CHOICES,
         'service_types': service_types,
         'business_types': Project.BUSINESS_TYPES,
-        'design_stages': Project.DESIGN_STAGES,
+        'design_stages': design_stages_choices,
+        'design_stages_objects': design_stages,  # 传递对象列表供模板使用
         'service_professions_map_json': mark_safe(json.dumps(profession_map, ensure_ascii=False)),
         'selected_profession_ids_json': mark_safe(json.dumps(selected_profession_ids, ensure_ascii=False)),
         'initial_values': initial_values,
@@ -518,7 +539,7 @@ def _has_global_project_view(permission_set, user):
         return False
     if getattr(user, 'user_type', 'internal') != 'internal':
         return False
-    return _has_permission(permission_set, 'project_center.view_all')
+    return _has_permission(permission_set, 'production_management.view_all')
 
 
 def _require_permission(request, permission_set, message, *codes):
@@ -701,6 +722,17 @@ def _handle_task_followups(task, actor):
         _ensure_project_task(task.project, next_task_type, created_by=actor)
 
 
+# 任务类型到产值事件编码的映射
+TASK_TYPE_TO_OUTPUT_VALUE_EVENT = {
+    'project_complete_info': None,  # 完善项目信息不直接触发产值
+    'configure_team': 'configure_team',  # 配置项目团队
+    'client_upload_pre_docs': 'apply_pre_materials',  # 优化前资料申请
+    'internal_precheck_docs': 'review_pre_materials',  # 优化前资料复核
+    'client_issue_start_notice': 'get_start_notice',  # 获取开工通知
+    # 可以根据需要继续添加更多映射
+}
+
+
 def _complete_project_task(project, task_type, actor=None, status='completed'):
     qs = ProjectTask.objects.filter(
         project=project,
@@ -724,6 +756,33 @@ def _complete_project_task(project, task_type, actor=None, status='completed'):
                 task.completed_by = actor
             task.save(update_fields=['status', 'completed_time', 'completed_by', 'updated_time'])
             _handle_task_followups(task, actor)
+            
+            # 触发产值计算（如果任务类型有对应的产值事件）
+            event_code = TASK_TYPE_TO_OUTPUT_VALUE_EVENT.get(task_type)
+            if event_code and project.contract_amount and project.contract_amount > 0:
+                try:
+                    from django.db import connection
+                    # 检查产值记录表是否存在
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables 
+                                WHERE table_schema = 'public' 
+                                AND table_name = 'settlement_output_value_record'
+                            );
+                        """)
+                        table_exists = cursor.fetchone()[0]
+                    
+                    if table_exists:
+                        responsible_user = task.assigned_to or actor or project.project_manager
+                        if responsible_user:
+                            calculate_output_value(project, event_code, responsible_user=responsible_user)
+                            logger.info('已为项目 %s 任务 %s 计算产值，事件：%s，责任人：%s', 
+                                      project.project_number, task_type, event_code, responsible_user.username)
+                except Exception as output_exc:
+                    logger.warning('计算产值失败（可能是模块未初始化）: project=%s, task_type=%s, event_code=%s, error=%s', 
+                                 project.project_number, task_type, event_code, str(output_exc))
+                    # 产值计算失败不影响任务完成流程
 
 
 def _user_matches_role(user, project, role):
@@ -795,6 +854,13 @@ def _build_project_center_nav(permission_set, active_id=None, user=None):
     for item in PROJECT_CENTER_NAV_ITEMS:
         if item.get('require_admin') and not _is_system_admin(user):
             continue
+        
+        # 新建项目仅对商务经理可见
+        if item.get('id') == 'project_create':
+            has_business_manager_role = user and user.roles.filter(code='business_manager').exists()
+            if not has_business_manager_role:
+                continue
+        
         if item.get('permissions') and _has_permission(permission_set, *item['permissions']):
             nav.append({
                 'label': item['label'],
@@ -817,14 +883,59 @@ def _build_project_center_nav(permission_set, active_id=None, user=None):
     return nav
 
 
-def _with_nav(context, permission_set, active_id=None, user=None):
+# 使用统一的顶部导航菜单生成函数
+from backend.core.views import _build_full_top_nav
+
+
+def _build_production_management_sidebar_nav(permission_set, request_path=None, user=None):
+    """生成生产管理模块的左侧菜单导航（分组格式）
+    
+    注意：此函数委托给 production_management 模块的实现，以保持一致性
+    
+    Args:
+        permission_set: 用户权限集合
+        request_path: 当前请求路径，用于判断激活状态
+        user: 当前用户
+    
+    Returns:
+        list: 分组菜单项列表
+    """
+    # 从 production_management 模块导入实现，避免代码重复
+    try:
+        from backend.apps.production_management.views_pages import _build_production_management_sidebar_nav as build_nav
+        return build_nav(permission_set, request_path, user)
+    except ImportError:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning('无法从 production_management 模块导入菜单构建函数，返回空菜单')
+        return []
+
+
+def _with_nav(context, permission_set, active_id=None, user=None, request_path=None, request=None):
+    """构建带导航的上下文
+    
+    Args:
+        context: 基础上下文字典
+        permission_set: 用户权限集合
+        active_id: 当前激活的菜单项ID
+        user: 当前用户
+        request_path: 当前请求路径（可选，如果提供了request则自动获取）
+        request: 当前请求对象（可选，用于自动获取request_path）
+    """
     context = context or {}
     context['project_center_nav'] = _build_project_center_nav(permission_set, active_id, user)
+    # 添加完整导航菜单（包含所有模块的菜单项）
+    context['full_top_nav'] = _build_full_top_nav(permission_set, user)
+    # 添加生产管理左侧导航菜单
+    # 如果提供了request对象但没有提供request_path，则从request中获取
+    if request and not request_path:
+        request_path = request.path
+    context['production_management_menu'] = _build_production_management_sidebar_nav(permission_set, request_path, user)
     return context
 
 
 def _is_project_readonly(permission_set):
-    return not _has_permission(permission_set, 'project_center.create', 'project_center.configure_team')
+    return not _has_permission(permission_set, 'production_management.create', 'production_management.configure_team')
 
 
 def _is_system_admin(user):
@@ -950,7 +1061,7 @@ def _create_team_notification(project, recipient, title, message, action_url=Non
     if not recipient:
         return
     if not action_url:
-        action_url = reverse('project_pages:project_detail', args=[project.id])
+        action_url = reverse('production_pages:project_detail', args=[project.id])
     ProjectTeamNotification.objects.create(
         project=project,
         recipient=recipient,
@@ -969,7 +1080,7 @@ def _notify_team_change(project, operator, change_details):
     operator_name = ''
     if operator:
         operator_name = operator.get_full_name() or operator.username
-    action_url = reverse('project_pages:project_detail', args=[project.id])
+    action_url = reverse('production_pages:project_detail', args=[project.id])
 
     for entry in change_details['added']:
         member = entry.get('member')
@@ -1108,6 +1219,7 @@ def _compute_project_metric(project):
 def build_project_dashboard_payload(user, permission_set, query_params):
     projects = Project.objects.select_related(
         'service_type',
+        'business_type',
         'project_manager',
         'business_manager'
     ).prefetch_related(
@@ -1170,7 +1282,7 @@ def build_project_dashboard_payload(user, permission_set, query_params):
                 'milestone_id': milestone.id,
                 'name': milestone.name,
                 'delay_days': delay_days,
-                'url': f"{reverse('project_pages:project_detail', args=[project_obj.id])}?tab=progress&milestone={milestone.id}",
+                'url': f"{reverse('production_pages:project_detail', args=[project_obj.id])}?tab=progress&milestone={milestone.id}",
             })
 
     delayed_task_reminders.sort(key=lambda item: item['delay_days'], reverse=True)
@@ -1237,8 +1349,8 @@ def build_project_dashboard_payload(user, permission_set, query_params):
     }
 
     primary_project_id = project_metrics[0]['project_id'] if project_metrics else None
-    detail_url = reverse('project_pages:project_detail', args=[primary_project_id]) if primary_project_id else '#'
-    team_url = reverse('project_pages:project_team', args=[primary_project_id]) if primary_project_id else '#'
+    detail_url = reverse('production_pages:project_detail', args=[primary_project_id]) if primary_project_id else '#'
+    team_url = reverse('production_pages:project_team', args=[primary_project_id]) if primary_project_id else '#'
     notifications = [
         {
             'type': 'task',
@@ -1292,10 +1404,16 @@ def build_project_dashboard_payload(user, permission_set, query_params):
 
 @login_required
 def project_create(request):
-    """新建项目页面"""
+    """新建项目页面（仅商务经理可访问）"""
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有创建项目的权限。', 'project_center.create'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有创建项目的权限。', 'production_management.create'):
+        return redirect('admin:index')
+    
+    # 检查用户是否有商务经理角色
+    has_business_manager_role = request.user.roles.filter(code='business_manager').exists()
+    if not has_business_manager_role:
+        messages.error(request, '只有商务经理可以创建项目。')
+        return redirect('admin:index')
 
     if request.method == 'POST':
         try:
@@ -1345,6 +1463,14 @@ def project_create(request):
                 if service_type_id:
                     service_type_obj = ServiceType.objects.filter(id=service_type_id).first()
                 
+                # 获取图纸阶段对象
+                design_stage_obj = None
+                if design_stage:
+                    try:
+                        design_stage_obj = DesignStage.objects.filter(id=design_stage, is_active=True).first()
+                    except (ValueError, TypeError):
+                        pass
+                
                 if not is_draft:
                     # 提交时验证必填字段
                     if not service_type_obj:
@@ -1355,7 +1481,7 @@ def project_create(request):
                         messages.error(request, '请选择项目业态')
                         context = build_project_create_context(request.POST, request.POST.getlist('service_profession_ids[]'))
                         return render(request, 'project_center/project_create.html', _with_nav(context, permission_set, 'project_create', request.user))
-                    if not design_stage:
+                    if not design_stage_obj:
                         messages.error(request, '请选择图纸阶段')
                         context = build_project_create_context(request.POST, request.POST.getlist('service_profession_ids[]'))
                         return render(request, 'project_center/project_create.html', _with_nav(context, permission_set, 'project_create', request.user))
@@ -1385,7 +1511,7 @@ def project_create(request):
                     alias=request.POST.get('alias', ''),
                     service_type=service_type_obj,
                     business_type=business_type,
-                    design_stage=design_stage,
+                    design_stage=design_stage_obj,
                     client_company_name=client_company_name,
                     client_contact_person=client_contact_person,
                     client_phone=client_phone,
@@ -1410,10 +1536,33 @@ def project_create(request):
                     professions = ServiceProfession.objects.filter(id__in=selected_profession_ids)
                     project.service_professions.set(professions)
                 
+                # 触发产值计算：创建新项目
+                if not is_draft and project.contract_amount and project.contract_amount > 0:
+                    try:
+                        from django.db import connection
+                        # 检查产值记录表是否存在
+                        with connection.cursor() as cursor:
+                            cursor.execute("""
+                                SELECT EXISTS (
+                                    SELECT FROM information_schema.tables 
+                                    WHERE table_schema = 'public' 
+                                    AND table_name = 'settlement_output_value_record'
+                                );
+                            """)
+                            table_exists = cursor.fetchone()[0]
+                        
+                        if table_exists:
+                            from backend.apps.settlement_center.services import calculate_output_value
+                            calculate_output_value(project, 'create_project', responsible_user=request.user)
+                            logger.info('已为项目 %s 计算"创建新项目"产值，创建人：%s', project.project_number, request.user.username)
+                    except Exception as output_exc:
+                        logger.warning('计算"创建新项目"产值失败（可能是模块未初始化）: %s', str(output_exc))
+                        # 产值计算失败不影响项目创建流程
+                
                 messages.success(request, '项目创建成功！')
                 if request.POST.get('action') == 'submit':
                     messages.info(request, '项目已提交，待技术中心接收后由项目经理完善信息。')
-                return redirect('project_pages:project_list')
+                return redirect('production_pages:project_list')
         except Exception as e:
             messages.error(request, f'项目创建失败：{str(e)}')
             context = build_project_create_context(request.POST, request.POST.getlist('service_profession_ids[]'))
@@ -1433,15 +1582,15 @@ def project_edit(request, project_id):
     )
 
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有编辑项目的权限。', 'project_center.create', 'project_center.configure_team'):
-        return redirect('home')
-    if not _has_permission(permission_set, 'project_center.view_all') and not _user_is_project_member(request.user, project):
+    if not _require_permission(request, permission_set, '您没有编辑项目的权限。', 'production_management.create', 'production_management.configure_team'):
+        return redirect('admin:index')
+    if not _has_permission(permission_set, 'production_management.view_all') and not _user_is_project_member(request.user, project):
         messages.error(request, '您无权编辑该项目。')
-        return redirect('home')
+        return redirect('admin:index')
 
     if project.status not in ['draft', 'waiting_receive', 'configuring']:
         messages.error(request, '当前状态下无法编辑该项目')
-        return redirect('project_pages:project_detail', project_id=project.id)
+        return redirect('production_pages:project_detail', project_id=project.id)
 
     if request.method == 'POST':
         try:
@@ -1468,13 +1617,21 @@ def project_edit(request, project_id):
                         messages.error(request, '请选择至少一个服务专业')
                         return render(request, 'project_center/project_edit.html', build_project_edit_context(project, permission_set, request.POST, request.user))
 
+                # 获取图纸阶段对象
+                design_stage_obj = None
+                if design_stage:
+                    try:
+                        design_stage_obj = DesignStage.objects.filter(id=design_stage, is_active=True).first()
+                    except (ValueError, TypeError):
+                        pass
+                
                 project.subsidiary = request.POST.get('subsidiary', project.subsidiary)
                 project.name = request.POST.get('name') or project.name
                 project.alias = request.POST.get('alias', '')
                 project.description = request.POST.get('description', project.description)
                 project.service_type = service_type_obj
                 project.business_type = business_type
-                project.design_stage = design_stage
+                project.design_stage = design_stage_obj
 
                 project.client_company_name = request.POST.get('client_company_name', project.client_company_name)
                 project.client_contact_person = request.POST.get('client_contact_person', project.client_contact_person)
@@ -1501,8 +1658,8 @@ def project_edit(request, project_id):
 
                 messages.success(request, '项目信息已更新')
                 if is_draft:
-                    return redirect('project_pages:project_edit', project_id=project.id)
-                return redirect('project_pages:project_detail', project_id=project.id)
+                    return redirect('production_pages:project_edit', project_id=project.id)
+                return redirect('production_pages:project_detail', project_id=project.id)
         except Exception as exc:
             messages.error(request, f'保存失败：{exc}')
             return render(request, 'project_center/project_edit.html', build_project_edit_context(project, permission_set, request.POST, request.user))
@@ -1521,21 +1678,21 @@ def project_complete(request, project_id):
         request,
         permission_set,
         '您没有访问项目信息完善页面的权限。',
-        'project_center.view_all',
-        'project_center.view_assigned',
+        'production_management.view_all',
+        'production_management.view_assigned',
     ):
-        return redirect('home')
+        return redirect('admin:index')
 
     if project.project_manager_id != request.user.id:
         messages.error(request, '仅项目负责人可完善项目信息。')
-        return redirect('project_pages:project_detail', project_id=project.id)
+        return redirect('production_pages:project_detail', project_id=project.id)
 
     read_only = False
 
     if request.method == 'POST':
         if read_only:
             messages.error(request, '当前权限不可修改项目。')
-            return redirect('project_pages:project_complete', project_id=project.id)
+            return redirect('production_pages:project_complete', project_id=project.id)
 
         try:
             with transaction.atomic():
@@ -1585,10 +1742,15 @@ def project_complete(request, project_id):
 
                 _sync_external_members(project)
                 project.save()
+                
+                # 标记"完善项目信息"任务为已完成
+                _complete_project_task(project, 'project_complete_info', actor=request.user)
+                
                 if project.status not in ['draft']:
                     _ensure_project_task(project, 'client_upload_pre_docs', created_by=request.user)
+                
                 messages.success(request, '项目信息已更新。')
-                return redirect('project_pages:project_detail', project_id=project.id)
+                return redirect('production_pages:project_detail', project_id=project.id)
         except Exception as exc:
             logger.exception('项目信息完善失败: %s', exc)
             messages.error(request, f'保存失败：{exc}')
@@ -1614,34 +1776,42 @@ def project_receive(request, project_id):
         request,
         permission_set,
         '您没有接收项目的权限。',
-        'project_center.view_all',
-        'project_center.view_assigned',
-        'project_center.create',
-        'project_center.configure_team',
+        'production_management.view_all',
+        'production_management.view_assigned',
+        'production_management.create',
+        'production_management.configure_team',
     ):
-        return redirect('home')
+        return redirect('admin:index')
 
-    if not _has_permission(permission_set, 'project_center.view_all') and not _user_is_project_member(request.user, project):
+    if not _has_permission(permission_set, 'production_management.view_all') and not _user_is_project_member(request.user, project):
         messages.error(request, '您无权操作该项目。')
-        return redirect('home')
+        return redirect('admin:index')
 
     read_only = _is_project_readonly(permission_set)
+    # 只筛选具有项目经理角色的用户
     project_manager_candidates = User.objects.filter(
         is_active=True,
-        user_type='internal'
-    ).order_by('first_name', 'last_name', 'username')
+        user_type='internal',
+        roles__code='project_manager'
+    ).distinct().order_by('first_name', 'last_name', 'username')
 
     if request.method == 'POST':
         if read_only:
             messages.error(request, '当前权限不可接收项目。')
-            return redirect('project_pages:project_receive', project_id=project.id)
+            return redirect('production_pages:project_receive', project_id=project.id)
 
         manager_id = request.POST.get('project_manager')
         manager = None
         if manager_id:
-            manager = User.objects.filter(id=manager_id, is_active=True).first()
+            # 验证选中的用户是否具有项目经理角色
+            manager = User.objects.filter(
+                id=manager_id,
+                is_active=True,
+                user_type='internal',
+                roles__code='project_manager'
+            ).first()
         if not manager:
-            messages.error(request, '请选择项目经理')
+            messages.error(request, '请选择项目经理（必须具有项目负责人角色）')
         else:
             try:
                 with transaction.atomic():
@@ -1662,9 +1832,58 @@ def project_receive(request, project_id):
                         }
                     )
 
+                    # 创建任务给项目经理
+                    try:
+                        # 创建"完善项目信息"任务
+                        _ensure_project_task(
+                            project=project,
+                            task_type='project_complete_info',
+                            assigned_to=manager,
+                            assigned_role='project_manager',
+                            created_by=request.user,
+                        )
+                        logger.info('已为项目经理 %s 创建"完善项目信息"任务，项目：%s', manager.username, project.project_number)
+                    except Exception as task_exc:
+                        logger.exception('创建"完善项目信息"任务失败: %s', task_exc)
+                    
+                    try:
+                        # 创建"配置项目团队"任务
+                        _ensure_project_task(
+                            project=project,
+                            task_type='configure_team',
+                            assigned_to=manager,
+                            assigned_role='project_manager',
+                            created_by=request.user,
+                        )
+                        logger.info('已为项目经理 %s 创建"配置项目团队"任务，项目：%s', manager.username, project.project_number)
+                    except Exception as task_exc:
+                        logger.exception('创建"配置项目团队"任务失败: %s', task_exc)
+
+                    # 创建通知给项目经理
+                    try:
+                        operator_name = request.user.get_full_name() or request.user.username
+                        project_complete_url = reverse('production_pages:project_complete', args=[project.id])
+                        
+                        _create_team_notification(
+                            project=project,
+                            recipient=manager,
+                            title='项目接收通知',
+                            message=f'您已被指派为《{project.name}》({project.project_number})的项目负责人。请及时完善项目信息并配置团队。',
+                            action_url=project_complete_url,
+                            operator=request.user,
+                            context={
+                                'action': 'assigned_project_manager',
+                                'project_status': project.status,
+                            }
+                        )
+                        logger.info('已为项目经理 %s 创建项目接收通知，项目：%s', manager.username, project.project_number)
+                    except Exception as notif_exc:
+                        # 通知创建失败不影响项目接收，但需要记录日志
+                        logger.exception('创建项目接收通知失败: %s', notif_exc)
+
                     messages.success(request, '项目接收成功，已指派项目经理。')
                     messages.info(request, '请等待项目经理完善项目信息。')
-                    return redirect('project_pages:project_list')
+                    return redirect('production_pages:project_list')
             except Exception as exc:
                 logger.exception('项目接收失败: %s', exc)
                 messages.error(request, f'项目接收失败：{exc}')
@@ -1688,11 +1907,13 @@ def project_team(request, project_id):
     project = get_object_or_404(Project, id=project_id)
 
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有配置项目团队的权限。', 'project_center.configure_team'):
-        return redirect('home')
-    if not _has_permission(permission_set, 'project_center.view_all') and not _user_is_project_member(request.user, project):
+    if not _require_permission(request, permission_set, '您没有配置项目团队的权限。', 'production_management.configure_team'):
+        return redirect('admin:index')
+    # 允许项目经理配置自己负责的项目，或者有 view_all 权限的用户，或者是项目成员
+    is_project_manager = project.project_manager_id == request.user.id
+    if not _has_permission(permission_set, 'production_management.view_all') and not is_project_manager and not _user_is_project_member(request.user, project):
         messages.error(request, '您无权配置该项目团队。')
-        return redirect('home')
+        return redirect('admin:index')
     
     existing_snapshot = list(ProjectTeam.objects.filter(project=project, is_active=True).values_list('user_id', 'role', 'unit', 'is_external', 'service_profession_id'))
 
@@ -1813,18 +2034,46 @@ def project_team(request, project_id):
                 change_details = _log_team_changes(project, request.user, existing_snapshot, new_snapshot)
                 change_summary = _notify_team_change(project, request.user, change_details)
 
+                # 标记"配置项目团队"任务为已完成
+                _complete_project_task(project, 'configure_team', actor=request.user)
+                
+                # 触发产值计算：配置项目团队
+                if project.contract_amount and project.contract_amount > 0:
+                    try:
+                        from django.db import connection
+                        # 检查产值记录表是否存在
+                        with connection.cursor() as cursor:
+                            cursor.execute("""
+                                SELECT EXISTS (
+                                    SELECT FROM information_schema.tables 
+                                    WHERE table_schema = 'public' 
+                                    AND table_name = 'settlement_output_value_record'
+                                );
+                            """)
+                            table_exists = cursor.fetchone()[0]
+                        
+                        if table_exists:
+                            from backend.apps.settlement_center.services import calculate_output_value
+                            # 配置团队的责任人是项目经理
+                            responsible_user = project.project_manager or request.user
+                            calculate_output_value(project, 'configure_team', responsible_user=responsible_user)
+                            logger.info('已为项目 %s 计算"配置项目团队"产值，责任人：%s', project.project_number, responsible_user.username)
+                    except Exception as output_exc:
+                        logger.warning('计算"配置项目团队"产值失败（可能是模块未初始化）: %s', str(output_exc))
+                        # 产值计算失败不影响团队配置流程
+
                 success_message = '团队配置成功！'
                 if change_summary:
                     success_message += f' {change_summary}'
                 messages.success(request, success_message)
-                return redirect('project_pages:project_detail', project_id=project.id)
+                return redirect('production_pages:project_detail', project_id=project.id)
         except ValidationError as exc:
             message_body = format_html(
                 '<div class="text-start"><strong>团队配置校验未通过：</strong><ul class="mb-0 ps-3">{}</ul></div>',
                 format_html_join('', '<li>{}</li>', ((msg,) for msg in exc.messages))
             )
             messages.error(request, message_body)
-            return redirect('project_pages:project_team', project_id=project.id)
+            return redirect('production_pages:project_team', project_id=project.id)
         except Exception as e:
             messages.error(request, f'团队配置失败：{str(e)}')
     
@@ -1975,128 +2224,6 @@ def project_team(request, project_id):
     return render(request, 'project_center/project_team.html', context)
 
 @login_required
-def project_team_config(request):
-    """团队配置总览页面"""
-    permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(
-        request,
-        permission_set,
-        '您没有配置项目团队的权限。',
-        'project_center.configure_team',
-        'project_center.view_all',
-    ):
-        return redirect('home')
-
-    accessible_ids = _project_ids_user_can_access(request.user)
-    projects = (
-        Project.objects.filter(id__in=accessible_ids)
-        .select_related('project_manager', 'business_manager')
-        .prefetch_related('service_professions')
-        .order_by('-updated_time')[:8]
-    )
-    team_queryset = ProjectTeam.objects.filter(project_id__in=accessible_ids, is_active=True)
-    team_counts = team_queryset.values('unit').annotate(total=Count('id')).order_by('-total')
-
-    summary_cards = [
-        {
-            'label': '可配置项目',
-            'value': projects.count(),
-            'hint': '当前您可维护的项目数量',
-        },
-        {
-            'label': '活跃团队成员',
-            'value': team_queryset.count(),
-            'hint': '所有项目的在岗团队成员总数',
-        },
-        {
-            'label': '团队分布单元',
-            'value': team_counts.count(),
-            'hint': '按业务单元划分的团队数量',
-        },
-        {
-            'label': '待补齐专业',
-            'value': project_team_health_indicator(projects),
-            'hint': '缺少负责人或工程师的专业条目',
-        },
-    ]
-
-    sections = [
-        {
-            'title': '快捷操作',
-            'description': '快速进入项目队伍配置、通知和记录查询。',
-            'items': [
-                {
-                    'label': '查看项目列表',
-                    'description': '浏览并筛选所有项目，掌握配置状态。',
-                    'url': reverse('project_pages:project_list'),
-                    'icon': '📋',
-                },
-                {
-                    'label': '创建新项目',
-                    'description': '发起新项目并同步搭建项目团队。',
-                    'url': reverse('project_pages:project_create'),
-                    'icon': '🆕',
-                },
-                {
-                    'label': '团队通知',
-                    'description': '查看团队变更及审批提醒。',
-                    'url': reverse('project_pages:project_list'),
-                    'icon': '🔔',
-                },
-            ],
-        },
-        {
-            'title': '近期项目',
-            'description': '最近更新的项目和负责人概览。',
-            'items': [
-                {
-                    'label': f"{proj.project_number} · {proj.name}",
-                    'description': f"负责人：{proj.project_manager.get_full_name() if proj.project_manager else '待定'}",
-                    'url': reverse('project_pages:project_detail', args=[proj.id]),
-                    'icon': '👥',
-                }
-                for proj in projects
-            ] or [
-                {
-                    'label': '暂无项目',
-                    'description': '当前没有可维护的项目。',
-                    'url': reverse('project_pages:project_create'),
-                    'icon': 'ℹ️',
-                }
-            ],
-        },
-    ]
-
-    context_payload = {
-        'page_title': '项目团队配置',
-        'page_icon': '👥',
-        'description': '统筹项目团队分配与角色配置，确保每个项目具备完整的管理、专业和商务支持阵容。',
-        'summary_cards': summary_cards,
-        'sections': sections,
-    }
-    context = _with_nav(context_payload, permission_set, 'project_team_config', request.user)
-    return render(request, 'shared/center_dashboard.html', context)
-
-
-def project_team_health_indicator(projects):
-    """统计缺少关键角色的项目数量"""
-    missing = 0
-    for project in projects:
-        service_professions = project.service_professions.all()
-        for profession in service_professions:
-            assignments = ProjectTeam.objects.filter(
-                project=project,
-                service_profession=profession,
-                is_active=True,
-            )
-            has_leader = assignments.filter(role__in=['professional_leader', 'external_leader']).exists()
-            has_engineer = assignments.filter(role__in=['engineer', 'external_engineer']).exists()
-            if not has_leader or not has_engineer:
-                missing += 1
-    return missing
-
-
-@login_required
 def project_monitor(request):
     """项目监控驾驶舱"""
     permission_set = get_user_permission_codes(request.user)
@@ -2104,11 +2231,11 @@ def project_monitor(request):
         request,
         permission_set,
         '您没有访问项目监控的权限。',
-        'project_center.monitor',
-        'project_center.view_all',
-        'project_center.view_assigned',
+        'production_management.monitor',
+        'production_management.view_all',
+        'production_management.view_assigned',
     ):
-        return redirect('home')
+        return redirect('admin:index')
 
     dashboard_data = build_project_dashboard_payload(
         request.user,
@@ -2116,28 +2243,7 @@ def project_monitor(request):
         request.GET
     )
 
-    summary_cards = [
-        {
-            'label': '在管项目',
-            'value': dashboard_data['summary'].get('project_count', 0),
-            'hint': '管理中的项目数量',
-        },
-        {
-            'label': '平均进度',
-            'value': f"{dashboard_data['summary'].get('average_progress_percent', 0)}%",
-            'hint': '所有在管项目的平均完成率',
-        },
-        {
-            'label': '风险警报',
-            'value': sum(1 for m in dashboard_data['project_metrics'] if m['risk_score'] >= 80),
-            'hint': '风险评分偏高的项目数',
-        },
-        {
-            'label': '里程碑完成',
-            'value': dashboard_data['summary'].get('milestone_completed_total', 0),
-            'hint': '已完成的里程碑数量',
-        },
-    ]
+    summary_cards = []
 
     trend_items = []
     for metric in dashboard_data['project_metrics'][:6]:
@@ -2145,7 +2251,7 @@ def project_monitor(request):
             {
                 'label': f"{metric['project_number']} · {metric['project_name']}",
                 'description': f"进度 {metric['progress_percent']}% · 健康 {metric['health_score']}",
-                'url': reverse('project_pages:project_detail', args=[metric['project_id']]),
+                'url': reverse('production_pages:project_detail', args=[metric['project_id']]),
                 'icon': '📊',
             }
         )
@@ -2163,7 +2269,7 @@ def project_monitor(request):
                     {
                         'label': '暂无项目趋势',
                         'description': '未检测到需要关注的项目。',
-                        'url': reverse('project_pages:project_list'),
+                        'url': reverse('production_pages:project_list'),
                         'icon': 'ℹ️',
                     }
                 ],
@@ -2175,19 +2281,19 @@ def project_monitor(request):
                     {
                         'label': '项目总览看板',
                         'description': '查看全局概览和数据趋势。',
-                        'url': reverse('project_pages:project_list'),
+                        'url': reverse('production_pages:project_list'),
                         'icon': '🧭',
                     },
                     {
                         'label': '项目归档查询',
                         'description': '访问历史项目资料与归档记录。',
-                        'url': reverse('project_pages:project_query'),
+                        'url': reverse('production_pages:project_list'),
                         'icon': '🗂',
                     },
                     {
                         'label': '导出监控数据',
                         'description': '生成 Excel 报表共享项目状态。',
-                        'url': reverse('project_pages:project_list_export'),
+                        'url': reverse('production_pages:project_list_export'),
                         'icon': '⬇️',
                     },
                 ],
@@ -2200,49 +2306,66 @@ def project_monitor(request):
 
 @login_required
 def project_list(request):
-    """项目总览看板页面"""
+    """项目总览页面（原项目查询）"""
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有查看项目列表的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有查看项目列表的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
 
-    dashboard_data = build_project_dashboard_payload(
-        request.user,
-        permission_set,
-        request.GET
-    )
-
-    selected_filters = dashboard_data['selected_filters']
-
+    # 过滤用户可访问的项目
+    accessible_ids = _project_ids_user_can_access(request.user)
+    projects = Project.objects.filter(id__in=accessible_ids).select_related('service_type', 'business_type', 'project_manager')
+    
+    # 查询条件
+    project_number = request.GET.get('project_number')
+    project_name = request.GET.get('project_name')
+    client_name = request.GET.get('client_name')
+    # 服务类型：兼容单选和多选，安全处理空字符串
+    raw_service_type = (request.GET.get('service_type') or '').strip()
+    if raw_service_type:
+        service_type_ids = [raw_service_type]
+    else:
+        service_type_ids = [v for v in request.GET.getlist('service_type') if (v or '').strip()]
+    status_param = (request.GET.get('status') or '').strip()
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    if project_number:
+        projects = projects.filter(project_number__icontains=project_number)
+    if project_name:
+        projects = projects.filter(name__icontains=project_name)
+    if client_name:
+        projects = projects.filter(client_company_name__icontains=client_name)
+    if service_type_ids:
+        # 过滤掉非数字，避免 ValueError
+        valid_ids = []
+        for v in service_type_ids:
+            try:
+                valid_ids.append(int(v))
+            except (TypeError, ValueError):
+                continue
+        if valid_ids:
+            projects = projects.filter(service_type_id__in=valid_ids)
+    if date_from:
+        projects = projects.filter(created_time__gte=date_from)
+    if date_to:
+        projects = projects.filter(created_time__lte=date_to)
+    if status_param in {'draft', 'in_progress', 'completed', 'archived'}:
+        projects = projects.filter(status=status_param)
+    
     context = _with_nav({
-        'projects': dashboard_data['projects'],
-        'project_metrics': dashboard_data['project_metrics'],
-        'summary': dashboard_data['summary'],
-        'summary_json': dashboard_data['summary_json'],
-        'milestone_summary': dashboard_data['milestone_summary'],
-        'progress_trends': dashboard_data['progress_trends'],
-        'risk_matrix': dashboard_data['risk_matrix'],
-        'quality_distribution': dashboard_data['quality_distribution'],
-        'quality_trend': dashboard_data['quality_trend'],
-        'notifications': dashboard_data['notifications'],
-        'delayed_task_reminders': dashboard_data['delayed_task_reminders'],
-        'quick_actions': dashboard_data['quick_actions'],
-        'project_filters': dashboard_data['filter_projects'],
-        'subsidiary_choices': Project.SUBSIDIARY_CHOICES,
+        'projects': projects,
         'service_types': ServiceType.objects.order_by('order', 'id'),
-        'status_choices': Project.PROJECT_STATUS,
-        'project_managers': User.objects.filter(position__icontains='项目负责人'),
-        'selected_project_id': selected_filters.get('project'),
-        'selected_service_type_id': selected_filters.get('service_type'),
-        'primary_metric': dashboard_data['primary_metric'],
-        'selected_filters': selected_filters,
+        'selected_service_type_ids': service_type_ids,
+        'selected_service_type_id': raw_service_type,
+        'status_selected': status_param,
     }, permission_set, 'project_list', request.user)
     return render(request, 'project_center/project_list.html', context)
 
 @login_required
 def project_list_export(request):
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有导出项目列表的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有导出项目列表的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
 
     payload = build_project_dashboard_payload(
         request.user,
@@ -2288,20 +2411,20 @@ def project_list_export(request):
 def project_detail(request, project_id):
     project = get_object_or_404(
         Project.objects.select_related(
-            'service_type', 'project_manager', 'business_manager', 'created_by'
+            'service_type', 'business_type', 'project_manager', 'business_manager', 'created_by'
         ).prefetch_related('service_professions', 'milestones', 'team_members__user'),
         id=project_id
     )
 
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有查看项目详情的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
-    if not _has_permission(permission_set, 'project_center.view_all') and not _user_is_project_member(request.user, project):
+    if not _require_permission(request, permission_set, '您没有查看项目详情的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
+    if not _has_permission(permission_set, 'production_management.view_all') and not _user_is_project_member(request.user, project):
         messages.error(request, '您无权查看该项目详情。')
-        return redirect('home')
+        return redirect('admin:index')
 
-    team_manage_permitted = _has_permission(permission_set, 'project_center.configure_team')
-    edit_permitted = _has_permission(permission_set, 'project_center.create')
+    team_manage_permitted = _has_permission(permission_set, 'production_management.configure_team')
+    edit_permitted = _has_permission(permission_set, 'production_management.create')
     is_technical_manager = request.user.roles.filter(code='technical_manager').exists() or '技术部经理' in (request.user.position or '')
 
     created_by_display = _format_user_display(getattr(project, 'created_by', None), '—')
@@ -2667,7 +2790,7 @@ def project_detail(request, project_id):
         for log in project.flow_logs.select_related('actor').order_by('-created_time')[:8]
     ]
     can_operate_flow = (
-        _has_permission(permission_set, 'project_center.configure_team', 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.configure_team', 'production_management.view_all')
         or project.project_manager_id == request.user.id
         or project.business_manager_id == request.user.id
         or _user_is_project_member(request.user, project)
@@ -2684,52 +2807,52 @@ def project_detail(request, project_id):
 
     can_submit_drawings = _has_permission(
         permission_set,
-        'project_center.create',
-        'project_center.configure_team',
-        'project_center.view_all'
+        'production_management.create',
+        'production_management.configure_team',
+        'production_management.view_all'
     ) or is_project_manager or is_business_manager or _user_is_project_member(request.user, project)
 
     can_review_drawings = _has_permission(
         permission_set,
-        'project_center.configure_team',
-        'project_center.view_all'
+        'production_management.configure_team',
+        'production_management.view_all'
     ) or is_project_manager
 
     can_manage_start_notice = _has_permission(
         permission_set,
-        'project_center.configure_team',
-        'project_center.view_all'
+        'production_management.configure_team',
+        'production_management.view_all'
     ) or is_project_manager
     is_project_manager = project.project_manager_id == request.user.id
     can_client_upload_pre_docs = (
         _user_matches_role(request.user, project, 'client_lead') or
         _user_matches_role(request.user, project, 'client_engineer') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
     can_submit_design_reply = (
         _user_matches_role(request.user, project, 'design_lead') or
         _user_matches_role(request.user, project, 'design_engineer') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
     can_manage_meeting_log = (
-        _has_permission(permission_set, 'project_center.configure_team') or
+        _has_permission(permission_set, 'production_management.configure_team') or
         is_project_manager or
         is_business_manager
     )
     can_design_upload = can_submit_design_reply
     can_internal_verify = (
-        _has_permission(permission_set, 'project_center.configure_team') or
+        _has_permission(permission_set, 'production_management.configure_team') or
         is_project_manager or
         _user_matches_role(request.user, project, 'professional_leader') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
     can_client_confirm_outcome = (
         _user_matches_role(request.user, project, 'client_lead') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
     show_risk_section = (
         getattr(request.user, 'user_type', 'internal') == 'internal'
-        or _has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        or _has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
     )
 
     active_tasks_queryset = project.tasks.filter(
@@ -2817,7 +2940,7 @@ def project_detail(request, project_id):
             'logs': flow_logs_payload,
             'can_operate': can_operate_flow,
             'available_actions': available_flow_actions,
-            'action_url': reverse('project_pages:project_flow_action', args=[project.id]),
+            'action_url': reverse('production_pages:project_flow_action', args=[project.id]),
         },
         'client_contact': {
             'name': project.client_contact_person,
@@ -2851,7 +2974,7 @@ def project_detail(request, project_id):
 def project_flow_action(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not (_has_permission(permission_set, 'project_center.configure_team', 'project_center.view_all')
+    if not (_has_permission(permission_set, 'production_management.configure_team', 'production_management.view_all')
             or project.project_manager_id == request.user.id
             or project.business_manager_id == request.user.id
             or _user_is_project_member(request.user, project)):
@@ -2907,10 +3030,10 @@ def project_task_action(request, project_id, task_id):
     if not (
         task.assigned_to_id == request.user.id
         or _user_matches_role(request.user, project, task.assigned_role)
-        or _has_permission(permission_set, 'project_center.view_all')
+        or _has_permission(permission_set, 'production_management.view_all')
     ):
         messages.error(request, '您没有权限更新该任务。')
-        return redirect(reverse('project_pages:project_detail', args=[project.id]))
+        return redirect(reverse('production_pages:project_detail', args=[project.id]))
 
     action = request.POST.get('action', 'complete')
     now = timezone.now()
@@ -2924,7 +3047,7 @@ def project_task_action(request, project_id, task_id):
             task.save(update_fields=['status', 'completed_time', 'completed_by', 'updated_time'])
             _handle_task_followups(task, request.user)
             messages.success(request, '任务已标记完成。')
-    elif action == 'cancel' and _has_permission(permission_set, 'project_center.configure_team'):
+    elif action == 'cancel' and _has_permission(permission_set, 'production_management.configure_team'):
         task.status = 'cancelled'
         task.cancelled_time = now
         task.cancelled_by = request.user
@@ -2933,13 +3056,13 @@ def project_task_action(request, project_id, task_id):
     else:
         messages.error(request, '不支持的任务操作。')
 
-    return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}#section-flow")
+    return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}#section-flow")
 
 
 @login_required
 def project_task_dashboard(request):
     permission_set = get_user_permission_codes(request.user)
-    projects_queryset = Project.objects.select_related('service_type', 'project_manager', 'business_manager')
+    projects_queryset = Project.objects.select_related('service_type', 'business_type', 'project_manager', 'business_manager')
     projects = _filter_projects_for_user(projects_queryset, request.user, permission_set)
 
     tasks_queryset = ProjectTask.objects.select_related(
@@ -2975,7 +3098,7 @@ def project_task_dashboard(request):
             'completed_time': task.completed_time,
             'assigned_role_label': ROLE_LABELS.get(task.assigned_role, task.assigned_role),
             'action_url': reverse('project:project_task_action', args=[project.id, task.id]) if project else '#',
-            'project_url': reverse('project_pages:project_detail', args=[project.id]) if project else '#',
+            'project_url': reverse('production_pages:project_detail', args=[project.id]) if project else '#',
             'description': task.description,
         }
 
@@ -3017,16 +3140,16 @@ def project_task_dashboard(request):
 def project_design_reply(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有访问设计方回复的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有访问设计方回复的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
     if not _user_is_project_member(request.user, project):
         messages.error(request, '您无权访问该项目。')
-        return redirect('home')
+        return redirect('admin:index')
 
     can_submit = (
         _user_matches_role(request.user, project, 'design_lead') or
         _user_matches_role(request.user, project, 'design_engineer') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
     replies = ProjectDesignReply.objects.filter(project=project).select_related('submitted_by', 'opinion')
     available_opinions = list(project.opinions.order_by('-created_at')[:200])
@@ -3034,20 +3157,20 @@ def project_design_reply(request, project_id):
     if request.method == 'POST':
         if not can_submit:
             messages.error(request, '您没有提交回复的权限。')
-            return redirect('project_pages:project_design_reply', project_id=project.id)
+            return redirect('production_pages:project_design_reply', project_id=project.id)
         opinion_id = request.POST.get('opinion_id')
         opinion = None
         if opinion_id:
             opinion = project.opinions.filter(id=opinion_id).first()
         if not opinion:
             messages.error(request, '请选择需要回复的具体意见。')
-            return redirect('project_pages:project_design_reply', project_id=project.id)
+            return redirect('production_pages:project_design_reply', project_id=project.id)
         issue_title = (request.POST.get('issue_title') or '').strip()
         status = request.POST.get('status') or 'agree'
         response_detail = (request.POST.get('response_detail') or '').strip()
         if not issue_title:
             messages.error(request, '请填写事项 / 问题。')
-            return redirect('project_pages:project_design_reply', project_id=project.id)
+            return redirect('production_pages:project_design_reply', project_id=project.id)
         reply = ProjectDesignReply.objects.create(
             project=project,
             opinion=opinion,
@@ -3059,7 +3182,7 @@ def project_design_reply(request, project_id):
         _complete_project_task(project, 'design_reply_opinions', actor=request.user)
         _ensure_project_task(project, 'client_confirm_meeting', created_by=request.user)
         messages.success(request, '回复已提交。')
-        return redirect('project_pages:project_design_reply', project_id=project.id)
+        return redirect('production_pages:project_design_reply', project_id=project.id)
 
     context = _with_nav({
         'project': project,
@@ -3075,14 +3198,14 @@ def project_design_reply(request, project_id):
 def project_meeting_log(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有访问会议记录的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有访问会议记录的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
     if not _user_is_project_member(request.user, project):
         messages.error(request, '您无权访问该项目。')
-        return redirect('home')
+        return redirect('admin:index')
 
     can_manage = (
-        _has_permission(permission_set, 'project_center.configure_team') or
+        _has_permission(permission_set, 'production_management.configure_team') or
         project.project_manager_id == request.user.id or
         project.business_manager_id == request.user.id
     )
@@ -3094,7 +3217,7 @@ def project_meeting_log(request, project_id):
         form_type = request.POST.get('form_type', 'meeting')
         if not can_manage:
             messages.error(request, '您没有记录会议的权限。')
-            return redirect('project_pages:project_meeting_log', project_id=project.id)
+            return redirect('production_pages:project_meeting_log', project_id=project.id)
         if form_type == 'decision':
             meeting_id = request.POST.get('meeting_id')
             opinion_id = request.POST.get('opinion_id')
@@ -3103,7 +3226,7 @@ def project_meeting_log(request, project_id):
             opinion = project.opinions.filter(id=opinion_id).first()
             if not meeting or not opinion:
                 messages.error(request, '请选择有效的会议与意见条目。')
-                return redirect('project_pages:project_meeting_log', project_id=project.id)
+                return redirect('production_pages:project_meeting_log', project_id=project.id)
             client_comment = (request.POST.get('decision_client_comment') or '').strip()
             design_comment = (request.POST.get('decision_design_comment') or '').strip()
             consultant_comment = (request.POST.get('decision_consultant_comment') or '').strip()
@@ -3122,7 +3245,7 @@ def project_meeting_log(request, project_id):
             elif decision_obj.decision == 'reject':
                 _ensure_project_task(project, 'design_reply_opinions', created_by=request.user)
             messages.success(request, '已记录该意见的会议结论。')
-            return redirect('project_pages:project_meeting_log', project_id=project.id)
+            return redirect('production_pages:project_meeting_log', project_id=project.id)
         else:
             topic = (request.POST.get('topic') or '').strip()
             meeting_date = request.POST.get('meeting_date') or timezone.now().date()
@@ -3132,7 +3255,7 @@ def project_meeting_log(request, project_id):
             conclusions = (request.POST.get('conclusions') or '').strip()
             if not topic:
                 messages.error(request, '请填写会议主题。')
-                return redirect('project_pages:project_meeting_log', project_id=project.id)
+                return redirect('production_pages:project_meeting_log', project_id=project.id)
             try:
                 meeting_date_value = datetime.datetime.fromisoformat(str(meeting_date)).date()
             except ValueError:
@@ -3151,7 +3274,7 @@ def project_meeting_log(request, project_id):
             _complete_project_task(project, 'organize_tripartite_meeting', actor=request.user)
             _ensure_project_task(project, 'design_upload_revisions', created_by=request.user)
             messages.success(request, '会议记录已保存。')
-            return redirect('project_pages:project_meeting_log', project_id=project.id)
+            return redirect('production_pages:project_meeting_log', project_id=project.id)
 
     context = _with_nav({
         'project': project,
@@ -3168,16 +3291,16 @@ def project_meeting_log(request, project_id):
 def project_client_pre_docs(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有访问资料上传页面的权限。', 'project_center.view_assigned', 'project_center.view_all'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有访问资料上传页面的权限。', 'production_management.view_assigned', 'production_management.view_all'):
+        return redirect('admin:index')
     if not _user_is_project_member(request.user, project):
         messages.error(request, '您无权访问该项目。')
-        return redirect('home')
+        return redirect('admin:index')
 
     can_submit = (
         _user_matches_role(request.user, project, 'client_lead') or
         _user_matches_role(request.user, project, 'client_engineer') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
 
     drawing_status_class_map = {
@@ -3240,7 +3363,7 @@ def project_client_pre_docs(request, project_id):
         'can_submit': can_submit,
         'submissions': submissions,
         'client_tasks': client_tasks,
-        'upload_action_url': reverse('project_pages:project_drawing_submit', args=[project.id]),
+        'upload_action_url': reverse('production_pages:project_drawing_submit', args=[project.id]),
         'drawing_file_categories': [
             {'value': value, 'label': label}
             for value, label in ProjectDrawingFile.FILE_CATEGORIES
@@ -3253,28 +3376,28 @@ def project_client_pre_docs(request, project_id):
 def project_design_upload(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有访问改图上传页面的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有访问改图上传页面的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
     if not _user_is_project_member(request.user, project):
         messages.error(request, '您无权访问该项目。')
-        return redirect('home')
+        return redirect('admin:index')
 
     can_submit = (
         _user_matches_role(request.user, project, 'design_lead') or
         _user_matches_role(request.user, project, 'design_engineer') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
     design_documents = project.documents.filter(document_type='design').order_by('-uploaded_time')[:10]
 
     if request.method == 'POST':
         if not can_submit:
             messages.error(request, '您没有上传改图的权限。')
-            return redirect('project_pages:project_design_upload', project_id=project.id)
+            return redirect('production_pages:project_design_upload', project_id=project.id)
         files = request.FILES.getlist('files')
         note = (request.POST.get('note') or '').strip()
         if not files and not note:
             messages.error(request, '请上传附件或填写改图说明。')
-            return redirect('project_pages:project_design_upload', project_id=project.id)
+            return redirect('production_pages:project_design_upload', project_id=project.id)
         try:
             with transaction.atomic():
                 for uploaded in files:
@@ -3296,7 +3419,7 @@ def project_design_upload(request, project_id):
             _complete_project_task(project, 'design_upload_revisions', actor=request.user)
             _ensure_project_task(project, 'internal_verify_revisions', created_by=request.user)
             messages.success(request, '改图信息已提交，等待我方核图。')
-            return redirect('project_pages:project_design_upload', project_id=project.id)
+            return redirect('production_pages:project_design_upload', project_id=project.id)
         except Exception as exc:
             logger.exception('设计方上传改图失败: %s', exc)
             messages.error(request, f'上传失败：{exc}')
@@ -3313,24 +3436,24 @@ def project_design_upload(request, project_id):
 def project_internal_verify(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有访问核图页面的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有访问核图页面的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
     if not _user_is_project_member(request.user, project):
         messages.error(request, '您无权访问该项目。')
-        return redirect('home')
+        return redirect('admin:index')
 
     can_verify = (
-        _has_permission(permission_set, 'project_center.configure_team') or
+        _has_permission(permission_set, 'production_management.configure_team') or
         project.project_manager_id == request.user.id or
         _user_matches_role(request.user, project, 'professional_leader') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
     design_documents = project.documents.filter(document_type='design').order_by('-uploaded_time')[:10]
 
     if request.method == 'POST':
         if not can_verify:
             messages.error(request, '您没有执行核图的权限。')
-            return redirect('project_pages:project_internal_verify', project_id=project.id)
+            return redirect('production_pages:project_internal_verify', project_id=project.id)
         result = request.POST.get('result') or 'approved'
         note = (request.POST.get('note') or '').strip()
         ProjectFlowLog.objects.create(
@@ -3347,7 +3470,7 @@ def project_internal_verify(request, project_id):
         else:
             _ensure_project_task(project, 'design_upload_revisions', created_by=request.user)
             messages.warning(request, '已退回设计方补充改图。')
-        return redirect('project_pages:project_internal_verify', project_id=project.id)
+        return redirect('production_pages:project_internal_verify', project_id=project.id)
 
     context = _with_nav({
         'project': project,
@@ -3361,21 +3484,21 @@ def project_internal_verify(request, project_id):
 def project_client_confirm_outcome(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有访问成果确认页面的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
+    if not _require_permission(request, permission_set, '您没有访问成果确认页面的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
     if not _user_is_project_member(request.user, project):
         messages.error(request, '您无权访问该项目。')
-        return redirect('home')
+        return redirect('admin:index')
 
     can_confirm = (
         _user_matches_role(request.user, project, 'client_lead') or
-        _has_permission(permission_set, 'project_center.view_all')
+        _has_permission(permission_set, 'production_management.view_all')
     )
 
     if request.method == 'POST':
         if not can_confirm:
             messages.error(request, '您没有确认成果的权限。')
-            return redirect('project_pages:project_client_confirm_outcome', project_id=project.id)
+            return redirect('production_pages:project_client_confirm_outcome', project_id=project.id)
         result = request.POST.get('result') or 'accepted'
         comment = (request.POST.get('comment') or '').strip()
         ProjectFlowLog.objects.create(
@@ -3395,7 +3518,7 @@ def project_client_confirm_outcome(request, project_id):
         else:
             _ensure_project_task(project, 'internal_verify_revisions', created_by=request.user)
             messages.warning(request, '已退回我方继续核图/整改。')
-        return redirect('project_pages:project_client_confirm_outcome', project_id=project.id)
+        return redirect('production_pages:project_client_confirm_outcome', project_id=project.id)
 
     context = _with_nav({
         'project': project,
@@ -3409,17 +3532,17 @@ def project_client_confirm_outcome(request, project_id):
 def project_drawing_submit(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not (_has_permission(permission_set, 'project_center.create', 'project_center.configure_team', 'project_center.view_all')
+    if not (_has_permission(permission_set, 'production_management.create', 'production_management.configure_team', 'production_management.view_all')
             or _user_is_project_member(request.user, project)
             or project.project_manager_id == request.user.id
             or project.business_manager_id == request.user.id):
         messages.error(request, '您没有提交图纸的权限。')
-        return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+        return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     title = (request.POST.get('title') or '').strip()
     if not title:
         messages.error(request, '请填写图纸提交标题。')
-        return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+        return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     version = (request.POST.get('version') or '').strip()
     description = (request.POST.get('description') or '').strip()
@@ -3431,7 +3554,7 @@ def project_drawing_submit(request, project_id):
             review_deadline = datetime.datetime.fromisoformat(review_deadline_str)
         except ValueError:
             messages.error(request, '预审截止时间格式不正确，请使用有效的日期时间。')
-            return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+            return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     files = request.FILES.getlist('files')
     file_category = request.POST.get('file_category') or 'general'
@@ -3472,7 +3595,7 @@ def project_drawing_submit(request, project_id):
     )
 
     messages.success(request, '图纸提交已创建，预审流程开始。')
-    return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+    return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
 
 @login_required
@@ -3481,17 +3604,17 @@ def project_drawing_review(request, project_id, submission_id):
     project = get_object_or_404(Project, id=project_id)
     submission = get_object_or_404(ProjectDrawingSubmission, id=submission_id, project=project)
     permission_set = get_user_permission_codes(request.user)
-    if not (_has_permission(permission_set, 'project_center.configure_team', 'project_center.view_all')
+    if not (_has_permission(permission_set, 'production_management.configure_team', 'production_management.view_all')
             or project.project_manager_id == request.user.id
             or _user_is_project_member(request.user, project)):
         messages.error(request, '您没有执行预审的权限。')
-        return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+        return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     result = request.POST.get('result')
     allowed_results = {value for value, _ in ProjectDrawingReview.RESULT_CHOICES}
     if result not in allowed_results:
         messages.error(request, '请选择有效的预审结果。')
-        return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+        return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     comment = (request.POST.get('comment') or '').strip()
     now = timezone.now()
@@ -3531,7 +3654,7 @@ def project_drawing_review(request, project_id, submission_id):
         _ensure_project_task(project, 'client_resubmit_pre_docs', created_by=request.user)
 
     messages.success(request, f'预审处理完成：{dict(ProjectDrawingReview.RESULT_CHOICES).get(result, result)}。')
-    return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+    return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
 
 @login_required
@@ -3540,12 +3663,12 @@ def project_drawing_action(request, project_id, submission_id):
     project = get_object_or_404(Project, id=project_id)
     submission = get_object_or_404(ProjectDrawingSubmission, id=submission_id, project=project)
     permission_set = get_user_permission_codes(request.user)
-    if not (_has_permission(permission_set, 'project_center.configure_team', 'project_center.view_all')
+    if not (_has_permission(permission_set, 'production_management.configure_team', 'production_management.view_all')
             or project.project_manager_id == request.user.id
             or project.business_manager_id == request.user.id
             or _user_is_project_member(request.user, project)):
         messages.error(request, '您没有执行该操作的权限。')
-        return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+        return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     action = request.POST.get('action')
     now = timezone.now()
@@ -3569,7 +3692,7 @@ def project_drawing_action(request, project_id, submission_id):
     else:
         messages.error(request, '不支持的操作类型。')
 
-    return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+    return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
 
 @login_required
@@ -3577,16 +3700,16 @@ def project_drawing_action(request, project_id, submission_id):
 def project_start_notice_create(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     permission_set = get_user_permission_codes(request.user)
-    if not (_has_permission(permission_set, 'project_center.configure_team', 'project_center.view_all')
+    if not (_has_permission(permission_set, 'production_management.configure_team', 'production_management.view_all')
             or project.project_manager_id == request.user.id):
         messages.error(request, '您没有创建开工通知的权限。')
-        return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+        return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     subject = (request.POST.get('subject') or '').strip()
     message_content = (request.POST.get('message') or '').strip()
     if not subject or not message_content:
         messages.error(request, '请填写完整的通知主题和内容。')
-        return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+        return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     channel = request.POST.get('channel') or 'system'
     submission_id = request.POST.get('submission_id')
@@ -3620,7 +3743,7 @@ def project_start_notice_create(request, project_id):
     )
 
     messages.success(request, '开工通知已草拟，可在下方列表中发送。')
-    return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+    return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
 
 @login_required
@@ -3629,10 +3752,10 @@ def project_start_notice_action(request, project_id, notice_id):
     project = get_object_or_404(Project, id=project_id)
     notice = get_object_or_404(ProjectStartNotice, id=notice_id, project=project)
     permission_set = get_user_permission_codes(request.user)
-    if not (_has_permission(permission_set, 'project_center.configure_team', 'project_center.view_all')
+    if not (_has_permission(permission_set, 'production_management.configure_team', 'production_management.view_all')
             or project.project_manager_id == request.user.id):
         messages.error(request, '您没有更新开工通知的权限。')
-        return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+        return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
     action = request.POST.get('action')
     now = timezone.now()
@@ -3684,44 +3807,9 @@ def project_start_notice_action(request, project_id, notice_id):
     else:
         messages.error(request, '不支持的操作类型。')
 
-    return redirect(f"{reverse('project_pages:project_detail', args=[project.id])}?tab=launch")
+    return redirect(f"{reverse('production_pages:project_detail', args=[project.id])}?tab=launch")
 
 
-@login_required
-def project_query(request):
-    """项目信息查询页面"""
-    projects = Project.objects.select_related('service_type', 'project_manager')
-    
-    # 查询条件
-    project_number = request.GET.get('project_number')
-    project_name = request.GET.get('project_name')
-    client_name = request.GET.get('client_name')
-    service_type_ids = request.GET.getlist('service_type')
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-    
-    if project_number:
-        projects = projects.filter(project_number__icontains=project_number)
-    if project_name:
-        projects = projects.filter(name__icontains=project_name)
-    if client_name:
-        projects = projects.filter(client_company_name__icontains=client_name)
-    if service_type_ids:
-        projects = projects.filter(service_type_id__in=service_type_ids)
-    if date_from:
-        projects = projects.filter(created_time__gte=date_from)
-    if date_to:
-        projects = projects.filter(created_time__lte=date_to)
-    
-    permission_set = get_user_permission_codes(request.user)
-    if not _require_permission(request, permission_set, '您没有查看项目的权限。', 'project_center.view_all', 'project_center.view_assigned'):
-        return redirect('home')
-    context = _with_nav({
-        'projects': projects,
-        'service_types': ServiceType.objects.order_by('order', 'id'),
-        'selected_service_type_ids': service_type_ids,
-    }, permission_set, 'project_query', request.user)
-    return render(request, 'project_center/project_query.html', context)
 
 @login_required
 def project_archive(request, project_id):
@@ -3729,9 +3817,9 @@ def project_archive(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     
     permission_set = get_user_permission_codes(request.user)
-    if not _has_permission(permission_set, 'project_center.archive'):
+    if not _has_permission(permission_set, 'production_management.archive'):
         messages.error(request, '您没有归档项目的权限。')
-        return redirect('home')
+        return redirect('admin:index')
 
     if request.method == 'POST':
         try:
@@ -3763,7 +3851,7 @@ def project_archive(request, project_id):
             project.save()
             
             messages.success(request, '项目归档成功！')
-            return redirect('project_pages:project_list')
+            return redirect('production_pages:project_list')
         except Exception as e:
             messages.error(request, f'归档失败：{str(e)}')
     
@@ -3837,12 +3925,13 @@ def project_import_admin(request):
     permission_set = get_user_permission_codes(request.user)
     if not _is_system_admin(request.user):
         messages.error(request, '仅系统管理员可以执行项目导入。')
-        return redirect('home')
+        return redirect('admin:index')
 
     if request.GET.get('download') == 'template':
         subsidiary_sample_label = Project.SUBSIDIARY_CHOICES[0][1] if Project.SUBSIDIARY_CHOICES else ''
         service_type_sample_obj = ServiceType.objects.order_by('id').first()
-        design_stage_sample_label = Project.DESIGN_STAGES[0][1] if Project.DESIGN_STAGES else ''
+        design_stage_sample_obj = DesignStage.objects.filter(is_active=True).order_by('order', 'id').first()
+        design_stage_sample_label = design_stage_sample_obj.name if design_stage_sample_obj else ''
         status_label_map = dict(Project.PROJECT_STATUS)
         status_sample_label = status_label_map.get('waiting_receive', '待接收')
         columns = [
@@ -3875,10 +3964,15 @@ def project_import_admin(request):
         ])
         return response
 
+    # 从数据库读取图纸阶段选项
+    design_stages = DesignStage.objects.filter(is_active=True).order_by('order', 'id')
+    design_stages_choices = [(str(ds.id), ds.name) for ds in design_stages]
+    
     context = {
         'allowed_subsidiaries': Project.SUBSIDIARY_CHOICES,
         'service_types': ServiceType.objects.order_by('order', 'id'),
-        'design_stages': Project.DESIGN_STAGES,
+        'design_stages': design_stages_choices,
+        'design_stages_objects': design_stages,
         'business_types': Project.BUSINESS_TYPES,
         'status_choices': Project.PROJECT_STATUS,
         'import_results': None,
@@ -3961,10 +4055,11 @@ def project_import_admin(request):
                         subsidiary_label_map = {
                             (label or '').strip(): code for code, label in Project.SUBSIDIARY_CHOICES
                         }
-                        design_stage_codes = {code for code, _ in Project.DESIGN_STAGES}
-                        design_stage_label_map = {
-                            (label or '').strip(): code for code, label in Project.DESIGN_STAGES
-                        }
+                        # 从数据库读取图纸阶段映射
+                        design_stage_objects = DesignStage.objects.filter(is_active=True)
+                        design_stage_id_map = {str(ds.id): ds for ds in design_stage_objects}
+                        design_stage_code_map = {ds.code: ds for ds in design_stage_objects}
+                        design_stage_name_map = {ds.name: ds for ds in design_stage_objects}
                         status_label_map = {
                             (label or '').strip(): code for code, label in Project.PROJECT_STATUS
                         }
@@ -3996,11 +4091,19 @@ def project_import_admin(request):
 
                                     business_type = get_value(row, 'business_type') or None
                                     design_stage_raw = get_value(row, 'design_stage')
-                                    design_stage = design_stage_raw
-                                    if design_stage and design_stage not in design_stage_codes:
-                                        design_stage = design_stage_label_map.get(design_stage_raw)
-                                    if design_stage and design_stage not in design_stage_codes:
-                                        raise ValueError(f'图纸阶段取值无效：{design_stage_raw}')
+                                    design_stage_obj = None
+                                    if design_stage_raw:
+                                        # 尝试通过ID查找
+                                        if design_stage_raw in design_stage_id_map:
+                                            design_stage_obj = design_stage_id_map[design_stage_raw]
+                                        # 尝试通过编码查找
+                                        elif design_stage_raw in design_stage_code_map:
+                                            design_stage_obj = design_stage_code_map[design_stage_raw]
+                                        # 尝试通过名称查找
+                                        elif design_stage_raw in design_stage_name_map:
+                                            design_stage_obj = design_stage_name_map[design_stage_raw]
+                                        if not design_stage_obj:
+                                            raise ValueError(f'图纸阶段取值无效：{design_stage_raw}')
 
                                     business_manager_phone = get_value(row, 'business_manager_phone')
                                     if not business_manager_phone:
@@ -4034,7 +4137,7 @@ def project_import_admin(request):
                                         subsidiary=subsidiary,
                                         service_type=service_type,
                                         business_type=business_type,
-                                        design_stage=design_stage,
+                                        design_stage=design_stage_obj,
                                         business_manager=business_manager,
                                         project_manager=project_manager if status_code != 'waiting_receive' else None,
                                         status=status_code,
@@ -4126,4 +4229,108 @@ def _build_service_timeline(project, milestone_list):
             stages[current_index]["status"] = "current"
     completion_rate = int(round(completed / len(stages) * 100)) if stages else 0
     return stages, completion_rate
+
+
+@login_required
+def production_management(request):
+    """生产管理主页面"""
+    permission_set = get_user_permission_codes(request.user)
+    if not _require_permission(request, permission_set, '您没有查看生产管理的权限。', 'production_management.view_all', 'production_management.view_assigned'):
+        return redirect('admin:index')
+    
+    # 获取用户可访问的项目
+    accessible_ids = _project_ids_user_can_access(request.user)
+    projects = Project.objects.filter(id__in=accessible_ids).select_related(
+        'service_type', 'project_manager', 'business_manager'
+    ).prefetch_related('service_professions', 'team_members__user')
+    
+    # 查询条件
+    project_number = request.GET.get('project_number', '').strip()
+    project_name = request.GET.get('project_name', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    flow_step_filter = request.GET.get('flow_step', '').strip()
+    
+    if project_number:
+        projects = projects.filter(project_number__icontains=project_number)
+    if project_name:
+        projects = projects.filter(name__icontains=project_name)
+    if status_filter:
+        projects = projects.filter(status=status_filter)
+    if flow_step_filter:
+        projects = projects.filter(current_flow_step=flow_step_filter)
+    
+    # 只显示已开工或进行中的项目
+    production_projects = projects.filter(
+        status__in=['in_progress', 'waiting_start', 'configuring']
+    ).order_by('-updated_time')
+    
+    # 统计信息
+    total_projects = production_projects.count()
+    in_progress_count = production_projects.filter(status='in_progress').count()
+    waiting_start_count = production_projects.filter(status='waiting_start').count()
+    configuring_count = production_projects.filter(status='configuring').count()
+    
+    # 意见统计（如果 Opinion 模型可用）
+    opinion_stats = {}
+    if Opinion:
+        try:
+            opinion_projects = Opinion.objects.filter(
+                project_id__in=accessible_ids
+            ).values('project_id', 'status').annotate(count=Count('id'))
+            
+            for stat in opinion_projects:
+                project_id = stat['project_id']
+                if project_id not in opinion_stats:
+                    opinion_stats[project_id] = {}
+                opinion_stats[project_id][stat['status']] = stat['count']
+        except Exception as e:
+            logger.warning(f'获取意见统计失败: {e}')
+    
+    # 任务统计
+    task_stats = {}
+    try:
+        active_tasks = ProjectTask.objects.filter(
+            project_id__in=accessible_ids,
+            status__in=ProjectTask.ACTIVE_STATUSES
+        ).values('project_id').annotate(count=Count('id'))
+        
+        for stat in active_tasks:
+            task_stats[stat['project_id']] = stat['count']
+    except Exception as e:
+        logger.warning(f'获取任务统计失败: {e}')
+    
+    # 为每个项目添加统计信息
+    project_list = []
+    for project in production_projects[:50]:  # 限制显示数量
+        project_data = {
+            'project': project,
+            'opinion_count': sum(opinion_stats.get(project.id, {}).values()) if project.id in opinion_stats else 0,
+            'opinion_stats': opinion_stats.get(project.id, {}),
+            'task_count': task_stats.get(project.id, 0),
+        }
+        project_list.append(project_data)
+    
+    # 流程步骤统计
+    flow_step_stats = {}
+    for project in production_projects:
+        step = project.current_flow_step or 'unknown'
+        flow_step_stats[step] = flow_step_stats.get(step, 0) + 1
+    
+    context = _with_nav({
+        'page_title': '生产管理',
+        'projects': project_list,
+        'total_projects': total_projects,
+        'in_progress_count': in_progress_count,
+        'waiting_start_count': waiting_start_count,
+        'configuring_count': configuring_count,
+        'flow_step_stats': flow_step_stats,
+        'status_filter': status_filter,
+        'flow_step_filter': flow_step_filter,
+        'project_number': project_number,
+        'project_name': project_name,
+        'FLOW_STEPS': Project.FLOW_STEPS,
+        'PROJECT_STATUS': Project.PROJECT_STATUS,
+    }, permission_set, 'production_management', request.user, request=request)
+    
+    return render(request, 'project_center/production_management.html', context)
 

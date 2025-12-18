@@ -1,0 +1,174 @@
+{% extends "administrative_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'admin_pages:supplies_management' %}">办公用品</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .center-hero {
+        background: linear-gradient(135deg, rgba(20,47,91,0.95), rgba(31,62,124,0.92));
+        border-radius: 24px;
+        padding: 32px 36px;
+        color: #fff;
+        box-shadow: 0 24px 60px rgba(20, 47, 91, 0.18);
+        margin-bottom: 24px;
+    }
+    .hero-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.18);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        margin-bottom: 12px;
+    }
+    .content-card {
+        background: var(--vh-card-bg);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid rgba(20, 47, 91, 0.08);
+    }
+    .category-tree {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .category-item {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+        background: var(--vh-surface);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--vh-border-light);
+        transition: all var(--transition-base);
+    }
+    .category-item:hover {
+        background: var(--vh-card-bg);
+        box-shadow: var(--shadow-sm);
+    }
+    .category-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .category-name {
+        font-weight: 500;
+        color: var(--vh-text);
+    }
+    .category-code {
+        font-size: var(--font-size-sm);
+        color: var(--vh-text-muted);
+        font-family: monospace;
+    }
+    .category-children {
+        margin-left: var(--spacing-xl);
+        margin-top: var(--spacing-sm);
+        padding-left: var(--spacing-md);
+        border-left: 2px solid var(--vh-border-light);
+    }
+    .badge-status {
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-size: var(--font-size-xs);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="center-hero">
+        <h1 class="hero-title">{{ page_title }}</h1>
+        <p class="hero-subtitle">{{ description }}</p>
+    </div>
+
+
+    <div class="content-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0">分类列表</h3>
+            <a href="{% url 'admin_pages:supply_category_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 创建分类
+            </a>
+        </div>
+
+        <!-- 分类树 -->
+        {% if category_tree %}
+        <ul class="category-tree">
+            {% for category in category_tree %}
+            <li class="category-item">
+                <div class="category-header">
+                    <div>
+                        <span class="category-name">{{ category.name }}</span>
+                        <span class="category-code ms-2">({{ category.code }})</span>
+                        {% if not category.is_active %}
+                        <span class="badge-status bg-secondary ms-2">停用</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <a href="{% url 'admin_pages:supply_category_update' category.id %}" class="btn btn-sm btn-outline-secondary" title="编辑">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if not category.children.exists and not category.supplies.exists %}
+                        <a href="{% url 'admin_pages:supply_category_delete' category.id %}" class="btn btn-sm btn-outline-danger" title="删除">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if category.description %}
+                <div class="mt-2 text-muted small">{{ category.description }}</div>
+                {% endif %}
+                {% if category.children_list %}
+                <ul class="category-children">
+                    {% for child in category.children_list %}
+                    <li class="category-item">
+                        <div class="category-header">
+                            <div>
+                                <span class="category-name">{{ child.name }}</span>
+                                <span class="category-code ms-2">({{ child.code }})</span>
+                                {% if not child.is_active %}
+                                <span class="badge-status bg-secondary ms-2">停用</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <a href="{% url 'admin_pages:supply_category_update' child.id %}" class="btn btn-sm btn-outline-secondary" title="编辑">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if not child.children.exists and not child.supplies.exists %}
+                                <a href="{% url 'admin_pages:supply_category_delete' child.id %}" class="btn btn-sm btn-outline-danger" title="删除">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if child.description %}
+                        <div class="mt-2 text-muted small">{{ child.description }}</div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📁</div>
+            <div class="empty-state-title">暂无分类</div>
+            <div class="empty-state-text">
+                当前没有用品分类，请先创建分类。
+            </div>
+            <a href="{% url 'admin_pages:supply_category_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 创建第一个分类
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

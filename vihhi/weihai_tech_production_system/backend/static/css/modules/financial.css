@@ -1,0 +1,156 @@
+/**
+ * 财务管理模块样式
+ * 维海科技信息化管理平台
+ * 版本: 3.0
+ */
+
+/* ============================================
+   财务管理模块布局
+   ============================================ */
+
+/* 主布局 */
+.financial-management-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+/* 侧边栏 */
+.financial-sidebar {
+    background: var(--vh-card-bg);
+    border-radius: 0 !important;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--vh-border);
+    height: fit-content;
+    position: sticky;
+    top: calc(56px + var(--spacing-md));
+}
+
+.financial-nav-links {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-sm);
+}
+
+/* 导航链接 */
+.financial-nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 0;
+    color: var(--vh-text);
+    text-decoration: none;
+    transition: all var(--transition-base);
+    font-size: var(--font-size-base);
+    margin-bottom: var(--spacing-xs);
+}
+
+.financial-nav-link:hover {
+    background-color: var(--vh-surface);
+    color: var(--vh-primary);
+    transform: translateX(4px);
+    text-decoration: none;
+}
+
+.financial-nav-link.active {
+    background-color: rgba(31, 42, 87, 0.1);
+    color: var(--vh-primary);
+    font-weight: 500;
+    border-left: 3px solid var(--vh-primary);
+}
+
+.financial-nav-link .nav-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.financial-nav-link .nav-label {
+    flex: 1;
+}
+
+.financial-nav-link .nav-arrow {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.financial-nav-item.active .nav-arrow {
+    transform: rotate(180deg);
+}
+
+/* 子导航 */
+.financial-subnav {
+    display: none;
+    padding-left: var(--spacing-md);
+    margin-top: var(--spacing-xs);
+}
+
+.financial-subnav.show {
+    display: block;
+}
+
+.financial-subnav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: 0;
+    color: var(--vh-text-muted);
+    text-decoration: none;
+    transition: all var(--transition-base);
+    font-size: 13px;
+    margin-bottom: var(--spacing-xs);
+}
+
+.financial-subnav-link:hover {
+    background-color: var(--vh-surface);
+    color: var(--vh-primary);
+    text-decoration: none;
+}
+
+.financial-subnav-link.active {
+    background-color: rgba(31, 42, 87, 0.08);
+    color: var(--vh-primary);
+    font-weight: 500;
+}
+
+.subnav-indent {
+    color: var(--vh-text-muted);
+    font-size: 12px;
+}
+
+.subnav-label {
+    flex: 1;
+}
+
+/* 内容区域 */
+.financial-content {
+    min-height: 400px;
+}
+
+/* ============================================
+   响应式设计
+   ============================================ */
+@media (max-width: 768px) {
+    .financial-management-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .financial-sidebar {
+        position: relative;
+        top: 0;
+    }
+    
+    .financial-nav-links {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: var(--spacing-xs);
+    }
+    
+    .financial-nav-link {
+        white-space: nowrap;
+        margin-bottom: 0;
+        margin-right: var(--spacing-xs);
+    }
+}

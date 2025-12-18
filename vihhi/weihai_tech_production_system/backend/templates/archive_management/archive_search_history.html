@@ -1,0 +1,216 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案检索历史 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:project_archive_list' %}">档案管理</a></li>
+<li class="breadcrumb-item"><a href="#">档案检索</a></li>
+<li class="breadcrumb-item active">检索历史</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📜 档案检索历史</h2>
+            <p class="text-muted mb-0">查看您的检索历史记录，支持检索条件复用</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-danger" onclick="clearHistory()">
+                <i class="bi bi-trash"></i> 清空历史
+            </button>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="info-card info-card-primary">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">全部检索</div>
+                            <div class="info-value info-value-large">{{ total_count|default:0 }}</div>
+                        </div>
+                        <div class="text-primary" style="font-size: 2rem;">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="info-card info-card-info">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">全文检索</div>
+                            <div class="info-value info-value-large">{{ fulltext_count|default:0 }}</div>
+                        </div>
+                        <div class="text-info" style="font-size: 2rem;">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="info-card info-card-success">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">高级检索</div>
+                            <div class="info-value info-value-large">{{ advanced_count|default:0 }}</div>
+                        </div>
+                        <div class="text-success" style="font-size: 2rem;">
+                            <i class="bi bi-sliders"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 检索历史列表 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">检索历史列表</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-secondary">共 {{ page.paginator.count }} 条</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            <!-- 筛选器 -->
+            <form method="get" class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">检索类型</label>
+                    <select name="search_type" class="form-select">
+                        <option value="">全部</option>
+                        <option value="fulltext" {% if search_type == 'fulltext' %}selected{% endif %}>全文检索</option>
+                        <option value="advanced" {% if search_type == 'advanced' %}selected{% endif %}>高级检索</option>
+                        <option value="simple" {% if search_type == 'simple' %}selected{% endif %}>简单检索</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> 筛选
+                    </button>
+                </div>
+            </form>
+
+            <!-- 历史记录列表 -->
+            {% if page.object_list %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>检索时间</th>
+                            <th>检索类型</th>
+                            <th>检索关键词/条件</th>
+                            <th>检索范围</th>
+                            <th>结果数量</th>
+                            <th>检索耗时</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for history in page.object_list %}
+                        <tr>
+                            <td>{{ history.search_time|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                <span class="badge bg-{% if history.search_type == 'fulltext' %}info{% elif history.search_type == 'advanced' %}success{% else %}secondary{% endif %}">
+                                    {{ history.get_search_type_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if history.search_keyword %}
+                                    <strong>{{ history.search_keyword }}</strong>
+                                {% elif history.search_conditions %}
+                                    <small class="text-muted">高级检索条件</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ history.search_range|default:"全部" }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ history.result_count }}</span>
+                            </td>
+                            <td>
+                                {% if history.search_duration %}
+                                    {{ history.search_duration|floatformat:3 }} 秒
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="reuseSearch({{ history.id }})" title="复用检索">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-info" onclick="viewSearchDetail({{ history.id }})" title="查看详情">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if page.has_other_pages %}
+            <nav aria-label="分页导航">
+                <ul class="pagination justify-content-center">
+                    {% if page.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page.previous_page_number }}{% if search_type %}&search_type={{ search_type }}{% endif %}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page.paginator.page_range %}
+                    {% if page.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page.number|add:'-3' and num < page.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if search_type %}&search_type={{ search_type }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page.next_page_number }}{% if search_type %}&search_type={{ search_type }}{% endif %}">下一页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 暂无检索历史记录。
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function reuseSearch(historyId) {
+    alert('复用检索功能正在开发中，历史ID: ' + historyId);
+}
+
+function viewSearchDetail(historyId) {
+    alert('查看检索详情功能正在开发中，历史ID: ' + historyId);
+}
+
+function clearHistory() {
+    if (confirm('确定要清空所有检索历史吗？此操作不可恢复。')) {
+        alert('清空历史功能正在开发中');
+    }
+}
+</script>
+{% endblock %}

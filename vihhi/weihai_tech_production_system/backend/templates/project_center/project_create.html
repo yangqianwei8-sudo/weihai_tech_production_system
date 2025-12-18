@@ -1,38 +1,158 @@
 {% extends "project_center/base.html" %}
 {% load static %}
 
-{% block title %}新建项目 - 维海科技生产信息化管理系统{% endblock %}
+{% block title %}新建项目 - 维海科技信息化管理平台{% endblock %}
 
 {% block content %}
+{% block breadcrumb %}{% endblock %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<div class="project-create container-fluid py-4">
+{% block extra_css %}
+<style>
+    /* 版面与卡片 */
+    .project-create__layout{
+        display: grid;
+        grid-template-columns: 1fr !important; /* 强制单列铺满 */
+        gap: 12px;
+    }
+    .project-create__main{ width:100% !important; }
+    .project-create .stepper,
+    .project-create .step-card{ width:100% !important; }
+    .project-create .stepper__content{ width:100%; }
+    .project-create.container-fluid{ padding-left:16px; padding-right:16px; }
+    .project-create .card{
+        border-radius: 16px;
+        box-shadow: 0 10px 26px rgba(15,30,58,.06);
+        transition: box-shadow .2s ease, transform .2s ease;
+    }
+    .project-create .card:hover{
+        transform: translateY(-1px);
+        box-shadow: 0 22px 44px rgba(15,30,58,.18);
+    }
+    .project-create .card-header{
+        border-radius: 16px 16px 0 0;
+        background: linear-gradient(180deg,#F2F5FB,#fff);
+        padding: 10px 16px;
+    }
+    .project-create .card-body{ padding: 16px 18px; }
+    /* Stepper */
+    .stepper__header{
+        display:flex;justify-content:space-between;align-items:center;padding:12px 16px;
+    }
+    .stepper__progress{height:6px;background:#eef2ff;border-radius:999px;overflow:hidden;margin:0 16px;}
+    .stepper__progress-bar{
+        height:100%;
+        background: linear-gradient(90deg,#1F2A57,#0F1E3A);
+        transition: width .35s ease;
+    }
+    .stepper__steps{display:flex;gap:10px;padding:10px 16px 14px;}
+    .stepper__step{
+        border:none;background:transparent;display:flex;align-items:center;gap:8px;color:#1F2A57;opacity:.6;
+    }
+    .stepper__step--active{opacity:1}
+    .stepper__index{
+        width:26px;height:26px;border-radius:50%;
+        display:inline-flex;align-items:center;justify-content:center;
+        background:#1F2A57;color:#fff;font-weight:600;box-shadow:0 6px 14px rgba(31,42,87,.25);
+    }
+    /* 表单交互 */
+    .project-create input.form-control,
+    .project-create textarea.form-control,
+    .project-create select.form-select{
+        border-radius: 12px;
+        padding: 8px 12px;
+        transition: box-shadow .2s ease, border-color .2s ease, transform .12s ease;
+    }
+    .project-create input.form-control:focus,
+    .project-create textarea.form-control:focus,
+    .project-create select.form-select:focus{
+        border-color:#1F2A57;
+        box-shadow: 0 0 0 3px rgba(31,42,87,.15);
+    }
+    .project-create label.form-label{ margin-bottom: 6px; }
+    .project-create .row.g-4{ row-gap: 12px; }
+    /* 主按钮微动效 */
+    .project-create .btn-primary{border-radius:12px;transition:transform .15s ease, box-shadow .15s ease; padding:8px 14px;}
+    .project-create .btn-primary:hover{transform: translateY(-1px); box-shadow:0 10px 20px rgba(201,43,43,.25);}
+    .project-create .btn-outline-primary{border-radius:12px; padding:8px 14px;}
+    /* 小提示样式 */
+    .form-text.text-muted{font-size:12px;color:#6b7280 !important}
+    /* 段落小标题强调条 */
+    .step-card .card-header h5{
+        position:relative;padding-left:10px;margin:0;
+    }
+    .step-card .card-header h5:before{
+        content:"";position:absolute;left:0;top:4px;bottom:4px;width:3px;border-radius:2px;background:linear-gradient(180deg,#1F2A57,#0F1E3A);
+    }
+    /* 大屏铺满：限制外层最大宽度为 100% */
+    @media (min-width: 1200px){
+        .container-fluid{max-width: 100%;}
+    }
+    /* 内联卡片：用于首排字段组合展示 */
+    .inline-card{
+        background: #fff;
+        border: 1px solid rgba(31,42,87,.08);
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(15,30,58,.10);
+        padding: 12px 14px;
+        margin-bottom: 8px;
+    }
+    .inline-card:hover{
+        transform: translateY(-1px);
+        box-shadow: 0 20px 40px rgba(15,30,58,.18);
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+    /* 服务配置置顶固定 */
+    .service-sticky{
+        position: -webkit-sticky !important; /* Safari */
+        position: sticky !important;
+        top: 84px;              /* 与顶栏/欢迎条的间距对齐，可根据需要微调 */
+        z-index: 1000;
+        background: #fff;       /* 避免滚动时内容透底 */
+        padding-top: 8px;
+        padding-bottom: 8px;
+        box-shadow: 0 6px 18px rgba(15,30,58,.06);
+        border-radius: 12px;
+    }
+    .service-sticky .service-actions{
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 8px;
+    }
+    /* 右下角浮动提交按钮 */
+    .floating-submit{
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 1100;
+        box-shadow: 0 12px 24px rgba(16,24,40,.18);
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+    @media (max-width: 768px){
+        .floating-submit{ right: 16px; bottom: 16px; padding: 10px 14px; }
+    }
+</style>
+{% endblock %}
+<div class="project-create container-fluid py-2">
     <form id="projectForm" method="post" enctype="multipart/form-data" class="project-create__form">
         {% csrf_token %}
         <input type="hidden" name="action" id="formAction" value="draft">
 
         <div class="project-create__layout">
             <div class="project-create__main">
-                <!-- 顶部流程导航 -->
-                <div class="stepper card shadow-sm">
-                    <div class="stepper__header">
-                        <h4 class="mb-0">新建项目</h4>
-                        <div class="stepper__status">
-                            <span class="badge bg-light text-dark">实时保存草稿</span>
-                            <span id="lastSaved" class="text-muted">最后保存：尚未保存</span>
-                        </div>
+                <!-- 顶部流程导航（隐藏占位，保留脚本依赖的元素，防止内容被脚本影响） -->
+                <div style="display:none">
+                    <div class="stepper__status">
+                        <span id="lastSaved"></span>
                     </div>
                     <div class="stepper__progress">
                         <div class="stepper__progress-bar" id="stepProgress" style="width:25%"></div>
                     </div>
-                    <div class="stepper__steps">
-                        <button type="button" class="stepper__step stepper__step--active" data-step="0">
-                            <span class="stepper__index">1</span>
-                            <span class="stepper__label">基础信息</span>
-                        </button>
-                        <button type="button" class="stepper__step" data-step="1">
-                            <span class="stepper__index">2</span>
-                            <span class="stepper__label">服务配置</span>
-                        </button>
+                    <div>
+                        <button type="button" class="stepper__step stepper__step--active" data-step="0"></button>
+                        <button type="button" class="stepper__step" data-step="1"></button>
                     </div>
                 </div>
 
@@ -44,18 +164,8 @@
                             <h5 class="mb-0">基础信息</h5>
                         </div>
                         <div class="card-body">
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <label class="form-label">所属子公司 <span class="text-danger">*</span></label>
-                                    {% with selected_subsidiary=form_data.subsidiary|default:'' %}
-                                    <select name="subsidiary" class="form-select" required id="subsidiarySelect">
-                                        {% for value, label in subsidiary_choices %}
-                                        <option value="{{ value }}" {% if selected_subsidiary %}{% if selected_subsidiary == value %}selected{% endif %}{% elif forloop.first %}selected{% endif %}>{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    {% endwith %}
-                                </div>
-                                <div class="col-md-6">
+                            <div class="inline-card"><div class="row g-4">
+                                <div class="col-md-4">
                                     <label class="form-label">项目编号</label>
                                     <div class="input-group project-code-group">
                                         <span class="input-group-text">VIH</span>
@@ -68,22 +178,24 @@
                                     </div>
                                     <small class="text-muted">格式：VIH-年份-序号，序号可手动编辑，支持唯一性校验。</small>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
+                                    <label class="form-label">所属子公司 <span class="text-danger">*</span></label>
+                                    {% with selected_subsidiary=form_data.subsidiary|default:'' %}
+                                    <select name="subsidiary" class="form-select" required id="subsidiarySelect">
+                                        {% for value, label in subsidiary_choices %}
+                                        <option value="{{ value }}" {% if selected_subsidiary %}{% if selected_subsidiary == value %}selected{% endif %}{% elif forloop.first %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% endwith %}
+                                </div>
+                                <div class="col-md-4">
                                     <label class="form-label d-flex justify-content-between">
                                         <span>项目名称 <span class="text-danger">*</span></span>
                                         <span class="text-muted"><span id="nameCount">0</span>/100</span>
                                     </label>
                                     <input type="text" name="name" class="form-control" required maxlength="100" id="projectNameInput" value="{{ form_data.name|default:'' }}">
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">项目别名</label>
-                                    <input type="text" name="alias" class="form-control" maxlength="100" id="projectAliasInput" placeholder="如：天府商业综合体" value="{{ form_data.alias|default:'' }}">
-                                    <small class="text-muted">用于内部识别和快捷搜索，系统会基于项目名称给出建议。</small>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">项目描述</label>
-                                    <textarea name="description" class="form-control" rows="3" placeholder="可填写项目背景、核心目标、客户诉求等信息（可选）">{{ form_data.description|default:'' }}</textarea>
-                                </div>
+                                </div></div>
                                 <div class="col-12">
                                     <div class="info-block border rounded-3 p-3 bg-light">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -91,26 +203,14 @@
                                             <span class="badge bg-warning-subtle text-warning">手机号将自动绑定甲方账号</span>
                                         </div>
                                         <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <label class="form-label">甲方公司名称 <span class="text-danger">*</span></label>
-                                                <input type="text" name="client_company_name" class="form-control" required value="{{ form_data.client_company_name|default:'' }}" placeholder="如：成都某置业有限公司">
+                                            <div class="col-md-6">
+                                                <label class="form-label">甲方公司全称 <span class="text-danger">*</span></label>
+                                                <input type="text" name="client_company_name" class="form-control" required value="{{ form_data.client_company_name|default:'' }}" placeholder="请输入甲方公司全称">
                                             </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">联系人（可选）</label>
-                                                <input type="text" name="client_contact_person" class="form-control" value="{{ form_data.client_contact_person|default:'' }}" placeholder="用于展示的姓名">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">联系电话 <span class="text-danger">*</span></label>
-                                                <input type="tel" name="client_phone" class="form-control" required value="{{ form_data.client_phone|default:'' }}" placeholder="138xxxx0000">
+                                            <div class="col-md-6">
+                                                <label class="form-label">项目负责人电话 <span class="text-danger">*</span></label>
+                                                <input type="tel" name="client_phone" class="form-control" required value="{{ form_data.client_phone|default:'' }}" placeholder="请输入项目负责人手机号">
                                                 <div class="form-text text-muted">系统将根据手机号自动识别甲方项目负责人。</div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">联系邮箱</label>
-                                                <input type="email" name="client_email" class="form-control" value="{{ form_data.client_email|default:'' }}" placeholder="client@example.com">
-                                            </div>
-                                            <div class="col-md-8">
-                                                <label class="form-label">通讯地址</label>
-                                                <input type="text" name="client_address" class="form-control" value="{{ form_data.client_address|default:'' }}" placeholder="甲方办公地址（可选）">
                                             </div>
                                         </div>
                                     </div>
@@ -122,22 +222,14 @@
                                             <span class="badge bg-info-subtle text-info">手机号将自动绑定设计方账号</span>
                                         </div>
                                         <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <label class="form-label">设计单位名称 <span class="text-danger">*</span></label>
-                                                <input type="text" name="design_company" class="form-control" required value="{{ form_data.design_company|default:'' }}" placeholder="如：XX建筑设计院">
+                                            <div class="col-md-6">
+                                                <label class="form-label">设计单位全称 <span class="text-danger">*</span></label>
+                                                <input type="text" name="design_company" class="form-control" required value="{{ form_data.design_company|default:'' }}" placeholder="请输入设计单位全称">
                                             </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">设计联系人（可选）</label>
-                                                <input type="text" name="design_contact_person" class="form-control" value="{{ form_data.design_contact_person|default:'' }}">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">联系电话 <span class="text-danger">*</span></label>
-                                                <input type="tel" name="design_phone" class="form-control" required value="{{ form_data.design_phone|default:'' }}">
+                                            <div class="col-md-6">
+                                                <label class="form-label">项目负责人电话 <span class="text-danger">*</span></label>
+                                                <input type="tel" name="design_phone" class="form-control" required value="{{ form_data.design_phone|default:'' }}" placeholder="请输入项目负责人手机号">
                                                 <div class="form-text text-muted">输入的手机号将自动绑定设计方项目负责人。</div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">联系邮箱</label>
-                                                <input type="email" name="design_email" class="form-control" value="{{ form_data.design_email|default:'' }}" placeholder="designer@example.com">
                                             </div>
                                         </div>
                                     </div>
@@ -146,23 +238,15 @@
                         </div>
                     </section>
 
-                    <!-- 服务信息 -->
-                    <section class="step-card card shadow-sm" data-step-content="1" hidden>
+                    <!-- 服务信息（与基础信息同页展示） -->
+                    <section class="step-card card shadow-sm" data-step-content="1">
                         <div class="card-header">
                             <h5 class="mb-0">服务配置</h5>
                         </div>
                         <div class="card-body">
-                            <div class="service-type-grid">
-                                {% for service_type in service_types %}
-                                <input type="radio" class="service-card__input" name="service_type" id="service_{{ service_type.code }}" value="{{ service_type.id }}" data-code="{{ service_type.code }}" data-description="{{ service_type.description|default:'为项目提供定制化服务' }}" {% if selected_service_type_id == service_type.id|stringformat:'s' %}checked{% elif not selected_service_type_id and forloop.first %}checked{% endif %} required>
-                                <label class="service-card" for="service_{{ service_type.code }}">
-                                    <span class="service-card__title">{{ service_type.name }}</span>
-                                    <span class="service-card__desc">{{ service_type.description|default:"涵盖项目从咨询到交付的关键环节" }}</span>
-                                </label>
-                                {% endfor %}
-                            </div>
-                            <div class="row g-4">
-                                <div class="col-md-6">
+                            <div class="service-sticky"></div>
+                            <div class="row g-4 align-items-end">
+                                <div class="col-md-4">
                                     <label class="form-label">项目业态 <span class="text-danger">*</span></label>
                                     <select name="business_type" class="form-select" id="businessTypeSelect" required>
                                         {% for value, label in business_types %}
@@ -171,11 +255,23 @@
                                     </select>
                                     <input type="text" class="form-control mt-2" id="businessTypeOther" name="business_type_other" placeholder="请输入项目业态" value="{{ form_data.business_type_other|default:'' }}" hidden>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label">图纸阶段 <span class="text-danger">*</span></label>
                                     <select name="design_stage" class="form-select" id="designStageSelect" required>
                                         {% for value, label in design_stages %}
                                         <option value="{{ value }}" {% if form_data.design_stage|default:'' == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">服务类型 <span class="text-danger">*</span></label>
+                                    <select name="service_type" class="form-select" id="serviceTypeSelect" required>
+                                        {% for service_type in service_types %}
+                                        <option value="{{ service_type.id }}" data-code="{{ service_type.code }}"
+                                            {% if selected_service_type_id and selected_service_type_id == service_type.id|stringformat:"s" %}selected{% endif %}
+                                            {% if not selected_service_type_id and forloop.first %}selected{% endif %}>
+                                            {{ service_type.name }}
+                                        </option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -192,35 +288,7 @@
                 </div>
             </div>
 
-            <!-- 右侧辅助面板 -->
-            <aside class="project-create__aside">
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header"><h6 class="mb-0">填写进度</h6></div>
-                    <div class="card-body">
-                        <ul class="validation-list" id="validationList">
-                            <li data-field="subsidiary">所属子公司：<span class="badge bg-danger">待填写</span></li>
-                            <li data-field="name">项目名称：<span class="badge bg-danger">待填写</span></li>
-                            <li data-field="service_type">服务类型：<span class="badge bg-danger">待填写</span></li>
-                            <li data-field="business_type">项目业态：<span class="badge bg-danger">待填写</span></li>
-                            <li data-field="service_professions">服务专业：<span class="badge bg-danger">待填写</span></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header"><h6 class="mb-0">模板与建议</h6></div>
-                    <div class="card-body d-grid gap-2">
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyPlanTemplate('consulting')">全过程咨询模板</button>
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyPlanTemplate('audit')">精细化审图模板</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadDraft()">恢复草稿</button>
-                    </div>
-                </div>
-                <div class="card shadow-sm">
-                    <div class="card-header"><h6 class="mb-0">操作历史</h6></div>
-                    <div class="card-body" id="historyList">
-                        <div class="text-muted small">尚无历史记录，填写过程中将实时保存。</div>
-                    </div>
-                </div>
-            </aside>
+            <!-- 右侧辅助面板（按需移除） -->
         </div>
 
         <!-- 底部操作栏 -->
@@ -230,11 +298,15 @@
                 <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()"><i class="bi bi-save"></i> 保存草稿</button>
             </div>
             <div class="project-create__footer-right">
-                <button type="button" class="btn btn-outline-primary" id="prevStepBtn" disabled>上一步</button>
-                <button type="button" class="btn btn-primary" id="nextStepBtn">下一步</button>
-                <button type="button" class="btn btn-success" id="submitBtn" onclick="submitForm()" hidden><i class="bi bi-check-circle"></i> 提交申请</button>
+                <button type="button" class="btn btn-outline-primary" id="prevStepBtn" disabled style="display:none">上一步</button>
+                <button type="button" class="btn btn-primary" id="nextStepBtn" style="display:none">下一步</button>
+                <button type="button" class="btn btn-success" id="submitBtn" onclick="submitForm()"><i class="bi bi-check-circle"></i> 提交申请</button>
             </div>
         </div>
+        <!-- 右下角浮动提交按钮 -->
+        <button type="button" class="btn btn-success floating-submit" onclick="submitForm()">
+            <i class="bi bi-check-circle"></i> 提交申请
+        </button>
     </form>
 </div>
 
@@ -249,6 +321,7 @@ const projectForm = document.getElementById('projectForm');
 const projectYearInput = document.getElementById('projectYear');
 const projectNumberSeq = document.getElementById('projectNumberSeq');
 const projectNumberHint = document.getElementById('projectNumberHint');
+const serviceTypeSelect = document.getElementById('serviceTypeSelect');
 const subsidiarySelect = document.getElementById('subsidiarySelect');
 const contractAmountInput = document.getElementById('contractAmountInput');
 const contractDateInput = document.getElementById('contractDateInput');
@@ -356,7 +429,24 @@ function checkProjectNumber(){
 
 function updateProfessionOptions(serviceTypeId){
     const container = document.getElementById('professionList');
-    const options = professionOptions[String(serviceTypeId)] || [];
+    // 兼容：professionOptions 键可能是字符串或数字
+    const keyStr = String(serviceTypeId);
+    const keyNum = Number.isFinite(parseInt(serviceTypeId, 10)) ? parseInt(serviceTypeId, 10) : null;
+    let options = professionOptions[keyStr] || (keyNum !== null ? professionOptions[keyNum] : []) || [];
+
+    // 根据服务类型代码限定“服务专业”候选
+    const code = serviceTypeSelect?.selectedOptions?.[0]?.dataset?.code || '';
+    const allowMap = {
+        result_optimization: ['结构','构造','地库减面积','地库加车位','停车效率','节能','门窗栏杆','幕墙','总坪景观','电气','给排水','暖通','市政道路'],
+        process_optimization: ['结构','停车效率'],
+        detailed_review: ['建筑','结构','电气','给排水','暖通'],
+        process_consulting: ['建筑','结构','电气','给排水','暖通'],
+        full_process_consulting: ['建筑','结构','电气','给排水','暖通'],
+    };
+    const allowList = allowMap[code];
+    if (Array.isArray(allowList) && allowList.length) {
+        options = options.filter(p => allowList.includes(p.name));
+    }
     container.innerHTML = '';
 
     options.forEach(prof => {
@@ -414,7 +504,7 @@ function loadDraft(){
 }
 
 function submitForm(){
-    if(!document.querySelector('input[name="service_type"]:checked')){
+    if(!serviceTypeSelect || !serviceTypeSelect.value){
         alert('请选择服务类型');
         updateValidationState('service_type', false);
         return;
@@ -530,6 +620,7 @@ function handleFormChange(e){
     if(name === 'service_type'){
         preselectedProfessionIds = new Set(Array.from(document.querySelectorAll('input[name="service_profession_ids[]"]:checked')).map(el => parseInt(el.value,10)));
         updateValidationState('service_type', true);
+        updateProfessionOptions(e.target.value);
     }
     if(name === 'business_type'){
         updateValidationState('business_type', !!businessSelect.value);
@@ -550,6 +641,14 @@ function handleFormChange(e){
 projectForm.addEventListener('input', handleFormChange, {capture:true});
 projectForm.addEventListener('change', handleFormChange, {capture:true});
 projectForm.addEventListener('submit', () => localStorage.removeItem(DRAFT_STORAGE_KEY));
+
+// 初始化：根据默认选中的服务类型渲染“服务专业”
+(function initProfessionByServiceType(){
+    if(serviceTypeSelect){
+        updateProfessionOptions(serviceTypeSelect.value);
+        serviceTypeSelect.addEventListener('change', (e)=> updateProfessionOptions(e.target.value));
+    }
+})();
 
 if(contractFileInput && uploadProgress && uploadProgressBar && uploadProgressText){
     const resetUploadProgress = () => {
@@ -632,13 +731,8 @@ if(subsidiarySelect){
     updateValidationState('subsidiary', !!subsidiarySelect.value);
 }
 
-if(document.querySelector('input[name="service_type"]')){
-    const defaultService = document.querySelector('input[name="service_type"]:checked') || document.querySelector('input[name="service_type"]');
-    if(defaultService){
-        defaultService.checked = true;
-        updateProfessionOptions(defaultService.value);
-        updateValidationState('service_type', true);
-    }
+if(serviceTypeSelect){
+    updateValidationState('service_type', !!serviceTypeSelect.value);
 }
 
 if(nameInput){
@@ -660,7 +754,7 @@ const restored = restoreDraft();
 if(!projectNumberSeq.value){
     autoGenerateSeq();
 }
-updateProfessionOptions(document.querySelector('input[name="service_type"]:checked')?.value || document.querySelector('input[name="service_type"]').value);
+if(serviceTypeSelect){ updateProfessionOptions(serviceTypeSelect.value); }
 </script>
 
 <style>
@@ -682,7 +776,7 @@ updateProfessionOptions(document.querySelector('input[name="service_type"]:check
 .stepper__step--active .stepper__index{background:var(--accent);color:#fff;}
 .stepper__label{font-size:13px;font-weight:600;color:#374151;}
 
-.step-card .card-header{background:#f8f9fb;border-bottom:1px solid #edf1f6;}
+.step-card .card-header{background:#f8f9fb;border-bottom:2px solid var(--vh-primary);}
 .step-card .card-body{padding:24px;}
 
 .service-type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;}

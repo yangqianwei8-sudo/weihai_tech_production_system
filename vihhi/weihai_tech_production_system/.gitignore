@@ -1,11 +1,16 @@
 .venv/
+venv/
 __pycache__/
 *.py[cod]
 *.log
 *.sqlite3
 .env
+.env.*
 *.env.local
+!*.env.example
 *.egg-info/
 staticfiles/
 media/
 tmp/
+node_modules/
+frontend/node_modules/

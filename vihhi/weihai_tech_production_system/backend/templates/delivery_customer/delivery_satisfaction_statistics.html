@@ -1,0 +1,228 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}满意度统计 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:delivery_satisfaction_list' %}">满意度评价</a></li>
+<li class="breadcrumb-item active">满意度统计</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📊 满意度统计</h2>
+            <p class="text-muted mb-0">统计分析客户满意度评价数据</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_satisfaction_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <!-- 总体统计 - 使用样式模板 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="info-card info-card-info">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">评价总数</div>
+                            <div class="info-value info-value-large">{{ total_count }}</div>
+                        </div>
+                        <div class="text-info" style="font-size: 2rem;">
+                            <i class="bi bi-star"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="info-card info-card-success">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">平均评分</div>
+                            <div class="info-value info-value-large">
+                                {% if avg_rating > 0 %}
+                                    {{ avg_rating|floatformat:1 }} 星
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-success" style="font-size: 2rem;">
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="info-card info-card-warning">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">平均评分（星标）</div>
+                            <div class="info-value info-value-large">
+                                {% if avg_rating > 0 %}
+                                    {% with full_stars=avg_rating|floatformat:0|add:0 %}
+                                    {% if full_stars >= 5 %}
+                                        <span class="text-warning">⭐⭐⭐⭐⭐</span>
+                                    {% elif full_stars >= 4 %}
+                                        <span class="text-warning">⭐⭐⭐⭐☆</span>
+                                    {% elif full_stars >= 3 %}
+                                        <span class="text-warning">⭐⭐⭐☆☆</span>
+                                    {% elif full_stars >= 2 %}
+                                        <span class="text-warning">⭐⭐☆☆☆</span>
+                                    {% elif full_stars >= 1 %}
+                                        <span class="text-warning">⭐☆☆☆☆</span>
+                                    {% else %}
+                                        <span class="text-muted">☆☆☆☆☆</span>
+                                    {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 评分分布 - 使用样式模板 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">评分分布</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                {% for rating, count in rating_distribution.items %}
+                <div class="col-md-2 mb-3">
+                    <div class="info-card info-card-flat">
+                        <div class="info-card-body text-center">
+                            <div class="mb-2">
+                                {% if rating == 5 %}
+                                    <span class="text-warning" style="font-size: 1.5rem;">⭐⭐⭐⭐⭐</span>
+                                {% elif rating == 4 %}
+                                    <span class="text-warning" style="font-size: 1.5rem;">⭐⭐⭐⭐☆</span>
+                                {% elif rating == 3 %}
+                                    <span class="text-warning" style="font-size: 1.5rem;">⭐⭐⭐☆☆</span>
+                                {% elif rating == 2 %}
+                                    <span class="text-warning" style="font-size: 1.5rem;">⭐⭐☆☆☆</span>
+                                {% elif rating == 1 %}
+                                    <span class="text-warning" style="font-size: 1.5rem;">⭐☆☆☆☆</span>
+                                {% endif %}
+                            </div>
+                            <div class="info-value info-value-large">{{ count }}</div>
+                            <div class="info-label">{{ rating }}星</div>
+                            {% if total_count > 0 %}
+                            <div class="progress mt-2" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {% widthratio count total_count 100 %}%"
+                                     aria-valuenow="{{ count }}" aria-valuemin="0" aria-valuemax="{{ total_count }}">
+                                </div>
+                            </div>
+                            <small class="text-muted">{% widthratio count total_count 100 %}%</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近评价记录 - 使用样式模板 -->
+    {% if recent_ratings %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">最近30天评价记录</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>交付单号</th>
+                            <th>交付标题</th>
+                            <th>关联项目</th>
+                            <th>满意度评分</th>
+                            <th>评价人</th>
+                            <th>评价时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rating_data in recent_ratings %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'delivery_pages:delivery_detail' rating_data.delivery.id %}" class="text-decoration-none">
+                                    <strong>{{ rating_data.delivery.delivery_number }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ rating_data.delivery.title }}">
+                                    {{ rating_data.delivery.title }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if rating_data.delivery.project %}
+                                <a href="#" class="text-decoration-none">
+                                    {{ rating_data.delivery.project.project_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rating_data.rating == 5 %}
+                                    <span class="text-warning">⭐⭐⭐⭐⭐</span>
+                                {% elif rating_data.rating == 4 %}
+                                    <span class="text-warning">⭐⭐⭐⭐☆</span>
+                                {% elif rating_data.rating == 3 %}
+                                    <span class="text-warning">⭐⭐⭐☆☆</span>
+                                {% elif rating_data.rating == 2 %}
+                                    <span class="text-warning">⭐⭐☆☆☆</span>
+                                {% elif rating_data.rating == 1 %}
+                                    <span class="text-warning">⭐☆☆☆☆</span>
+                                {% endif %}
+                                <small class="text-muted ms-2">({{ rating_data.rating }}星)</small>
+                            </td>
+                            <td>{{ rating_data.feedback.feedback_by }}</td>
+                            <td>{{ rating_data.date|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <a href="{% url 'delivery_pages:delivery_detail' rating_data.delivery.id %}" 
+                                   class="btn btn-sm btn-outline-primary" title="查看详情">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">最近30天评价记录</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">最近30天暂无评价记录</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

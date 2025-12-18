@@ -1,0 +1,28 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}库房管理 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:archive_storage_list' %}">档案库管理</a></li>
+<li class="breadcrumb-item active">库房管理</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3>🏢 库房管理</h3>
+            <div>
+                <a href="{% url 'archive_management:archive_storage_room_create' %}" class="btn btn-light btn-sm">新建库房</a>
+                <a href="{% url 'archive_management:archive_storage_list' %}" class="btn btn-light btn-sm">返回</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">库房管理功能正在开发中...</p>
+            <p>API接口：<code>/api/archive/storage-rooms/</code></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

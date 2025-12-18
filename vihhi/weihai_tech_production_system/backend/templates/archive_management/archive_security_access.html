@@ -1,0 +1,269 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案访问控制 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:project_archive_list' %}">档案管理</a></li>
+<li class="breadcrumb-item"><a href="#">档案安全</a></li>
+<li class="breadcrumb-item active">访问控制</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作按钮 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">🛡️ 档案访问控制</h2>
+            <p class="text-muted mb-0">管理档案访问控制规则，包括IP限制、访问频率限制和异常访问预警</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRuleModal">
+                <i class="bi bi-plus-circle"></i> 新建规则
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="exportAccessLogs()">
+                <i class="bi bi-download"></i> 导出日志
+            </button>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="info-card info-card-primary">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">访问规则</div>
+                            <div class="info-value info-value-large">{{ rule_count|default:0 }}</div>
+                        </div>
+                        <div class="text-primary" style="font-size: 2rem;">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-info">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">今日访问</div>
+                            <div class="info-value info-value-large">{{ today_access_count|default:0 }}</div>
+                        </div>
+                        <div class="text-info" style="font-size: 2rem;">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-warning">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">IP白名单</div>
+                            <div class="info-value info-value-large">{{ whitelist_count|default:0 }}</div>
+                        </div>
+                        <div class="text-warning" style="font-size: 2rem;">
+                            <i class="bi bi-list-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-danger">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">异常访问</div>
+                            <div class="info-value info-value-large">{{ abnormal_count|default:0 }}</div>
+                        </div>
+                        <div class="text-danger" style="font-size: 2rem;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 访问控制规则列表 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">访问控制规则列表</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-secondary">共 {{ rules|length|default:0 }} 条规则</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            <!-- 筛选器 -->
+            <form method="get" class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">规则类型</label>
+                    <select name="rule_type" class="form-select">
+                        <option value="">全部类型</option>
+                        <option value="ip" {% if rule_type == 'ip' %}selected{% endif %}>IP限制</option>
+                        <option value="time" {% if rule_type == 'time' %}selected{% endif %}>时间限制</option>
+                        <option value="frequency" {% if rule_type == 'frequency' %}selected{% endif %}>频率限制</option>
+                        <option value="other" {% if rule_type == 'other' %}selected{% endif %}>其他</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">规则状态</label>
+                    <select name="status" class="form-select">
+                        <option value="">全部状态</option>
+                        <option value="active" {% if status == 'active' %}selected{% endif %}>启用</option>
+                        <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>停用</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">搜索</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="搜索规则名称、IP地址..." value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> 筛选
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- 规则列表 -->
+            {% if rules %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>规则名称</th>
+                            <th>规则类型</th>
+                            <th>规则条件</th>
+                            <th>适用范围</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rule in rules %}
+                        <tr>
+                            <td>
+                                <strong>{{ rule.name|default:"-" }}</strong>
+                                {% if rule.description %}
+                                <br><small class="text-muted">{{ rule.description|truncatewords:10 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ rule.get_rule_type_display|default:"-" }}
+                                </span>
+                            </td>
+                            <td>
+                                <code>{{ rule.condition|truncatewords:5|default:"-" }}</code>
+                            </td>
+                            <td>
+                                {% if rule.scope %}
+                                <span class="badge bg-info">{{ rule.scope }}</span>
+                                {% else %}
+                                <span class="text-muted">全部</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rule.is_active %}
+                                <span class="badge bg-success">启用</span>
+                                {% else %}
+                                <span class="badge bg-secondary">停用</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ rule.created_time|date:"Y-m-d"|default:"-" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="#" class="btn btn-outline-primary" title="编辑">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-outline-danger" title="删除">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 暂无访问控制规则，请创建规则以控制档案访问
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 访问日志 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">最近访问日志</h5>
+            <div class="info-card-actions">
+                <a href="{% url 'archive_management:archive_security_log' %}" class="btn btn-sm btn-outline-primary">
+                    查看全部 <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="info-card-body">
+            {% if recent_logs %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>访问时间</th>
+                            <th>访问人</th>
+                            <th>访问操作</th>
+                            <th>IP地址</th>
+                            <th>结果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in recent_logs|slice:":10" %}
+                        <tr>
+                            <td>{{ log.access_time|date:"Y-m-d H:i:s"|default:"-" }}</td>
+                            <td>{{ log.user.username|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ log.operation|default:"-" }}</span>
+                            </td>
+                            <td><code>{{ log.ip_address|default:"-" }}</code></td>
+                            <td>
+                                {% if log.result == 'success' %}
+                                <span class="badge bg-success">成功</span>
+                                {% elif log.result == 'failed' %}
+                                <span class="badge bg-danger">失败</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ log.result }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 暂无访问日志
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function exportAccessLogs() {
+    // TODO: 实现访问日志导出功能
+    alert('访问日志导出功能待实现');
+}
+</script>
+{% endblock %}

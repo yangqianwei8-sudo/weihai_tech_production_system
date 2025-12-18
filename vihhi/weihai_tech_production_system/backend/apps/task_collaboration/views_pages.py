@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 
-from backend.apps.project_center.models import Project, ProjectMilestone
+from backend.apps.production_management.models import Project, ProjectMilestone
 MILESTONE_PRESETS = {
     "result_optimization": [
         "优化前图纸",
@@ -139,7 +139,7 @@ def task_board(request):
     def _build_task_card(milestone, icon, status_hint):
         planned = milestone.planned_date.strftime("%Y-%m-%d") if milestone.planned_date else "待定"
         completion = f"完成率 {milestone.completion_rate}%" if milestone.completion_rate else "尚未更新进度"
-        url = f"{reverse('project_pages:project_detail', args=[milestone.project_id])}?tab=progress&milestone={milestone.id}"
+        url = f"{reverse('production_pages:project_detail', args=[milestone.project_id])}?tab=progress&milestone={milestone.id}"
         return {
             "icon": icon,
             "label": f"{milestone.project.project_number} · {milestone.name}",
@@ -148,12 +148,7 @@ def task_board(request):
             "link_label": "查看任务 →",
         }
 
-    summary_cards = [
-        {"label": "逾期任务", "value": len(overdue_tasks), "hint": "计划日期已过仍未完成"},
-        {"label": "今日到期", "value": len(due_today_tasks), "hint": f"{today.strftime('%m月%d日')} 需处理任务"},
-        {"label": "即将到期", "value": len(upcoming_tasks), "hint": "未来待处理任务"},
-        {"label": "近7日完成", "value": len(completed_tasks), "hint": "最近完成的里程碑任务"},
-    ]
+    summary_cards = []
 
     sections = []
     if overdue_tasks:
@@ -215,7 +210,7 @@ def task_board(request):
                     "icon": "🎉",
                     "label": "暂无任务",
                     "description": "近期没有需要处理的任务，您可以关注项目动态或创建新的协作事项。",
-                    "url": reverse("project_pages:project_list"),
+                    "url": reverse("production_pages:project_list"),
                     "link_label": "前往项目总览 →",
                 }
             ],

@@ -1,0 +1,117 @@
+{% extends "financial_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'finance_pages:ledger_management' %}">账簿管理</a></li>
+<li class="breadcrumb-item active">{{ ledger.account_subject.code }}</li>
+{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+        <!-- 操作按钮 -->
+    <div class="text-end mb-4">
+        <a href="{% url 'finance_pages:ledger_management' %}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+        <a href="/admin/financial_management/ledger/{{ ledger.id }}/change/" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> 编辑
+        </a>
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="info-card">
+        <h5>基本信息</h5>
+        <div class="info-row">
+            <div class="info-item">
+                <span class="info-label">会计科目</span>
+                <span class="info-value">
+                    <a href="{% url 'finance_pages:account_subject_detail' ledger.account_subject.id %}">
+                        <code>{{ ledger.account_subject.code }}</code> {{ ledger.account_subject.name }}
+                    </a>
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">会计期间</span>
+                <span class="info-value">{{ ledger.period_year }}年{{ ledger.period_month }}月</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">日期</span>
+                <span class="info-value">{{ ledger.period_date|date:"Y-m-d" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">创建时间</span>
+                <span class="info-value">{{ ledger.created_time|date:"Y-m-d H:i:s" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 余额信息 -->
+    <div class="info-card">
+        <h5>余额信息</h5>
+        <div class="info-row">
+            <div class="info-item">
+                <span class="info-label">期初余额</span>
+                <span class="info-value" style="font-size: 18px; font-weight: 700; color: #142F5B;">¥{{ ledger.opening_balance|floatformat:2 }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">本期借方</span>
+                <span class="info-value" style="font-size: 18px; font-weight: 700; color: #059669;">¥{{ ledger.period_debit|floatformat:2 }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">本期贷方</span>
+                <span class="info-value" style="font-size: 18px; font-weight: 700; color: #dc2626;">¥{{ ledger.period_credit|floatformat:2 }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">期末余额</span>
+                <span class="info-value" style="font-size: 20px; font-weight: 700; color: #142F5B;">¥{{ ledger.closing_balance|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相关记录 -->
+    {% if related_ledgers %}
+    <div class="info-card">
+        <h5>相关期间记录 (最近6个月)</h5>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>会计期间</th>
+                        <th>日期</th>
+                        <th class="text-end">期初余额</th>
+                        <th class="text-end">本期借方</th>
+                        <th class="text-end">本期贷方</th>
+                        <th class="text-end">期末余额</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for related in related_ledgers %}
+                    <tr>
+                        <td>{{ related.period_year }}年{{ related.period_month }}月</td>
+                        <td>{{ related.period_date|date:"Y-m-d" }}</td>
+                        <td class="text-end">¥{{ related.opening_balance|floatformat:2 }}</td>
+                        <td class="text-end">¥{{ related.period_debit|floatformat:2 }}</td>
+                        <td class="text-end">¥{{ related.period_credit|floatformat:2 }}</td>
+                        <td class="text-end"><strong>¥{{ related.closing_balance|floatformat:2 }}</strong></td>
+                        <td>
+                            <a href="{% url 'finance_pages:ledger_detail' related.id %}" class="btn btn-sm btn-outline-primary">
+                                查看
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

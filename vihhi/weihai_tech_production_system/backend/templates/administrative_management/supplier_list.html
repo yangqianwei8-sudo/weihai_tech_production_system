@@ -1,0 +1,203 @@
+{% extends "administrative_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .center-hero {
+        background: linear-gradient(135deg, rgba(20,47,91,0.95), rgba(31,62,124,0.92));
+        border-radius: 24px;
+        padding: 32px 36px;
+        color: #fff;
+        box-shadow: 0 24px 60px rgba(20, 47, 91, 0.18);
+        margin-bottom: 24px;
+    }
+    .hero-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.18);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        margin-bottom: 12px;
+    }
+    .content-card {
+        background: var(--vh-card-bg);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid rgba(20, 47, 91, 0.08);
+    }
+    .rating-badge {
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+    }
+    .rating-A { background: #d1e7dd; color: #0f5132; }
+    .rating-B { background: #cfe2ff; color: #084298; }
+    .rating-C { background: #fff3cd; color: #856404; }
+    .rating-D { background: #f8d7da; color: #842029; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="center-hero">
+        <h1 class="hero-title">{{ page_title }}</h1>
+        <p class="hero-subtitle">{{ description }}</p>
+    </div>
+
+
+    <div class="content-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0">供应商列表</h3>
+            <a href="{% url 'admin_pages:supplier_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 创建供应商
+            </a>
+        </div>
+
+        <!-- 筛选栏 -->
+        <form method="get" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" placeholder="搜索供应商名称、联系人、电话..." value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="rating" class="form-select">
+                        <option value="">全部评级</option>
+                        {% for code, label in rating_choices %}
+                        <option value="{{ code }}" {% if rating == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="is_active" class="form-select">
+                        <option value="">全部状态</option>
+                        <option value="true" {% if is_active == 'true' %}selected{% endif %}>启用</option>
+                        <option value="false" {% if is_active == 'false' %}selected{% endif %}>停用</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                    <a href="{% url 'admin_pages:supplier_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 重置
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        <!-- 数据表格 -->
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>供应商编码</th>
+                        <th>供应商名称</th>
+                        <th>联系人</th>
+                        <th>联系电话</th>
+                        <th>评级</th>
+                        <th>累计采购额</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for supplier in page_obj %}
+                    <tr>
+                        <td><code>{{ supplier.code }}</code></td>
+                        <td>{{ supplier.name }}</td>
+                        <td>{{ supplier.contact_person|default:"-" }}</td>
+                        <td>{{ supplier.contact_phone|default:"-" }}</td>
+                        <td>
+                            <span class="rating-badge rating-{{ supplier.rating }}">
+                                {{ supplier.get_rating_display }}
+                            </span>
+                        </td>
+                        <td>¥{{ supplier.total_purchase_amount|floatformat:2 }}</td>
+                        <td>
+                            {% if supplier.is_active %}
+                            <span class="badge bg-success">启用</span>
+                            {% else %}
+                            <span class="badge bg-secondary">停用</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'admin_pages:supplier_detail' supplier.id %}" class="btn btn-sm btn-outline-primary" title="查看详情">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'admin_pages:supplier_update' supplier.id %}" class="btn btn-sm btn-outline-secondary" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🏢</div>
+                                <div class="empty-state-title">暂无数据</div>
+                                <div class="empty-state-text">
+                                    当前筛选条件下没有找到供应商，请调整筛选条件或创建新供应商。
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="分页导航">
+            <ul class="pagination justify-content-center mt-4">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">首页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">上一页</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">下一页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">末页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🏢</div>
+            <div class="empty-state-title">暂无数据</div>
+            <div class="empty-state-text">
+                当前没有供应商数据，请先添加供应商。
+            </div>
+            <a href="{% url 'admin_pages:supplier_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 添加第一个供应商
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,19 @@
+{% extends "financial_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% if not summary_cards %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        您当前没有访问任何财务管理模块的权限，请联系管理员。
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

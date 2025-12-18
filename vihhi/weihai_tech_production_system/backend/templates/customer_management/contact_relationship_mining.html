@@ -1,0 +1,613 @@
+{% extends "customer_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+<style>
+    .mining-search-box {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .mining-result-section {
+        margin-bottom: 2rem;
+    }
+    .mining-result-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        background: #fff;
+    }
+    .mining-result-card h6 {
+        color: #495057;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--vh-primary);
+    }
+    .contact-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s;
+    }
+    .contact-item:hover {
+        background-color: #f8f9fa;
+    }
+    .contact-item:last-child {
+        border-bottom: none;
+    }
+    .contact-name {
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0.25rem;
+    }
+    .contact-info {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    .contact-link {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+    .contact-link:hover {
+        text-decoration: underline;
+    }
+    .no-results {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+    .target-contact-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .target-contact-card h5 {
+        color: white;
+        margin-bottom: 1rem;
+    }
+    .target-contact-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    .target-contact-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.75rem;
+        border-radius: 4px;
+    }
+    .target-contact-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        margin-bottom: 0.25rem;
+    }
+    .target-contact-value {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'business_pages:contact_list' %}">创建联系人信息</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="workspace-content">
+    <div class="container-fluid py-4">
+        <!-- 搜索框 -->
+        <div class="mining-search-box">
+            <h4 class="mb-3">🔍 关系挖掘</h4>
+            
+            <!-- 搜索方式切换 -->
+            <ul class="nav nav-tabs mb-3" id="searchTypeTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if search_type == 'phone' or not search_type %}active{% endif %}" 
+                            id="phone-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#phone-search" 
+                            type="button" 
+                            role="tab">
+                        <i class="bi bi-telephone"></i> 按电话号码挖掘
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if search_type == 'client' %}active{% endif %}" 
+                            id="client-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#client-search" 
+                            type="button" 
+                            role="tab">
+                        <i class="bi bi-building"></i> 按客户公司挖掘
+                    </button>
+                </li>
+            </ul>
+            
+            <!-- 搜索表单 -->
+            <div class="tab-content" id="searchTypeContent">
+                <!-- 电话号码搜索 -->
+                <div class="tab-pane fade {% if search_type == 'phone' or not search_type %}show active{% endif %}" 
+                     id="phone-search" 
+                     role="tabpanel">
+                    <form method="get" action="{% url 'business_pages:contact_relationship_mining' %}">
+                        <input type="hidden" name="search_type" value="phone">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label for="phone" class="form-label">输入电话号码</label>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="phone" 
+                                       name="phone" 
+                                       value="{{ phone }}" 
+                                       placeholder="请输入手机号码或电话号码进行搜索..."
+                                       required>
+                                <small class="form-text text-muted">支持手机号码和电话号码的模糊匹配</small>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="bi bi-search"></i> 开始挖掘
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 客户公司搜索 -->
+                <div class="tab-pane fade {% if search_type == 'client' %}show active{% endif %}" 
+                     id="client-search" 
+                     role="tabpanel">
+                    <form method="get" action="{% url 'business_pages:contact_relationship_mining' %}">
+                        <input type="hidden" name="search_type" value="client">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label for="client_id" class="form-label">选择客户公司</label>
+                                <select class="form-select form-select-lg" 
+                                        id="client_id" 
+                                        name="client_id" 
+                                        required>
+                                    <option value="">-- 请选择客户公司 --</option>
+                                    {% for client in clients %}
+                                    <option value="{{ client.id }}" {% if client_id == client.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ client.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">选择客户公司后，将挖掘该公司内所有联系人的关系网络</small>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="bi bi-search"></i> 开始挖掘
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% if phone %}
+            {% if target_contact %}
+                <!-- 目标人员信息 -->
+                <div class="target-contact-card">
+                    <h5><i class="bi bi-person-circle"></i> 目标人员信息</h5>
+                    <div class="target-contact-info">
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">姓名</div>
+                            <div class="target-contact-value">{{ target_contact.name }}</div>
+                        </div>
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">客户</div>
+                            <div class="target-contact-value">
+                                <a href="{% url 'business_pages:customer_detail' target_contact.client.id %}" style="color: white; text-decoration: underline;">
+                                    {{ target_contact.client.name }}
+                                </a>
+                            </div>
+                        </div>
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">手机</div>
+                            <div class="target-contact-value">{{ target_contact.phone|default:"未填写" }}</div>
+                        </div>
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">邮箱</div>
+                            <div class="target-contact-value">{{ target_contact.email|default:"未填写" }}</div>
+                        </div>
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">籍贯</div>
+                            <div class="target-contact-value">{{ target_contact.birthplace|default:"未填写" }}</div>
+                        </div>
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">操作</div>
+                            <div class="target-contact-value">
+                                <a href="{% url 'business_pages:contact_detail' target_contact.id %}" 
+                                   class="btn btn-sm btn-light" 
+                                   style="color: #667eea;">
+                                    查看详情
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 相同教育背景的人员 -->
+                <div class="mining-result-section">
+                    <div class="mining-result-card">
+                        <h6>
+                            <i class="bi bi-mortarboard"></i> 相同教育背景的人员 
+                            <span class="badge bg-info">{{ same_education_contacts|length }}</span>
+                        </h6>
+                        {% if same_education_contacts %}
+                            <div class="list-group">
+                                {% for contact in same_education_contacts %}
+                                <div class="contact-item">
+                                    <div class="contact-name">
+                                        <a href="{% url 'business_pages:contact_detail' contact.id %}" class="contact-link">
+                                            {{ contact.name }}
+                                        </a>
+                                    </div>
+                                    <div class="contact-info">
+                                        <span class="me-3">
+                                            <i class="bi bi-building"></i> {{ contact.client.name }}
+                                        </span>
+                                        {% if contact.phone %}
+                                        <span class="me-3">
+                                            <i class="bi bi-telephone"></i> {{ contact.phone }}
+                                        </span>
+                                        {% endif %}
+                                        {% if contact.birthplace %}
+                                        <span class="me-3">
+                                            <i class="bi bi-geo-alt"></i> {{ contact.birthplace }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="contact-info mt-2">
+                                        <small class="text-muted">
+                                            教育背景：
+                                            {% for education in contact.educations.all|slice:":3" %}
+                                                {% if education.school %}
+                                                    {{ education.school.name }}
+                                                {% elif education.school_name %}
+                                                    {{ education.school_name }}
+                                                {% endif %}
+                                                {% if not forloop.last %}, {% endif %}
+                                            {% empty %}
+                                                未填写
+                                            {% endfor %}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="no-results">
+                                <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                                <p class="mt-2">未找到具有相同教育背景的人员</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 相同籍贯的人员 -->
+                <div class="mining-result-section">
+                    <div class="mining-result-card">
+                        <h6>
+                            <i class="bi bi-geo-alt-fill"></i> 相同籍贯的人员 
+                            <span class="badge bg-success">{{ same_birthplace_contacts|length }}</span>
+                        </h6>
+                        {% if same_birthplace_contacts %}
+                            <div class="list-group">
+                                {% for contact in same_birthplace_contacts %}
+                                <div class="contact-item">
+                                    <div class="contact-name">
+                                        <a href="{% url 'business_pages:contact_detail' contact.id %}" class="contact-link">
+                                            {{ contact.name }}
+                                        </a>
+                                    </div>
+                                    <div class="contact-info">
+                                        <span class="me-3">
+                                            <i class="bi bi-building"></i> {{ contact.client.name }}
+                                        </span>
+                                        {% if contact.phone %}
+                                        <span class="me-3">
+                                            <i class="bi bi-telephone"></i> {{ contact.phone }}
+                                        </span>
+                                        {% endif %}
+                                        <span class="me-3">
+                                            <i class="bi bi-geo-alt"></i> {{ contact.birthplace }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="no-results">
+                                <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                                <p class="mt-2">未找到具有相同籍贯的人员</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 相同职业信息的人员 -->
+                <div class="mining-result-section">
+                    <div class="mining-result-card">
+                        <h6>
+                            <i class="bi bi-briefcase-fill"></i> 相同职业信息的人员 
+                            <span class="badge bg-warning">{{ same_career_contacts|length }}</span>
+                        </h6>
+                        {% if same_career_contacts %}
+                            <div class="list-group">
+                                {% for contact in same_career_contacts %}
+                                <div class="contact-item">
+                                    <div class="contact-name">
+                                        <a href="{% url 'business_pages:contact_detail' contact.id %}" class="contact-link">
+                                            {{ contact.name }}
+                                        </a>
+                                    </div>
+                                    <div class="contact-info">
+                                        <span class="me-3">
+                                            <i class="bi bi-building"></i> {{ contact.client.name }}
+                                        </span>
+                                        {% if contact.phone %}
+                                        <span class="me-3">
+                                            <i class="bi bi-telephone"></i> {{ contact.phone }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="contact-info mt-2">
+                                        <small class="text-muted">
+                                            职业信息：
+                                            {% for career in contact.careers.all|slice:":2" %}
+                                                {% if career.company %}{{ career.company }}{% endif %}
+                                                {% if career.position %} - {{ career.position }}{% endif %}
+                                                {% if career.department %} ({{ career.department }}){% endif %}
+                                                {% if not forloop.last %}; {% endif %}
+                                            {% empty %}
+                                                未填写
+                                            {% endfor %}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="no-results">
+                                <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                                <p class="mt-2">未找到具有相同职业信息的人员</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            {% else %}
+                <!-- 未找到目标人员 -->
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>未找到匹配的联系人</strong>
+                    <p class="mb-0 mt-2">系统中没有找到电话号码包含 "{{ phone }}" 的联系人，请检查输入的电话号码是否正确。</p>
+                </div>
+            {% endif %}
+        
+        {% elif search_type == 'client' and client_id %}
+            {% if target_client %}
+                <!-- 目标客户公司信息 -->
+                <div class="target-contact-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <h5><i class="bi bi-building"></i> 目标客户公司信息</h5>
+                    <div class="target-contact-info">
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">公司名称</div>
+                            <div class="target-contact-value">{{ target_client.name }}</div>
+                        </div>
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">联系人数量</div>
+                            <div class="target-contact-value">{{ client_contacts|length }} 人</div>
+                        </div>
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">统一信用代码</div>
+                            <div class="target-contact-value">{{ target_client.unified_credit_code|default:"未填写" }}</div>
+                        </div>
+                        <div class="target-contact-item">
+                            <div class="target-contact-label">操作</div>
+                            <div class="target-contact-value">
+                                <a href="{% url 'business_pages:customer_detail' target_client.id %}" 
+                                   class="btn btn-sm btn-light" 
+                                   style="color: #11998e;">
+                                    查看客户详情
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 客户公司内所有联系人 -->
+                <div class="mining-result-section">
+                    <div class="mining-result-card">
+                        <h6>
+                            <i class="bi bi-people-fill"></i> 客户公司内所有联系人 
+                            <span class="badge bg-primary">{{ client_contacts|length }}</span>
+                        </h6>
+                        {% if client_contacts %}
+                            <div class="list-group">
+                                {% for contact in client_contacts %}
+                                <div class="contact-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="contact-name">
+                                                <a href="{% url 'business_pages:contact_detail' contact.id %}" class="contact-link">
+                                                    {{ contact.name }}
+                                                </a>
+                                                <span class="badge bg-info ms-2">关系评分: {{ contact.relationship_score }}</span>
+                                            </div>
+                                            <div class="contact-info">
+                                                <span class="me-3">
+                                                    <i class="bi bi-person-badge"></i> {{ contact.get_role_display }}
+                                                </span>
+                                                <span class="me-3">
+                                                    <i class="bi bi-star"></i> {{ contact.get_relationship_level_display }}
+                                                </span>
+                                                {% if contact.phone %}
+                                                <span class="me-3">
+                                                    <i class="bi bi-telephone"></i> {{ contact.phone }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            {% if contact.careers.all %}
+                                            <div class="contact-info mt-2">
+                                                <small class="text-muted">
+                                                    当前职位：
+                                                    {% for career in contact.careers.all|slice:":1" %}
+                                                        {% if career.company %}{{ career.company }}{% endif %}
+                                                        {% if career.position %} - {{ career.position }}{% endif %}
+                                                        {% if career.department %} ({{ career.department }}){% endif %}
+                                                    {% endfor %}
+                                                </small>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <a href="{% url 'business_pages:contact_detail' contact.id %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            查看详情
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="no-results">
+                                <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                                <p class="mt-2">该客户公司暂无联系人信息</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 客户公司关系网络 -->
+                {% if client_company_contacts %}
+                <div class="mining-result-section">
+                    <div class="mining-result-card">
+                        <h6>
+                            <i class="bi bi-diagram-3-fill"></i> 客户公司关系网络 
+                            <span class="badge bg-success">{{ client_company_contacts|length }}</span>
+                        </h6>
+                        <p class="text-muted mb-3">
+                            <small>以下是与该公司内联系人具有关系的外部人员（按关系评分排序）</small>
+                        </p>
+                        
+                        <!-- 按关系类型分组显示 -->
+                        <div class="accordion" id="relationTypeAccordion">
+                            {% regroup client_company_contacts by relation_type as relations_by_type %}
+                            {% for relation_group in relations_by_type %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ relation_group.grouper }}">
+                                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" 
+                                            type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse{{ relation_group.grouper }}" 
+                                            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+                                        {% if relation_group.grouper == 'education' %}
+                                            <i class="bi bi-mortarboard me-2"></i> 相同教育背景
+                                        {% elif relation_group.grouper == 'birthplace' %}
+                                            <i class="bi bi-geo-alt-fill me-2"></i> 相同籍贯
+                                        {% elif relation_group.grouper == 'career' %}
+                                            <i class="bi bi-briefcase-fill me-2"></i> 相同职业信息
+                                        {% elif relation_group.grouper == 'colleague' %}
+                                            <i class="bi bi-people-fill me-2"></i> 同事关系
+                                        {% endif %}
+                                        <span class="badge bg-primary ms-2">{{ relation_group.list|length }}</span>
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ relation_group.grouper }}" 
+                                     class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                                     aria-labelledby="heading{{ relation_group.grouper }}">
+                                    <div class="accordion-body">
+                                        <div class="list-group">
+                                            {% for relation_item in relation_group.list %}
+                                            <div class="contact-item">
+                                                <div class="contact-name">
+                                                    <a href="{% url 'business_pages:contact_detail' relation_item.contact.id %}" class="contact-link">
+                                                        {{ relation_item.contact.name }}
+                                                    </a>
+                                                    <span class="badge bg-info ms-2">关系评分: {{ relation_item.contact.relationship_score }}</span>
+                                                </div>
+                                                <div class="contact-info">
+                                                    <span class="me-3">
+                                                        <i class="bi bi-building"></i> {{ relation_item.contact.client.name }}
+                                                    </span>
+                                                    {% if relation_item.contact.phone %}
+                                                    <span class="me-3">
+                                                        <i class="bi bi-telephone"></i> {{ relation_item.contact.phone }}
+                                                    </span>
+                                                    {% endif %}
+                                                    <span class="badge bg-secondary">{{ relation_item.relation_desc }}</span>
+                                                </div>
+                                                {% if relation_item.contact.careers.all %}
+                                                <div class="contact-info mt-2">
+                                                    <small class="text-muted">
+                                                        当前职位：
+                                                        {% for career in relation_item.contact.careers.all|slice:":1" %}
+                                                            {% if career.company %}{{ career.company }}{% endif %}
+                                                            {% if career.position %} - {{ career.position }}{% endif %}
+                                                            {% if career.department %} ({{ career.department }}){% endif %}
+                                                        {% endfor %}
+                                                    </small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            {% else %}
+                <!-- 未找到目标客户 -->
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>未找到匹配的客户</strong>
+                    <p class="mb-0 mt-2">请检查选择的客户是否正确。</p>
+                </div>
+            {% endif %}
+        
+        {% else %}
+            <!-- 初始提示 -->
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>使用说明</strong>
+                <ul class="mb-0 mt-2">
+                    <li><strong>方式一：按电话号码挖掘</strong>
+                        <ul>
+                            <li>输入客户人员的电话号码（手机或固定电话）</li>
+                            <li>系统将查找该人员，并挖掘出具有以下关系的人员：
+                                <ul>
+                                    <li><strong>相同教育背景</strong>：毕业于同一所学校的人员</li>
+                                    <li><strong>相同籍贯</strong>：来自同一地区的人员</li>
+                                    <li><strong>相同职业信息</strong>：在同一公司、部门或担任相同职位的人员</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li><strong>方式二：按客户公司挖掘</strong>
+                        <ul>
+                            <li>选择目标客户公司</li>
+                            <li>系统将展示该公司内所有联系人，并挖掘出与这些联系人具有关系的外部人员网络</li>
+                            <li>关系类型包括：相同教育背景、相同籍贯、相同职业信息、同事关系等</li>
+                        </ul>
+                    </li>
+                    <li>点击人员姓名可以查看详细信息</li>
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

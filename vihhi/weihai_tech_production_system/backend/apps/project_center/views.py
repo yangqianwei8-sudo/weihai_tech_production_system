@@ -14,7 +14,7 @@ from .views_pages import (
     _user_is_project_member,
     _filter_projects_for_user,
 )
-from .models import (
+from backend.apps.customer_management.models import (
     Project,
     ProjectTeam,
     ProjectMilestone,
@@ -297,7 +297,7 @@ class ProjectDrawingSubmissionViewSet(viewsets.ModelViewSet):
         user = request.user
         project = serializer.validated_data['project']
         permission_set = get_user_permission_codes(user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(user, project)):
             raise PermissionDenied('您无权创建该项目的图纸提交。')
 
@@ -317,7 +317,7 @@ class ProjectDrawingSubmissionViewSet(viewsets.ModelViewSet):
         submission = self.get_object()
         project = submission.project
         permission_set = get_user_permission_codes(request.user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(request.user, project)):
             raise PermissionDenied('您无权更新该图纸提交。')
         submission.status = 'in_review'
@@ -333,7 +333,7 @@ class ProjectDrawingSubmissionViewSet(viewsets.ModelViewSet):
         submission = self.get_object()
         project = submission.project
         permission_set = get_user_permission_codes(request.user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(request.user, project)):
             raise PermissionDenied('您无权更新该提交的甲方通知状态。')
         channel = request.data.get('channel') or 'system'
@@ -365,7 +365,7 @@ class ProjectDrawingReviewViewSet(viewsets.ModelViewSet):
         submission = serializer.validated_data['submission']
         project = submission.project
         permission_set = get_user_permission_codes(user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(user, project)):
             raise PermissionDenied('您无权预审该图纸提交。')
 
@@ -419,7 +419,7 @@ class ProjectDrawingFileViewSet(viewsets.ModelViewSet):
         submission = serializer.validated_data['submission']
         project = submission.project
         permission_set = get_user_permission_codes(user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(user, project)):
             raise PermissionDenied('您无权上传该项目的图纸文件。')
         serializer.save(uploaded_by=user)
@@ -444,7 +444,7 @@ class ProjectStartNoticeViewSet(viewsets.ModelViewSet):
         user = self.request.user
         project = serializer.validated_data['project']
         permission_set = get_user_permission_codes(user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(user, project)):
             raise PermissionDenied('您无权创建该项目的开工通知。')
         serializer.save(created_by=user)
@@ -453,7 +453,7 @@ class ProjectStartNoticeViewSet(viewsets.ModelViewSet):
     def send_notice(self, request, pk=None):
         notice = self.get_object()
         permission_set = get_user_permission_codes(request.user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(request.user, notice.project)):
             raise PermissionDenied('您无权发送该开工通知。')
         now = timezone.now()
@@ -477,7 +477,7 @@ class ProjectStartNoticeViewSet(viewsets.ModelViewSet):
     def acknowledge_notice(self, request, pk=None):
         notice = self.get_object()
         permission_set = get_user_permission_codes(request.user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(request.user, notice.project)):
             raise PermissionDenied('您无权确认该开工通知。')
         now = timezone.now()
@@ -499,7 +499,7 @@ class ProjectStartNoticeViewSet(viewsets.ModelViewSet):
     def mark_failed(self, request, pk=None):
         notice = self.get_object()
         permission_set = get_user_permission_codes(request.user)
-        if not (_has_permission(permission_set, 'project_center.view_all', 'project_center.configure_team')
+        if not (_has_permission(permission_set, 'production_management.view_all', 'production_management.configure_team')
                 or _user_is_project_member(request.user, notice.project)):
             raise PermissionDenied('您无权更新该开工通知。')
         reason = request.data.get('reason', '')

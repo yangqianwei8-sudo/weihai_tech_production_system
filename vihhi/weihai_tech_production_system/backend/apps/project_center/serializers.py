@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import (
+from backend.apps.project_center.models import (
     Project,
     ProjectTeam,
     ProjectMilestone,

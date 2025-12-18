@@ -1,0 +1,120 @@
+{% extends "personnel_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'personnel_pages:leave_management' %}">请假管理</a></li>
+<li class="breadcrumb-item active">{{ leave.leave_number }}</li>
+{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+{% endblock %}
+
+{% block personnel_content %}
+<div class="container-fluid py-4">
+    <!-- 操作按钮 -->
+    <div class="text-end mb-4">
+        <a href="{% url 'personnel_pages:leave_management' %}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+        {% if leave.status in 'draft,pending' %}
+        <a href="{% url 'personnel_pages:leave_update' leave.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> 编辑
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">基本信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">请假单号</span>
+                <span class="info-value"><code>{{ leave.leave_number }}</code></span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">员工</span>
+                <span class="info-value">
+                    <a href="{% url 'personnel_pages:employee_detail' leave.employee.id %}">
+                        {{ leave.employee.name }} ({{ leave.employee.employee_number }})
+                    </a>
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">请假类型</span>
+                <span class="info-value">{{ leave.get_leave_type_display }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">状态</span>
+                <span class="info-value">
+                    <span class="status-badge {{ leave.status }}">{{ leave.get_status_display }}</span>
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">开始日期</span>
+                <span class="info-value">{{ leave.start_date|date:"Y-m-d" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">结束日期</span>
+                <span class="info-value">{{ leave.end_date|date:"Y-m-d" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">请假天数</span>
+                <span class="info-value" style="font-size: 18px; font-weight: 700; color: #142F5B;">{{ leave.days }} 天</span>
+            </div>
+        </div>
+    </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 请假事由 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">请假事由</h5>
+        </div>
+        <div class="info-card-body">
+            <p style="color: var(--vh-text); white-space: pre-wrap;">{{ leave.reason }}</p>
+        </div>
+    </div>
+
+    <!-- 审批信息 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">审批信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid">
+            {% if leave.approver %}
+            <div class="info-item">
+                <span class="info-label">审批人</span>
+                <span class="info-value">{{ leave.approver.get_full_name|default:leave.approver.username }}</span>
+            </div>
+            {% endif %}
+            {% if leave.approved_time %}
+            <div class="info-item">
+                <span class="info-label">审批时间</span>
+                <span class="info-value">{{ leave.approved_time|date:"Y-m-d H:i:s" }}</span>
+            </div>
+            {% endif %}
+            {% if leave.reject_reason %}
+            <div class="info-item" style="grid-column: span 2;">
+                <span class="info-label">拒绝原因</span>
+                <span class="info-value" style="color: #dc2626;">{{ leave.reject_reason }}</span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <span class="info-label">创建时间</span>
+                <span class="info-value">{{ leave.created_time|date:"Y-m-d H:i:s" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

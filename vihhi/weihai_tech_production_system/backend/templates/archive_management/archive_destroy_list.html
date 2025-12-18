@@ -1,0 +1,189 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案销毁 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">档案销毁</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作按钮 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">🗑️ 档案销毁</h2>
+            <p class="text-muted mb-0">管理档案销毁记录，支持审批和执行</p>
+        </div>
+        <div>
+            <a href="{% url 'archive_management:archive_destroy_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 新建销毁申请
+            </a>
+        </div>
+    </div>
+
+    
+            </div>
+        </div>
+        <div class="col-md-3">
+        <div class="col-md-3">
+        <div class="col-md-3">
+    </div>
+
+    <!-- 筛选和列表 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">档案销毁列表</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-secondary">共 {{ page.paginator.count }} 条</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            <!-- 筛选器 -->
+            <form method="get" class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">状态</label>
+                    <select name="status" class="form-select">
+                        <option value="">全部状态</option>
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>待审批</option>
+                        <option value="approved" {% if status == 'approved' %}selected{% endif %}>已批准</option>
+                        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                        <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">销毁类型</label>
+                    <select name="destroy_type" class="form-select">
+                        <option value="">全部类型</option>
+                        <option value="expired" {% if destroy_type == 'expired' %}selected{% endif %}>到期销毁</option>
+                        <option value="duplicate" {% if destroy_type == 'duplicate' %}selected{% endif %}>重复销毁</option>
+                        <option value="damaged" {% if destroy_type == 'damaged' %}selected{% endif %}>损坏销毁</option>
+                        <option value="other" {% if destroy_type == 'other' %}selected{% endif %}>其他</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">搜索</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="搜索销毁原因、档案名称..." value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> 筛选
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- 销毁列表 -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>档案信息</th>
+                            <th>销毁原因</th>
+                            <th>销毁类型</th>
+                            <th>销毁方式</th>
+                            <th>销毁人</th>
+                            <th>销毁时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for destroy in page.object_list %}
+                        <tr>
+                            <td>
+                                {% if destroy.project_document %}
+                                    <strong>{{ destroy.project_document.document_name }}</strong>
+                                    <br><small class="text-muted">项目文档</small>
+                                {% elif destroy.administrative_archive %}
+                                    <strong>{{ destroy.administrative_archive.archive_name }}</strong>
+                                    <br><small class="text-muted">行政档案</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ destroy.destroy_reason|truncatewords:10 }}</td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ destroy.get_destroy_type_display }}
+                                </span>
+                            </td>
+                            <td>{{ destroy.destroy_method|default:"-" }}</td>
+                            <td>{{ destroy.destroyer.username|default:"-" }}</td>
+                            <td>
+                                {% if destroy.destroy_time %}
+                                    {{ destroy.destroy_time|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if destroy.status == 'pending' %}
+                                <span class="badge bg-warning">待审批</span>
+                                {% elif destroy.status == 'approved' %}
+                                <span class="badge bg-info">已批准</span>
+                                {% elif destroy.status == 'rejected' %}
+                                <span class="badge bg-danger">已拒绝</span>
+                                {% elif destroy.status == 'completed' %}
+                                <span class="badge bg-success">已完成</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ destroy.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'archive_management:archive_destroy_detail' destroy.pk %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 查看
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                <p class="mt-2">暂无销毁记录</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if page.paginator.num_pages > 1 %}
+            <nav aria-label="分页导航">
+                <ul class="pagination justify-content-center">
+                    {% if page.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page.previous_page_number }}{% if status %}&status={{ status }}{% endif %}{% if destroy_type %}&destroy_type={{ destroy_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page.paginator.page_range %}
+                    {% if page.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page.number|add:'-3' and num < page.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if status %}&status={{ status }}{% endif %}{% if destroy_type %}&destroy_type={{ destroy_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page.next_page_number }}{% if status %}&status={{ status }}{% endif %}{% if destroy_type %}&destroy_type={{ destroy_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}">下一页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

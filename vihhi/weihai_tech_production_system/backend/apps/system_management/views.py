@@ -1,9 +1,10 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth import login, logout
 from django.db.models import Q
-from .models import User, Department, Role, DataDictionary, SystemConfig
+from backend.apps.system_management.models import User, Department, Role, DataDictionary, SystemConfig
 from .serializers import (
     UserSerializer,
     UserLoginSerializer,
@@ -15,6 +16,13 @@ from .serializers import (
     AccountNotificationSerializer,
     AccountPasswordChangeSerializer,
 )
+
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    """禁用CSRF检查的Session认证，用于API登录"""
+    def enforce_csrf(self, request):
+        return  # 不执行CSRF检查
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -41,8 +49,9 @@ class UserViewSet(viewsets.ModelViewSet):
             )
         return queryset
     
-    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], authentication_classes=[CsrfExemptSessionAuthentication])
     def login(self, request):
+        # 登录API使用CsrfExemptSessionAuthentication，豁免CSRF检查
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']

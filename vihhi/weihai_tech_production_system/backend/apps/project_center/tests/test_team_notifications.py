@@ -54,7 +54,7 @@ class TeamNotificationTests(TestCase):
     def test_notifications_created_for_team_changes(self):
         self.client.force_login(self.operator)
 
-        url = reverse('project_pages:project_team', args=[self.project.id])
+        url = reverse('production_pages:project_team', args=[self.project.id])
         response = self.client.post(
             url,
             data={

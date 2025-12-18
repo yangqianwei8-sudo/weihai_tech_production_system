@@ -1,0 +1,188 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案数字化申请 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:project_archive_list' %}">档案管理</a></li>
+<li class="breadcrumb-item"><a href="#">档案数字化</a></li>
+<li class="breadcrumb-item active">数字化申请</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作按钮 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📄 档案数字化申请</h2>
+            <p class="text-muted mb-0">管理档案数字化申请，支持扫描、OCR识别、格式转换等数字化类型</p>
+        </div>
+        <div>
+            <a href="{% url 'archive_management:archive_digitization_apply_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 新建申请
+            </a>
+        </div>
+    </div>
+
+    
+            </div>
+        </div>
+        <div class="col-md-3">
+        <div class="col-md-3">
+        <div class="col-md-3">
+    </div>
+
+    <!-- 申请列表 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">数字化申请列表</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-secondary">共 {{ page.paginator.count|default:0 }} 条</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            <!-- 筛选器 -->
+            <form method="get" class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">申请状态</label>
+                    <select name="status" class="form-select">
+                        <option value="">全部状态</option>
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>待审批</option>
+                        <option value="approved" {% if status == 'approved' %}selected{% endif %}>已批准</option>
+                        <option value="processing" {% if status == 'processing' %}selected{% endif %}>处理中</option>
+                        <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">数字化类型</label>
+                    <select name="digitization_type" class="form-select">
+                        <option value="">全部类型</option>
+                        <option value="scan" {% if digitization_type == 'scan' %}selected{% endif %}>扫描</option>
+                        <option value="ocr" {% if digitization_type == 'ocr' %}selected{% endif %}>OCR识别</option>
+                        <option value="convert" {% if digitization_type == 'convert' %}selected{% endif %}>格式转换</option>
+                        <option value="other" {% if digitization_type == 'other' %}selected{% endif %}>其他</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">搜索</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="搜索申请人、档案名称..." value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> 筛选
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- 申请列表 -->
+            {% if page and page.object_list %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>申请编号</th>
+                            <th>档案信息</th>
+                            <th>数字化类型</th>
+                            <th>申请人</th>
+                            <th>申请时间</th>
+                            <th>优先级</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for apply in page.object_list %}
+                        <tr>
+                            <td><code>{{ apply.apply_number|default:"-" }}</code></td>
+                            <td>
+                                <strong>{{ apply.archive_name|default:"-" }}</strong>
+                                <br><small class="text-muted">{{ apply.archive_type|default:"" }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ apply.get_digitization_type_display|default:"-" }}
+                                </span>
+                            </td>
+                            <td>{{ apply.applicant.username|default:"-" }}</td>
+                            <td>{{ apply.apply_time|date:"Y-m-d H:i"|default:"-" }}</td>
+                            <td>
+                                {% if apply.priority == 'high' %}
+                                <span class="badge bg-danger">高</span>
+                                {% elif apply.priority == 'medium' %}
+                                <span class="badge bg-warning">中</span>
+                                {% elif apply.priority == 'low' %}
+                                <span class="badge bg-info">低</span>
+                                {% else %}
+                                <span class="badge bg-secondary">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if apply.status == 'pending' %}
+                                <span class="badge bg-warning">待审批</span>
+                                {% elif apply.status == 'approved' %}
+                                <span class="badge bg-info">已批准</span>
+                                {% elif apply.status == 'processing' %}
+                                <span class="badge bg-primary">处理中</span>
+                                {% elif apply.status == 'completed' %}
+                                <span class="badge bg-success">已完成</span>
+                                {% elif apply.status == 'rejected' %}
+                                <span class="badge bg-danger">已拒绝</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ apply.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 查看
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if page.paginator.num_pages > 1 %}
+            <nav aria-label="分页导航">
+                <ul class="pagination justify-content-center">
+                    {% if page.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page.previous_page_number }}{% if status %}&status={{ status }}{% endif %}{% if digitization_type %}&digitization_type={{ digitization_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page.paginator.page_range %}
+                    {% if page.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page.number|add:'-3' and num < page.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if status %}&status={{ status }}{% endif %}{% if digitization_type %}&digitization_type={{ digitization_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page.next_page_number }}{% if status %}&status={{ status }}{% endif %}{% if digitization_type %}&digitization_type={{ digitization_type }}{% endif %}{% if search %}&search={{ search }}{% endif %}">下一页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 暂无数字化申请记录
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

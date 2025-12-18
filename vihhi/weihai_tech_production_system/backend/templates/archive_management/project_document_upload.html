@@ -1,0 +1,317 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}上传项目文档 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:project_document_list' %}">项目文档</a></li>
+<li class="breadcrumb-item active">上传文档</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📤 上传项目文档</h2>
+            <p class="text-muted mb-0">上传项目相关文档，支持多种文件格式</p>
+        </div>
+        <div>
+            <a href="{% url 'archive_management:project_document_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <!-- 表单卡片 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">文档信息</h5>
+        </div>
+        <div class="info-card-body">
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                <h6><i class="bi bi-exclamation-triangle"></i> 表单验证失败</h6>
+                <ul class="mb-0">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <li>{{ field }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                
+                <div class="row g-3">
+                    <!-- 文档名称 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.document_name.id_for_label }}" class="form-label">
+                            {{ form.document_name.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.document_name }}
+                        {% if form.document_name.errors %}
+                        <div class="text-danger small">{{ form.document_name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 文档类型 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.document_type.id_for_label }}" class="form-label">
+                            {{ form.document_type.label }}
+                        </label>
+                        {{ form.document_type }}
+                        {% if form.document_type.errors %}
+                        <div class="text-danger small">{{ form.document_type.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 所属项目 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.project.id_for_label }}" class="form-label">
+                            {{ form.project.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.project }}
+                        {% if form.project.errors %}
+                        <div class="text-danger small">{{ form.project.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 文档分类 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.category.id_for_label }}" class="form-label">
+                            {{ form.category.label }}
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                        <div class="text-danger small">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 文档文件 -->
+                    <div class="col-md-12">
+                        <label for="{{ form.file.id_for_label }}" class="form-label">
+                            {{ form.file.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.file }}
+                        <small class="form-text text-muted">
+                            支持格式：PDF、Word、Excel、PPT、图片、CAD、压缩包等
+                        </small>
+                        {% if form.file.errors %}
+                        <div class="text-danger small">{{ form.file.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 文档描述 -->
+                    <div class="col-md-12">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger small">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 标签 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.tags.id_for_label }}" class="form-label">
+                            {{ form.tags.label }}
+                        </label>
+                        {{ form.tags }}
+                        <small class="form-text text-muted">多个标签用逗号分隔</small>
+                        {% if form.tags.errors %}
+                        <div class="text-danger small">{{ form.tags.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 密级 -->
+                    <div class="col-md-3">
+                        <label for="{{ form.security_level.id_for_label }}" class="form-label">
+                            {{ form.security_level.label }}
+                        </label>
+                        {{ form.security_level }}
+                        {% if form.security_level.errors %}
+                        <div class="text-danger small">{{ form.security_level.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 版本 -->
+                    <div class="col-md-3">
+                        <label for="{{ form.version.id_for_label }}" class="form-label">
+                            {{ form.version.label }}
+                        </label>
+                        {{ form.version }}
+                        {% if form.version.errors %}
+                        <div class="text-danger small">{{ form.version.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'archive_management:project_document_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload"></i> 上传文档
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 快速选择项目 -->
+    {% if projects %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">快速选择项目</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-secondary">共 {{ projects|length }} 个项目</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>项目编号</th>
+                            <th>项目名称</th>
+                            <th>客户名称</th>
+                            <th>项目状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in projects %}
+                        <tr>
+                            <td><code>{{ project.project_number|default:"-" }}</code></td>
+                            <td>{{ project.project_name|default:"-" }}</td>
+                            <td>{{ project.client.client_name|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-{% if project.status == 'in_progress' %}primary{% elif project.status == 'settled' %}success{% else %}info{% endif %}">
+                                    {{ project.get_status_display|default:"-" }}
+                                </span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        onclick="selectProject({{ project.id }}, '{{ project.project_name }}')">
+                                    <i class="bi bi-check-circle"></i> 选择
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 上传说明 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">上传说明</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> 支持的文件格式</h6>
+                <ul class="mb-0">
+                    <li><strong>文档类</strong>：PDF、Word (.doc, .docx)、Excel (.xls, .xlsx)、PPT (.ppt, .pptx)、TXT</li>
+                    <li><strong>图片类</strong>：JPG、JPEG、PNG、GIF</li>
+                    <li><strong>设计类</strong>：CAD (.dwg)、其他设计文件</li>
+                    <li><strong>压缩类</strong>：ZIP、RAR</li>
+                </ul>
+            </div>
+            <div class="alert alert-warning">
+                <h6><i class="bi bi-exclamation-triangle"></i> 注意事项</h6>
+                <ul class="mb-0">
+                    <li>文档名称和文件为必填项</li>
+                    <li>建议文件大小不超过100MB</li>
+                    <li>文档编号将自动生成</li>
+                    <li>上传后文档状态为"待归档"，需要归档后才能正式使用</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectProject(projectId, projectName) {
+    // 设置项目选择框的值
+    const projectSelect = document.getElementById('{{ form.project.id_for_label }}');
+    if (projectSelect) {
+        projectSelect.value = projectId;
+        projectSelect.dispatchEvent(new Event('change'));
+    }
+    
+    // 显示提示信息
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <i class="bi bi-check-circle"></i> 已选择项目：${projectName}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.info-card-body').insertBefore(alertDiv, document.querySelector('form'));
+    
+    // 滚动到表单
+    document.querySelector('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 文件选择预览
+document.getElementById('{{ form.file.id_for_label }}').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+        if (file.size > 100 * 1024 * 1024) {
+            alert(`文件大小 ${fileSize}MB 超过100MB限制，请选择较小的文件`);
+            e.target.value = '';
+            return;
+        }
+        
+        // 自动填充文档名称（如果没有填写）
+        const docNameInput = document.getElementById('{{ form.document_name.id_for_label }}');
+        if (!docNameInput.value) {
+            const fileName = file.name.replace(/\.[^/.]+$/, '');
+            docNameInput.value = fileName;
+        }
+    }
+});
+
+// 表单提交验证
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const docName = document.getElementById('{{ form.document_name.id_for_label }}').value;
+    const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+    const projectSelect = document.getElementById('{{ form.project.id_for_label }}');
+    
+    if (!docName.trim()) {
+        e.preventDefault();
+        alert('请填写文档名称');
+        return false;
+    }
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        e.preventDefault();
+        alert('请选择要上传的文件');
+        return false;
+    }
+    
+    if (!projectSelect.value) {
+        e.preventDefault();
+        alert('请选择所属项目');
+        return false;
+    }
+    
+    if (!confirm('确定要上传文档吗？')) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+{% endblock %}

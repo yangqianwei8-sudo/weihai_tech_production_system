@@ -1,0 +1,209 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}客户反馈 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:delivery_feedback_list' %}">客户反馈</a></li>
+<li class="breadcrumb-item active">{{ delivery.delivery_number }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作按钮 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">💬 客户反馈</h2>
+            <p class="text-muted mb-0">交付单号：{{ delivery.delivery_number }}</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_feedback_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+            <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-eye"></i> 查看详情
+            </a>
+        </div>
+    </div>
+
+    <!-- 交付记录基本信息 - 使用样式模板 -->
+    <div class="info-card info-card-fade-in mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">交付记录信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-2">
+                <div class="info-item">
+                    <span class="info-label">交付单号</span>
+                    <span class="info-value info-value-bold">{{ delivery.delivery_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">交付标题</span>
+                    <span class="info-value">{{ delivery.title }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">关联项目</span>
+                    <span class="info-value">
+                        {% if delivery.project %}
+                        <a href="#" class="text-decoration-none">
+                            {{ delivery.project.project_number }} - {{ delivery.project.name }}
+                        </a>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">交付状态</span>
+                    <span class="info-value">
+                        {% if delivery.status == 'confirmed' %}
+                            <span class="status-badge confirmed">已确认</span>
+                        {% elif delivery.status == 'received' %}
+                            <span class="status-badge received">已接收</span>
+                        {% else %}
+                            <span class="status-badge {{ delivery.status }}">{{ delivery.get_status_display }}</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 反馈表单 - 使用样式模板 -->
+    {% if can_create_feedback %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">客户反馈</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="post" id="feedbackForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">反馈类型 <span class="text-danger">*</span></label>
+                        <select name="feedback_type" class="form-select" required>
+                            <option value="">请选择反馈类型</option>
+                            {% for type_code, type_label in feedback_types %}
+                            <option value="{{ type_code }}">{{ type_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">反馈人姓名 <span class="text-danger">*</span></label>
+                        <input type="text" name="feedback_by" class="form-control" 
+                               value="{{ delivery.recipient_name }}" required placeholder="请输入反馈人姓名">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">反馈人邮箱</label>
+                        <input type="email" name="feedback_email" class="form-control" 
+                               value="{{ delivery.recipient_email }}" placeholder="请输入反馈人邮箱">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">反馈人电话</label>
+                        <input type="text" name="feedback_phone" class="form-control" 
+                               value="{{ delivery.recipient_phone }}" placeholder="请输入反馈人电话">
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">反馈内容 <span class="text-danger">*</span></label>
+                        <textarea name="feedback_content" class="form-control" rows="6" 
+                                  required placeholder="请详细描述您的反馈内容"></textarea>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">反馈附件</label>
+                        <input type="file" name="feedback_files" class="form-control" 
+                               multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                        <small class="text-muted">支持上传多个文件（可选）</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{% url 'delivery_pages:delivery_feedback_list' %}" class="btn btn-outline-secondary">取消</a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> 提交反馈
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 
+        该交付记录当前状态不允许创建反馈。只有已签收或已确认状态的记录才能创建反馈。
+    </div>
+    {% endif %}
+
+    <!-- 历史反馈记录 - 使用样式模板 -->
+    {% if delivery.feedbacks.exists %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">历史反馈记录</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="list-group">
+                {% for feedback in delivery.feedbacks.all %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-1">
+                                <span class="badge bg-info">{{ feedback.get_feedback_type_display }}</span>
+                                <span class="ms-2">{{ feedback.feedback_by }}</span>
+                            </h6>
+                            <small class="text-muted">{{ feedback.created_at|date:"Y-m-d H:i:s" }}</small>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <p class="mb-0">{{ feedback.content|linebreaks }}</p>
+                    </div>
+                    {% if feedback.feedback_email or feedback.feedback_phone %}
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            {% if feedback.feedback_email %}
+                                <i class="bi bi-envelope"></i> {{ feedback.feedback_email }}
+                            {% endif %}
+                            {% if feedback.feedback_phone %}
+                                <span class="ms-2"><i class="bi bi-telephone"></i> {{ feedback.feedback_phone }}</span>
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 交付文件清单 - 使用样式模板 -->
+    {% if delivery.files.exists %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">交付文件清单</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="list-group">
+                {% for file in delivery.files.all %}
+                {% if not file.is_deleted %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-file-earmark"></i>
+                        <span class="ms-2">{{ file.file_name }}</span>
+                        <small class="text-muted ms-2">({{ file.file_size|filesizeformat }})</small>
+                        {% if file.description %}
+                        <small class="text-muted ms-2">- {{ file.description }}</small>
+                        {% endif %}
+                    </div>
+                    <a href="{{ file.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="bi bi-download"></i> 下载
+                    </a>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

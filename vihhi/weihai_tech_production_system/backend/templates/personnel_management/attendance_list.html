@@ -1,0 +1,141 @@
+{% extends "personnel_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">考勤管理</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .content-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 12px 32px rgba(20, 47, 91, 0.08);
+        border: 1px solid rgba(20, 47, 91, 0.08);
+    }
+</style>
+{% endblock %}
+
+{% block personnel_content %}
+
+    <!-- 内容区域 -->
+    <div class="content-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0">考勤记录列表</h3>
+            <a href="{% url 'personnel_pages:attendance_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 新增考勤
+            </a>
+        </div>
+
+        <!-- 筛选栏 -->
+        <form method="get" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="search" class="form-control" placeholder="搜索员工姓名、编号..." value="{{ current_search }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="date_from" class="form-control" value="{{ current_date_from }}" placeholder="开始日期">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="date_to" class="form-control" value="{{ current_date_to }}" placeholder="结束日期">
+                </div>
+                <div class="col-md-5">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                    <a href="{% url 'personnel_pages:attendance_management' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 清除
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        <!-- 数据表格 -->
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>员工</th>
+                        <th>考勤日期</th>
+                        <th>上班时间</th>
+                        <th>下班时间</th>
+                        <th>工作时长</th>
+                        <th>加班时长</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attendance in attendances %}
+                    <tr>
+                        <td>{{ attendance.employee.name }} <small class="text-muted">({{ attendance.employee.employee_number }})</small></td>
+                        <td>{{ attendance.attendance_date|date:"Y-m-d" }}</td>
+                        <td>{{ attendance.check_in_time|default:"-"|date:"H:i" }}</td>
+                        <td>{{ attendance.check_out_time|default:"-"|date:"H:i" }}</td>
+                        <td>{{ attendance.work_hours }} 小时</td>
+                        <td>
+                            {% if attendance.overtime_hours > 0 %}
+                            <span style="color: #059669;">{{ attendance.overtime_hours }} 小时</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attendance.is_absent %}
+                            <span class="badge bg-danger">缺勤</span>
+                            {% elif attendance.is_late %}
+                            <span class="badge bg-warning">迟到</span>
+                            {% elif attendance.is_early_leave %}
+                            <span class="badge bg-warning">早退</span>
+                            {% else %}
+                            <span class="badge bg-success">正常</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'personnel_pages:attendance_detail' attendance.id %}" class="btn btn-sm btn-outline-primary" title="查看详情">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">暂无数据</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="分页导航">
+            <ul class="pagination justify-content-center mt-4">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}">上一页</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}">下一页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            暂无数据或加载失败
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

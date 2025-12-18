@@ -1,0 +1,166 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}发文列表 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item active">发文列表</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/layouts/list-layout.css' %}">
+<style>
+.list-page-container {
+    padding: 12px !important;
+    gap: 8px !important;
+}
+
+.list-page-header {
+    margin-bottom: 8px !important;
+    padding: 6px 0 !important;
+}
+
+.table {
+    margin-bottom: 8px;
+}
+
+.table th,
+.table td {
+    padding: 8px 10px;
+    font-size: 13px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="list-page-container">
+    <div class="list-page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">📤 发文列表</h4>
+            <small class="text-muted">管理发出的文件记录</small>
+        </div>
+        {% if can_create %}
+        <div>
+            <a href="{% url 'delivery_pages:outgoing_document_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> 创建发文
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="list-page-filters mb-2">
+        <form method="get" class="d-flex gap-2 align-items-end">
+            <div class="flex-grow-1">
+                <label class="form-label small mb-1">搜索</label>
+                <input type="text" name="search" class="form-control form-control-sm" 
+                       placeholder="发文编号、标题、收文单位、联系人..." 
+                       value="{{ search_query }}">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search"></i> 搜索
+                </button>
+                <a href="{% url 'delivery_pages:outgoing_document_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle"></i> 重置
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="list-page-table">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 12%;">发文编号</th>
+                        <th style="width: 20%;">文件标题</th>
+                        <th style="width: 15%;">收文单位</th>
+                        <th style="width: 10%;">发文日期</th>
+                        <th style="width: 10%;">审核人</th>
+                        <th style="width: 12%;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if documents %}
+                        {% for doc in documents %}
+                        <tr>
+                            <td>{{ forloop.counter0|add:documents.start_index }}</td>
+                            <td><code>{{ doc.document_number }}</code></td>
+                            <td><strong>{{ doc.title|truncatewords:10 }}</strong></td>
+                            <td>{{ doc.recipient }}</td>
+                            <td>{{ doc.send_date|date:"Y-m-d"|default:"-" }}</td>
+                            <td>
+                                {% if doc.reviewer %}
+                                    {{ doc.reviewer.get_full_name|default:doc.reviewer.username }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'delivery_pages:outgoing_document_detail' doc.id %}" 
+                                       class="btn btn-outline-info" title="查看详情">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if can_create %}
+                                    <a href="{% url 'delivery_pages:outgoing_document_edit' doc.id %}" 
+                                       class="btn btn-outline-primary" title="编辑">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox"></i> 暂无数据
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if documents.has_other_pages %}
+    <nav aria-label="分页导航">
+        <ul class="pagination justify-content-center mb-0">
+            {% if documents.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">首页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ documents.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">上一页</a>
+                </li>
+            {% endif %}
+            
+            {% for num in documents.paginator.page_range %}
+                {% if documents.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > documents.number|add:'-3' and num < documents.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if documents.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ documents.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">下一页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ documents.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">末页</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+

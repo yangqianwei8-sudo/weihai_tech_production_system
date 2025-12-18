@@ -1,0 +1,555 @@
+{% extends "personnel_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'personnel_pages:employee_management' %}">员工档案</a></li>
+<li class="breadcrumb-item active">{% if employee %}{{ employee.name }}{% else %}员工详情{% endif %}</li>
+{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+<style>
+    /* center-hero 页面标题样式 */
+    .center-hero {
+        background: linear-gradient(135deg, rgba(20,47,91,0.95), rgba(31,62,124,0.92));
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        color: #fff;
+        box-shadow: 0 24px 60px rgba(20, 47, 91, 0.18);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .center-hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(255,255,255,0.25), transparent 60%);
+        pointer-events: none;
+    }
+    
+    .hero-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-md);
+        background: rgba(255,255,255,0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .hero-title {
+        font-size: var(--font-size-2xl);
+        font-weight: 700;
+        margin-bottom: var(--spacing-sm);
+        color: #fff;
+    }
+    
+    .hero-subtitle {
+        font-size: var(--font-size-base);
+        color: rgba(255,255,255,0.9);
+        margin: 0;
+    }
+    
+    .hero-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .info-row {
+        display: flex;
+        padding: var(--spacing-sm) 0;
+        border-bottom: 2px solid var(--vh-primary);
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-text-content {
+        color: var(--vh-text);
+        line-height: 1.6;
+        margin: 0;
+        white-space: pre-wrap;
+    }
+    
+    /* 统计卡片样式 */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .stat-card {
+        background: var(--vh-card-bg);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--vh-border);
+        transition: transform var(--transition-base), box-shadow var(--transition-base);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .stat-card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, rgba(20,47,91,0.1), rgba(31,62,124,0.08));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+    
+    .stat-label {
+        font-size: var(--font-size-sm);
+        color: var(--vh-text-muted);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--vh-primary);
+        line-height: 1.2;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .stat-hint {
+        font-size: var(--font-size-sm);
+        color: var(--vh-text-muted);
+        margin: 0;
+    }
+    
+    /* 头像样式 */
+    .employee-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: var(--radius-lg);
+        object-fit: cover;
+        border: 4px solid rgba(255,255,255,0.3);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .avatar-placeholder {
+        width: 120px;
+        height: 120px;
+        border-radius: var(--radius-lg);
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        border: 4px solid rgba(255,255,255,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block personnel_content %}
+{% if employee %}
+<div class="container-fluid py-4">
+    <!-- 页面标题区域 -->
+    <div class="center-hero">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div class="d-flex align-items-start gap-3 flex-grow-1">
+                <div>
+                    {% if employee.avatar %}
+                    <img src="{{ employee.avatar.url }}" alt="{{ employee.name }}" class="employee-avatar">
+                    {% else %}
+                    <div class="avatar-placeholder">👤</div>
+                    {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                    <div class="hero-icon" style="display: none;"></div>
+                    <h1 class="hero-title">{{ employee.name }} - 员工详情</h1>
+                    <p class="hero-subtitle">员工编号：{{ employee.employee_number }} | {% if employee.department %}{{ employee.department.name }}{% endif %} | {{ employee.position }}</p>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <a href="{% url 'personnel_pages:employee_management' %}" class="btn btn-light btn-sm">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+        {% if employee %}
+                <a href="{% url 'personnel_pages:employee_update' employee.id %}" class="btn btn-light btn-sm">
+            <i class="bi bi-pencil"></i> 编辑
+        </a>
+        {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 统计卡片 -->
+    {% if summary_cards %}
+    <div class="stats-grid">
+        {% for card in summary_cards %}
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="flex-grow-1">
+                    <div class="stat-label">{{ card.label }}</div>
+                    <div class="stat-value">{{ card.value }}</div>
+                    {% if card.hint %}
+                    <div class="stat-hint">{{ card.hint }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 基本信息 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">👤 基本信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">员工编号</span>
+                <span class="info-value"><code>{{ employee.employee_number }}</code></span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">姓名</span>
+                    <span class="info-value info-value-bold">{{ employee.name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">性别</span>
+                <span class="info-value">{{ employee.get_gender_display }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">身份证号</span>
+                <span class="info-value">{{ employee.id_number }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">出生日期</span>
+                    <span class="info-value">{% if employee.birthday %}{{ employee.birthday|date:"Y-m-d" }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">手机号</span>
+                <span class="info-value">{{ employee.phone }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">邮箱</span>
+                    <span class="info-value">{% if employee.email %}{{ employee.email }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">系统账号</span>
+                <span class="info-value">
+                    {% if employee.user %}
+                        <a href="/admin/system_management/user/{{ employee.user.id }}/change/" class="text-decoration-none">{{ employee.user.username }}</a>
+                    {% else %}
+                        <span class="info-value-empty">-</span>
+                    {% endif %}
+                </span>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工作信息 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">💼 工作信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">部门</span>
+                    <span class="info-value">{% if employee.department %}{{ employee.department.name }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">职位</span>
+                    <span class="info-value info-value-bold">{{ employee.position }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">职称</span>
+                    <span class="info-value">{% if employee.job_title %}{{ employee.job_title }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">入职日期</span>
+                    <span class="info-value">{% if employee.entry_date %}{{ employee.entry_date|date:"Y-m-d" }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">状态</span>
+                <span class="info-value">
+                    <span class="status-badge {{ employee.status }}">{{ employee.get_status_display }}</span>
+                </span>
+            </div>
+            {% if employee.resignation_date %}
+            <div class="info-item">
+                <span class="info-label">离职日期</span>
+                <span class="info-value">{{ employee.resignation_date|date:"Y-m-d" }}</span>
+            </div>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 联系信息 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">📞 联系信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid">
+                <div class="info-item" style="grid-column: 1 / -1;">
+                <span class="info-label">住址</span>
+                    <span class="info-value">{% if employee.address %}{{ employee.address }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">紧急联系人</span>
+                    <span class="info-value">{% if employee.emergency_contact %}{{ employee.emergency_contact }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">紧急联系电话</span>
+                    <span class="info-value">{% if employee.emergency_phone %}{{ employee.emergency_phone }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 备注信息 -->
+    {% if employee.notes %}
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">📝 备注信息</h5>
+        </div>
+        <div class="info-card-body">
+            <p class="info-text-content">{{ employee.notes }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 最近项目参与 -->
+    {% if recent_projects %}
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">💼 最近参与的项目</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>项目编号</th>
+                            <th>项目名称</th>
+                            <th>项目状态</th>
+                            <th>参与角色</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in recent_projects %}
+                        <tr>
+                            <td><code>{{ project.project_number|default:"待生成" }}</code></td>
+                            <td>
+                                <a href="{% url 'production_pages:project_detail' project.id %}" class="text-decoration-none">
+                                    {{ project.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="status-badge {{ project.status }}">
+                                    {{ project.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% for team in recent_project_teams %}
+                                    {% if team.project.id == project.id %}
+                                        {{ team.get_role_display }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 最近考勤记录 -->
+    {% if recent_attendances %}
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">📅 最近考勤记录</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>上班时间</th>
+                            <th>下班时间</th>
+                            <th>工作时长</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attendance in recent_attendances %}
+                        <tr>
+                            <td>{{ attendance.attendance_date|date:"Y-m-d" }}</td>
+                            <td>{% if attendance.check_in_time %}{{ attendance.check_in_time|time:"H:i" }}{% else %}<span class="info-value-empty">-</span>{% endif %}</td>
+                            <td>{% if attendance.check_out_time %}{{ attendance.check_out_time|time:"H:i" }}{% else %}<span class="info-value-empty">-</span>{% endif %}</td>
+                            <td>{{ attendance.work_hours }} 小时</td>
+                            <td>
+                                {% if attendance.is_late %}
+                                <span class="badge bg-warning">迟到</span>
+                                {% elif attendance.is_early_leave %}
+                                <span class="badge bg-warning">早退</span>
+                                {% elif attendance.is_absent %}
+                                <span class="badge bg-danger">缺勤</span>
+                                {% else %}
+                                <span class="badge bg-success">正常</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 最近请假记录 -->
+    {% if recent_leaves %}
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">🏖️ 最近请假记录</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>请假单号</th>
+                            <th>请假类型</th>
+                            <th>开始日期</th>
+                            <th>结束日期</th>
+                            <th>天数</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for leave in recent_leaves %}
+                        <tr>
+                            <td><code>{{ leave.leave_number }}</code></td>
+                            <td>{{ leave.get_leave_type_display }}</td>
+                            <td>{{ leave.start_date|date:"Y-m-d" }}</td>
+                            <td>{{ leave.end_date|date:"Y-m-d" }}</td>
+                            <td>{{ leave.days }} 天</td>
+                            <td>
+                                <span class="status-badge {{ leave.status }}">
+                                    {{ leave.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 最近培训记录 -->
+    {% if recent_trainings %}
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">📚 最近培训记录</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>培训标题</th>
+                            <th>培训日期</th>
+                            <th>培训时长</th>
+                            <th>成绩</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for training_participant in recent_trainings %}
+                        <tr>
+                            <td>{{ training_participant.training.title }}</td>
+                            <td>{% if training_participant.training.training_date %}{{ training_participant.training.training_date|date:"Y-m-d" }}{% else %}<span class="info-value-empty">-</span>{% endif %}</td>
+                            <td>{{ training_participant.training.duration }} 小时</td>
+                            <td>{% if training_participant.score %}{{ training_participant.score }}{% else %}<span class="info-value-empty">-</span>{% endif %}</td>
+                            <td>
+                                <span class="status-badge {{ training_participant.training.status }}">
+                                    {{ training_participant.training.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 其他信息 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">ℹ️ 其他信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">创建人</span>
+                    <span class="info-value">{% if employee.created_by %}{{ employee.created_by.get_full_name|default:employee.created_by.username }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">创建时间</span>
+                    <span class="info-value">{% if employee.created_time %}{{ employee.created_time|date:"Y-m-d H:i:s" }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">更新时间</span>
+                    <span class="info-value">{% if employee.updated_time %}{{ employee.updated_time|date:"Y-m-d H:i:s" }}{% else %}<span class="info-value-empty">-</span>{% endif %}</span>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="container-fluid py-4">
+    <div class="info-card info-card-danger">
+        <div class="info-card-header">
+            <h5 class="info-card-title">❌ 错误</h5>
+        </div>
+        <div class="info-card-body">
+            <p class="mb-3">无法加载员工信息，请返回列表页面重试。</p>
+            <a href="{% url 'personnel_pages:employee_management' %}" class="btn btn-primary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

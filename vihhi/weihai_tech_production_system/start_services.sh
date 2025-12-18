@@ -15,11 +15,41 @@ pkill -f "gunicorn.*wsgi" 2>/dev/null
 sleep 2
 
 # 启动 Gunicorn 服务
+# 支持环境变量 PORT（Sealos 等云平台会设置此变量）
+# 优先使用环境变量 PORT，其次尝试读取 .env.sealos 文件，最后默认 8001（Sealos 配置的端口）
+if [ -z "$PORT" ] && [ -f "$PROJECT_DIR/../.env.sealos" ]; then
+    source "$PROJECT_DIR/../.env.sealos"
+fi
+# Sealos DevBox 默认使用 8001 端口
+PORT=${PORT:-8001}
+BIND_ADDRESS=${BIND_ADDRESS:-0.0.0.0}
+
+# 计算最优workers数量：通常是(2 * CPU核心数) + 1
+# 但考虑到内存限制，设置最小值为2，最大值为8
+CPU_CORES=$(nproc)
+WORKERS=$((2 * CPU_CORES + 1))
+# 限制最大workers数量，避免内存不足
+if [ $WORKERS -gt 8 ]; then
+    WORKERS=8
+elif [ $WORKERS -lt 2 ]; then
+    WORKERS=2
+fi
+
+# 允许通过环境变量覆盖workers数量
+WORKERS=${GUNICORN_WORKERS:-$WORKERS}
+
 echo "启动 Gunicorn 服务..."
+echo "  - 端口: $PORT"
+echo "  - 绑定地址: $BIND_ADDRESS"
+echo "  - Workers: $WORKERS (CPU核心数: $CPU_CORES)"
+
 nohup gunicorn \
-    --bind 127.0.0.1:8000 \
-    --workers 4 \
+    --bind "$BIND_ADDRESS:$PORT" \
+    --workers $WORKERS \
+    --worker-class sync \
     --timeout 120 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
     --access-logfile "$LOG_DIR/gunicorn_access.log" \
     --error-logfile "$LOG_DIR/gunicorn_error.log" \
     backend.config.wsgi:application > "$LOG_DIR/gunicorn.log" 2>&1 &
@@ -29,8 +59,8 @@ sleep 3
 # 检查服务状态
 if ps aux | grep -E "gunicorn.*wsgi" | grep -v grep > /dev/null; then
     echo "✓ Gunicorn 服务已启动"
-    echo "  - 绑定: 127.0.0.1:8000"
-    echo "  - Workers: 4"
+    echo "  - 绑定: $BIND_ADDRESS:$PORT"
+    echo "  - Workers: $WORKERS"
     echo "  - 日志: $LOG_DIR/gunicorn_*.log"
 else
     echo "✗ Gunicorn 服务启动失败"

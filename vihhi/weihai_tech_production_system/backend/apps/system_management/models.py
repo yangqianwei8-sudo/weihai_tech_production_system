@@ -3,26 +3,6 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 
-class PermissionItem(models.Model):
-    """业务权限点"""
-    module = models.CharField(max_length=100, verbose_name='模块代码')
-    action = models.CharField(max_length=100, verbose_name='操作代码')
-    code = models.CharField(max_length=150, unique=True, verbose_name='权限编码')
-    name = models.CharField(max_length=150, verbose_name='权限名称')
-    description = models.TextField(blank=True, verbose_name='描述')
-    is_active = models.BooleanField(default=True, verbose_name='是否启用')
-    created_time = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
-
-    class Meta:
-        db_table = 'system_permission_item'
-        verbose_name = '业务权限点'
-        verbose_name_plural = verbose_name
-        ordering = ['module', 'action']
-
-    def __str__(self):
-        return f"{self.code} - {self.name}"
-
-
 class User(AbstractUser):
     """扩展用户模型"""
     USER_TYPE_CHOICES = [
@@ -98,7 +78,7 @@ class Role(models.Model):
     code = models.CharField(max_length=50, unique=True, verbose_name='角色编码')
     permissions = models.ManyToManyField('auth.Permission', blank=True, verbose_name='权限')
     custom_permissions = models.ManyToManyField(
-        PermissionItem,
+        'permission_management.PermissionItem',
         blank=True,
         related_name='roles',
         verbose_name='业务权限'
@@ -204,3 +184,24 @@ class SystemConfig(models.Model):
     
     def __str__(self):
         return self.key
+
+
+class OurCompany(models.Model):
+    """我方主体信息"""
+    company_name = models.CharField(max_length=200, unique=True, verbose_name='主体名称')
+    credit_code = models.CharField(max_length=50, blank=True, verbose_name='统一社会信用代码')
+    legal_representative = models.CharField(max_length=100, blank=True, verbose_name='法定代表人')
+    registered_address = models.CharField(max_length=500, blank=True, verbose_name='注册地址')
+    order = models.IntegerField(default=0, verbose_name='排序', help_text='数字越小越靠前')
+    is_active = models.BooleanField(default=True, verbose_name='是否启用')
+    created_time = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
+    updated_time = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    
+    class Meta:
+        db_table = 'system_our_company'
+        verbose_name = '我方主体信息'
+        verbose_name_plural = verbose_name
+        ordering = ['order', 'id']
+    
+    def __str__(self):
+        return self.company_name

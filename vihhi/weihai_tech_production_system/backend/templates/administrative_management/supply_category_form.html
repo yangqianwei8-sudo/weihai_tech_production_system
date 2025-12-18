@@ -1,0 +1,105 @@
+{% extends "administrative_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+{% if is_create %}
+<li class="breadcrumb-item"><a href="{% url 'admin_pages:supply_category_list' %}">用品分类</a></li>
+<li class="breadcrumb-item active">创建</li>
+{% else %}
+<li class="breadcrumb-item"><a href="{% url 'admin_pages:supply_category_list' %}">用品分类</a></li>
+<li class="breadcrumb-item active">编辑</li>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: var(--vh-card-bg);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid rgba(20, 47, 91, 0.08);
+        margin-bottom: var(--spacing-lg);
+    }
+    .form-card h5 {
+        margin-bottom: var(--spacing-md);
+        padding-bottom: var(--spacing-sm);
+        border-bottom: 2px solid var(--vh-primary);
+        font-weight: 600;
+        color: var(--vh-text);
+    }
+    .form-label.required::after {
+        content: " *";
+        color: var(--vh-error);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="center-hero">
+        <h1 class="hero-title">{{ page_title }}</h1>
+        <p class="hero-subtitle">{{ description }}</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-card">
+            <h5>分类信息</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label required">分类名称</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">上级分类</label>
+                    {{ form.parent }}
+                    {% if form.parent.errors %}
+                    <div class="text-danger small mt-1">{{ form.parent.errors }}</div>
+                    {% endif %}
+                    <small class="text-muted">留空表示一级分类</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">排序顺序</label>
+                    {{ form.sort_order }}
+                    {% if form.sort_order.errors %}
+                    <div class="text-danger small mt-1">{{ form.sort_order.errors }}</div>
+                    {% endif %}
+                    <small class="text-muted">数字越小越靠前</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">状态</label>
+                    <div class="form-check form-switch mt-2">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            {% if form.is_active.value %}启用{% else %}停用{% endif %}
+                        </label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">分类描述</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{% url 'admin_pages:supply_category_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 取消
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> 保存
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

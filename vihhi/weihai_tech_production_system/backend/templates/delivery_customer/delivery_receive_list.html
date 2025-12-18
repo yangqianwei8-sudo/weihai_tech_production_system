@@ -1,0 +1,235 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}收件确认 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item active">收件确认</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📥 收件确认</h2>
+            <p class="text-muted mb-0">管理交付记录的收件确认，记录收件信息和时间</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="info-card info-card-warning">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">待收件</div>
+                            <div class="info-value info-value-large">{{ pending_count }}</div>
+                        </div>
+                        <div class="text-warning" style="font-size: 2rem;">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="info-card info-card-success">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">已收件</div>
+                            <div class="info-value info-value-large">{{ received_count }}</div>
+                        </div>
+                        <div class="text-success" style="font-size: 2rem;">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选栏 - 使用样式模板 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">筛选条件</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="get" id="filterForm" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">收件状态</label>
+                    <select name="receive_status" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="pending" {% if receive_status == 'pending' %}selected{% endif %}>待收件</option>
+                        <option value="received" {% if receive_status == 'received' %}selected{% endif %}>已收件</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 收件列表 - 使用样式模板 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">
+                {% if receive_status == 'pending' %}待收件列表
+                {% elif receive_status == 'received' %}已收件列表
+                {% endif %}
+            </h5>
+            <div class="info-card-actions">
+                <span class="badge bg-primary">共 {{ receive_deliveries.paginator.count }} 条</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            {% if receive_deliveries %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>交付单号</th>
+                            <th>交付标题</th>
+                            <th>交付方式</th>
+                            <th>收件人</th>
+                            <th>送达时间</th>
+                            <th>收件状态</th>
+                            <th>收件时间</th>
+                            <th>关联项目</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for delivery in receive_deliveries %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" class="text-decoration-none">
+                                    <strong>{{ delivery.delivery_number }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ delivery.title }}">
+                                    {{ delivery.title }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if delivery.delivery_method == 'email' %}
+                                    <span class="badge bg-info">邮件</span>
+                                {% elif delivery.delivery_method == 'express' %}
+                                    <span class="badge bg-primary">快递</span>
+                                    {% if delivery.express_company %}
+                                        <small class="text-muted d-block">{{ delivery.express_company }}</small>
+                                    {% endif %}
+                                {% elif delivery.delivery_method == 'hand_delivery' %}
+                                    <span class="badge bg-success">送达</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>
+                                    <div>{{ delivery.recipient_name }}</div>
+                                    <small class="text-muted">{{ delivery.recipient_phone }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                {% if delivery.delivered_at %}
+                                    {{ delivery.delivered_at|date:"Y-m-d H:i" }}
+                                {% elif delivery.sent_at %}
+                                    {{ delivery.sent_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.received_at %}
+                                    <span class="status-badge received">已收件</span>
+                                {% else %}
+                                    <span class="status-badge pending">待收件</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.received_at %}
+                                    {{ delivery.received_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.project %}
+                                <a href="#" class="text-decoration-none">
+                                    {{ delivery.project.project_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" 
+                                       class="btn btn-outline-primary" title="查看详情">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if receive_status == 'pending' %}
+                                    <a href="{% url 'delivery_pages:delivery_receive_confirm' delivery.id %}" 
+                                       class="btn btn-outline-success" title="收件确认">
+                                        <i class="bi bi-check-circle"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if receive_deliveries.has_other_pages %}
+            <nav aria-label="收件确认分页">
+                <ul class="pagination justify-content-center">
+                    {% if receive_deliveries.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?receive_status={{ receive_status }}&page=1">首页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?receive_status={{ receive_status }}&page={{ receive_deliveries.previous_page_number }}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in receive_deliveries.paginator.page_range %}
+                        {% if receive_deliveries.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > receive_deliveries.number|add:'-3' and num < receive_deliveries.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?receive_status={{ receive_status }}&page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if receive_deliveries.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?receive_status={{ receive_status }}&page={{ receive_deliveries.next_page_number }}">下一页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?receive_status={{ receive_status }}&page={{ receive_deliveries.paginator.num_pages }}">末页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">暂无收件记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

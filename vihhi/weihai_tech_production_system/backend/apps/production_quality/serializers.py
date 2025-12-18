@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 from backend.apps.resource_standard.models import StandardReviewItem
 
-from .models import (
+from backend.apps.production_quality.models import (
     Opinion,
     OpinionAttachment,
     OpinionParticipant,

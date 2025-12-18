@@ -8,7 +8,7 @@
             <h3 class="mb-0">甲方成果确认</h3>
             <div class="text-muted small">项目：{{ project.project_number }} {{ project.name }}</div>
         </div>
-        <a class="btn btn-outline-primary" href="{% url 'project_pages:project_detail' project.id %}">返回项目</a>
+        <a class="btn btn-outline-primary" href="{% url 'production_pages:project_detail' project.id %}">返回项目</a>
     </div>
 
     {% if can_confirm %}

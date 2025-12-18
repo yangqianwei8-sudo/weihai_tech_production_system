@@ -11,10 +11,10 @@ from django.utils import timezone
 
 from backend.apps.system_management.models import User
 
-from backend.apps.project_center.models import Project, ProjectTeamNotification
+from backend.apps.production_management.models import Project, ProjectTeamNotification
 from backend.apps.resource_standard.models import ProfessionalCategory
 
-from .models import (
+from backend.apps.production_quality.models import (
     Opinion,
     OpinionParticipant,
     OpinionReview,

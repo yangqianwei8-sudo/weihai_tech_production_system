@@ -1,0 +1,67 @@
+/**
+ * 维海科技信息化管理平台 - 统一样式文件（主入口）
+ * 用于保持整个系统的设计风格一致性
+ * 版本: 3.0
+ * 
+ * 更新日志：
+ * - v3.0: 重构为模块化架构，使用@import导入分类管理的样式文件
+ * - v2.1: 优化视觉效果，增强响应式设计，新增动画效果和加载状态组件
+ * - v2.0: 统一样式模板，迁移内联样式
+ * 
+ * 文件结构：
+ * - core/         核心基础样式（必须加载）
+ * - components/   通用组件样式（按需加载）
+ * - layouts/      布局样式
+ * - modules/      模块特定样式（按需加载）
+ * 
+ * 使用说明：
+ * 1. 基础使用：直接引入此文件即可加载所有核心样式和通用组件
+ * 2. 按需加载：可以在模板中单独引入特定模块的样式文件
+ * 3. 自定义：可以注释掉不需要的组件导入以减小文件大小
+ */
+
+/* ============================================
+   核心样式（必须加载）
+   ============================================ */
+@import url('core/variables.css');
+@import url('core/reset.css');
+@import url('core/base.css');
+
+/* ============================================
+   通用组件样式（推荐加载）
+   ============================================ */
+@import url('components/buttons.css');
+@import url('components/cards.css');
+@import url('components/forms.css');
+@import url('components/tables.css');
+@import url('components/navigation.css');
+@import url('components/badges.css');
+@import url('components/alerts.css');
+@import url('components/pages.css');
+@import url('components/notifications.css');
+@import url('components/datepicker.css');
+@import url('components/tag-input.css');
+@import url('components/list-filters.css');
+
+/* ============================================
+   布局样式（可选）
+   ============================================ */
+@import url('layouts/workspace.css');
+@import url('layouts/list-layout.css');
+/* @import url('layouts/grid.css'); */
+/* @import url('layouts/sidebar.css'); */
+/* @import url('layouts/responsive.css'); */
+
+/* ============================================
+   模块特定样式（按需加载）
+   ============================================ */
+/* 
+ * 注意：模块样式可以在具体模板中单独引入，这里不统一导入
+ * 例如在 financial_management/base.html 中：
+ * {% block extra_css %}
+ * <link rel="stylesheet" href="{% static 'css/modules/financial.css' %}">
+ * {% endblock %}
+ */
+/* @import url('modules/financial.css'); */
+/* @import url('modules/project.css'); */
+/* @import url('modules/personnel.css'); */

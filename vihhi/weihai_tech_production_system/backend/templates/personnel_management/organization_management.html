@@ -1,0 +1,47 @@
+{% extends "personnel_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block personnel_content %}
+<div class="row g-4">
+    <div class="col-md-4">
+        <a href="{% url 'personnel_pages:department_management' %}" class="card text-decoration-none h-100" style="transition: transform 0.2s;">
+            <div class="card-body text-center">
+                <div style="font-size: 48px; margin-bottom: 16px;">🏛️</div>
+                <h5 class="card-title">部门管理</h5>
+                <p class="card-text text-muted">管理企业的部门结构，包括部门的创建、编辑、删除等</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{% url 'personnel_pages:position_management' %}" class="card text-decoration-none h-100" style="transition: transform 0.2s;">
+            <div class="card-body text-center">
+                <div style="font-size: 48px; margin-bottom: 16px;">💼</div>
+                <h5 class="card-title">职位管理</h5>
+                <p class="card-text text-muted">管理企业的职位信息，包括职位的创建、编辑、删除等</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{% url 'personnel_pages:org_chart' %}" class="card text-decoration-none h-100" style="transition: transform 0.2s;">
+            <div class="card-body text-center">
+                <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                <h5 class="card-title">组织架构图</h5>
+                <p class="card-text text-muted">可视化展示企业的组织架构，包括部门层级关系</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<style>
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(20, 47, 91, 0.15);
+}
+</style>
+{% endblock %}
+

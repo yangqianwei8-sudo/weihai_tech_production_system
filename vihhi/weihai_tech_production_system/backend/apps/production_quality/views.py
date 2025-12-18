@@ -6,10 +6,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.system_management.models import User
 
-from .models import (
+from backend.apps.production_quality.models import (
     Opinion,
     OpinionParticipant,
     OpinionReview,

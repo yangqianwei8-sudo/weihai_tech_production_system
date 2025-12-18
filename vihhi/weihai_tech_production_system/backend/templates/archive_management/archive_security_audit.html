@@ -1,0 +1,298 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案安全审计 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:project_archive_list' %}">档案管理</a></li>
+<li class="breadcrumb-item"><a href="#">档案安全</a></li>
+<li class="breadcrumb-item active">安全审计</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作按钮 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">🔍 档案安全审计</h2>
+            <p class="text-muted mb-0">管理档案安全审计规则，执行安全审计并生成审计报告</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAuditRuleModal">
+                <i class="bi bi-plus-circle"></i> 新建审计规则
+            </button>
+            <button type="button" class="btn btn-success" onclick="executeAudit()">
+                <i class="bi bi-play-circle"></i> 执行审计
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="exportAuditReport()">
+                <i class="bi bi-download"></i> 导出报告
+            </button>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="info-card info-card-primary">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">审计规则</div>
+                            <div class="info-value info-value-large">{{ rule_count|default:0 }}</div>
+                        </div>
+                        <div class="text-primary" style="font-size: 2rem;">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-info">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">审计次数</div>
+                            <div class="info-value info-value-large">{{ audit_count|default:0 }}</div>
+                        </div>
+                        <div class="text-info" style="font-size: 2rem;">
+                            <i class="bi bi-clipboard-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-warning">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">安全事件</div>
+                            <div class="info-value info-value-large">{{ security_event_count|default:0 }}</div>
+                        </div>
+                        <div class="text-warning" style="font-size: 2rem;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-danger">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">高风险项</div>
+                            <div class="info-value info-value-large">{{ high_risk_count|default:0 }}</div>
+                        </div>
+                        <div class="text-danger" style="font-size: 2rem;">
+                            <i class="bi bi-shield-exclamation"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审计规则列表 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">安全审计规则列表</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-secondary">共 {{ rules|length|default:0 }} 条规则</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            <!-- 筛选器 -->
+            <form method="get" class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">规则类型</label>
+                    <select name="rule_type" class="form-select">
+                        <option value="">全部类型</option>
+                        <option value="permission" {% if rule_type == 'permission' %}selected{% endif %}>权限审计</option>
+                        <option value="access" {% if rule_type == 'access' %}selected{% endif %}>访问审计</option>
+                        <option value="operation" {% if rule_type == 'operation' %}selected{% endif %}>操作审计</option>
+                        <option value="security" {% if rule_type == 'security' %}selected{% endif %}>安全审计</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">规则状态</label>
+                    <select name="status" class="form-select">
+                        <option value="">全部状态</option>
+                        <option value="active" {% if status == 'active' %}selected{% endif %}>启用</option>
+                        <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>停用</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">搜索</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="搜索规则名称、描述..." value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> 筛选
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- 规则列表 -->
+            {% if rules %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>规则名称</th>
+                            <th>规则类型</th>
+                            <th>审计条件</th>
+                            <th>审计频率</th>
+                            <th>状态</th>
+                            <th>最后执行</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rule in rules %}
+                        <tr>
+                            <td>
+                                <strong>{{ rule.name|default:"-" }}</strong>
+                                {% if rule.description %}
+                                <br><small class="text-muted">{{ rule.description|truncatewords:10 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ rule.get_rule_type_display|default:"-" }}
+                                </span>
+                            </td>
+                            <td>
+                                <code>{{ rule.condition|truncatewords:5|default:"-" }}</code>
+                            </td>
+                            <td>
+                                {% if rule.frequency == 'daily' %}
+                                <span class="badge bg-info">每日</span>
+                                {% elif rule.frequency == 'weekly' %}
+                                <span class="badge bg-primary">每周</span>
+                                {% elif rule.frequency == 'monthly' %}
+                                <span class="badge bg-warning">每月</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ rule.frequency }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rule.is_active %}
+                                <span class="badge bg-success">启用</span>
+                                {% else %}
+                                <span class="badge bg-secondary">停用</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ rule.last_executed|date:"Y-m-d H:i"|default:"未执行" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="#" class="btn btn-outline-primary" title="编辑">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-outline-success" title="执行">
+                                        <i class="bi bi-play"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-outline-danger" title="删除">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 暂无安全审计规则，请创建规则以进行安全审计
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 最近审计记录 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">最近审计记录</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-secondary">最近 {{ recent_audits|length|default:0 }} 次</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            {% if recent_audits %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>审计时间</th>
+                            <th>审计规则</th>
+                            <th>审计结果</th>
+                            <th>发现问题</th>
+                            <th>风险等级</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for audit in recent_audits|slice:":10" %}
+                        <tr>
+                            <td>{{ audit.audit_time|date:"Y-m-d H:i:s"|default:"-" }}</td>
+                            <td>{{ audit.rule_name|default:"-" }}</td>
+                            <td>
+                                {% if audit.result == 'passed' %}
+                                <span class="badge bg-success">通过</span>
+                                {% elif audit.result == 'failed' %}
+                                <span class="badge bg-danger">未通过</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ audit.result }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ audit.issue_count|default:0 }} 个</td>
+                            <td>
+                                {% if audit.risk_level == 'high' %}
+                                <span class="badge bg-danger">高</span>
+                                {% elif audit.risk_level == 'medium' %}
+                                <span class="badge bg-warning">中</span>
+                                {% elif audit.risk_level == 'low' %}
+                                <span class="badge bg-info">低</span>
+                                {% else %}
+                                <span class="badge bg-secondary">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 查看详情
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 暂无审计记录
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function executeAudit() {
+    // TODO: 实现执行审计功能
+    if (confirm('确定要执行安全审计吗？')) {
+        alert('安全审计执行功能待实现');
+    }
+}
+
+function exportAuditReport() {
+    // TODO: 实现审计报告导出功能
+    alert('审计报告导出功能待实现');
+}
+</script>
+{% endblock %}

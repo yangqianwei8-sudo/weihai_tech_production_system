@@ -1,5 +1,5 @@
 from backend.apps.system_management.models import User, Department, DataDictionary
-from backend.apps.customer_success.models import Client
+from backend.apps.customer_management.models import Client
 from django.contrib.auth import get_user_model
 import os
 

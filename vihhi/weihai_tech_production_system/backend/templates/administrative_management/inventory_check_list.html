@@ -1,0 +1,200 @@
+{% extends "administrative_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'admin_pages:supplies_management' %}">办公用品</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .center-hero {
+        background: linear-gradient(135deg, rgba(20,47,91,0.95), rgba(31,62,124,0.92));
+        border-radius: 24px;
+        padding: 32px 36px;
+        color: #fff;
+        box-shadow: 0 24px 60px rgba(20, 47, 91, 0.18);
+        margin-bottom: 24px;
+    }
+    .hero-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.18);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        margin-bottom: 12px;
+    }
+    .content-card {
+        background: var(--vh-card-bg);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid rgba(20, 47, 91, 0.08);
+    }
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+    }
+    .status-draft { background: #f3f4f6; color: #374151; }
+    .status-in_progress { background: #fff3cd; color: #856404; }
+    .status-completed { background: #cfe2ff; color: #084298; }
+    .status-approved { background: #d1e7dd; color: #0f5132; }
+    .status-cancelled { background: #f8d7da; color: #842029; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="center-hero">
+        <h1 class="hero-title">{{ page_title }}</h1>
+        <p class="hero-subtitle">{{ description }}</p>
+    </div>
+
+
+    <div class="content-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0">库存盘点列表</h3>
+            <a href="{% url 'admin_pages:inventory_check_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 创建盘点
+            </a>
+        </div>
+
+        <!-- 筛选栏 -->
+        <form method="get" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="search" class="form-control" placeholder="搜索盘点单号..." value="{{ search }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="status" class="form-select">
+                        <option value="">全部状态</option>
+                        <option value="draft" {% if status == 'draft' %}selected{% endif %}>草稿</option>
+                        <option value="in_progress" {% if status == 'in_progress' %}selected{% endif %}>进行中</option>
+                        <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                        <option value="approved" {% if status == 'approved' %}selected{% endif %}>已审核</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="check_date" class="form-control" value="{{ check_date }}" placeholder="盘点日期">
+                </div>
+                <div class="col-md-5">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                    <a href="{% url 'admin_pages:inventory_check_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 重置
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        <!-- 数据表格 -->
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>盘点单号</th>
+                        <th>盘点日期</th>
+                        <th>盘点范围</th>
+                        <th>盘点人</th>
+                        <th>盘点项数</th>
+                        <th>完成项数</th>
+                        <th>准确率</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for check in page_obj %}
+                    <tr>
+                        <td><code>{{ check.check_number }}</code></td>
+                        <td>{{ check.check_date|date:"Y-m-d" }}</td>
+                        <td>{{ check.check_scope|default:"-" }}</td>
+                        <td>{{ check.checker.get_full_name|default:check.checker.username }}</td>
+                        <td>{{ check.total_items }}</td>
+                        <td>{{ check.completed_items }}</td>
+                        <td>{{ check.accuracy_rate|floatformat:1 }}%</td>
+                        <td>
+                            <span class="status-badge status-{{ check.status }}">
+                                {{ check.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'admin_pages:inventory_check_detail' check.id %}" class="btn btn-sm btn-outline-primary" title="查看详情">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if check.status == 'draft' %}
+                            <a href="{% url 'admin_pages:inventory_check_update' check.id %}" class="btn btn-sm btn-outline-secondary" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📊</div>
+                                <div class="empty-state-title">暂无数据</div>
+                                <div class="empty-state-text">
+                                    当前筛选条件下没有找到库存盘点记录，请调整筛选条件或创建新盘点。
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="分页导航">
+            <ul class="pagination justify-content-center mt-4">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">首页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">上一页</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">下一页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">末页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-title">暂无数据</div>
+            <div class="empty-state-text">
+                当前没有库存盘点记录，请先创建盘点。
+            </div>
+            <a href="{% url 'admin_pages:inventory_check_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 创建第一个盘点
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

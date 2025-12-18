@@ -6,7 +6,8 @@ from django.urls import reverse
 
 from collections import defaultdict, OrderedDict
 
-from backend.apps.system_management.models import Department, Role, User, PermissionItem
+from backend.apps.system_management.models import Department, Role, User
+from backend.apps.permission_management.models import PermissionItem
 from backend.apps.system_management.serializers import (
     AccountProfileSerializer,
     AccountNotificationSerializer,
@@ -128,16 +129,17 @@ def account_settings(request):
 
 
 @login_required
-@permission_required("system_management.manage_users", raise_exception=True)
 def system_settings(request):
+    # 仅系统管理员可以访问系统设置
+    is_system_admin = request.user.is_superuser or request.user.roles.filter(code='system_admin').exists()
+    if not is_system_admin:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("仅系统管理员可以访问系统设置。")
     departments = Department.objects.count()
     users = User.objects.count()
-    summary_cards = [
-        {"label": "系统用户", "value": users, "hint": "已在系统内开通的账号数量"},
-        {"label": "部门结构", "value": departments, "hint": "组织架构中的部门数量"},
-        {"label": "角色模板", "value": Role.objects.count(), "hint": "可复用的角色模板数量"},
-        {"label": "待处理事项", "value": 0, "hint": "需要管理员关注的系统任务"},
-    ]
+    roles_count = Role.objects.count()
+    summary_cards = []
+    from django.urls import reverse
     context = _context(
         "系统设置",
         "⚙️",
@@ -145,12 +147,23 @@ def system_settings(request):
         summary_cards=summary_cards,
         sections=[
             {
-                "title": "设置项",
+                "title": "用户与权限管理",
+                "description": "管理用户账号、角色和权限配置。",
+                "items": [
+                    {"label": "用户管理", "description": "查看和管理系统用户账号。", "url": "/api/system/users/", "icon": "👥", "note": "通过API接口管理"},
+                    {"label": "角色管理", "description": "配置系统角色和权限模板。", "url": "/api/system/roles/", "icon": "🎭", "note": "通过API接口管理"},
+                    {"label": "部门管理", "description": "维护组织架构和部门层级。", "url": "/api/system/departments/", "icon": "🏢", "note": "通过API接口管理"},
+                    {"label": "权限矩阵", "description": "查看角色与权限的对应关系。", "url": reverse("system_pages:permission_matrix"), "icon": "📊"},
+                ],
+            },
+            {
+                "title": "系统配置",
                 "description": "常用的系统配置入口。",
                 "items": [
-                    {"label": "组织架构", "description": "维护部门层级与职责。", "url": "#", "icon": "🏢"},
-                    {"label": "安全策略", "description": "配置密码、登录与审计策略。", "url": "#", "icon": "🔐"},
-                    {"label": "参数开关", "description": "启用业务功能与自定义阈值。", "url": "#", "icon": "🧩"},
+                    {"label": "数据字典", "description": "维护系统数据字典与基础数据。", "url": reverse("system_pages:data_dictionary"), "icon": "📚"},
+                    {"label": "系统配置", "description": "配置系统参数与开关。", "url": "/admin/system_management/systemconfig/", "icon": "⚙️"},
+                    {"label": "注册申请", "description": "审核用户注册申请。", "url": "/admin/registrations/", "icon": "📝"},
+                    {"label": "权限管理", "description": "管理业务权限点。", "url": "/admin/system_management/permissionitem/", "icon": "🔑"},
                 ],
             }
         ],
@@ -159,14 +172,13 @@ def system_settings(request):
 
 
 @login_required
-@permission_required("system_management.manage_settings", raise_exception=True)
 def operation_logs(request):
-    summary_cards = [
-        {"label": "今日日志", "value": 0, "hint": "今日新增的操作日志条目"},
-        {"label": "异常告警", "value": 0, "hint": "捕获的异常告警数量"},
-        {"label": "活跃用户", "value": User.objects.filter(is_active=True).count(), "hint": "近期登录的活跃账号"},
-        {"label": "审计状态", "value": "正常", "hint": "系统审计功能运行状态"},
-    ]
+    # 仅系统管理员可以访问操作日志
+    is_system_admin = request.user.is_superuser or request.user.roles.filter(code='system_admin').exists()
+    if not is_system_admin:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("仅系统管理员可以访问操作日志。")
+    summary_cards = []
     context = _context(
         "操作日志",
         "🧾",
@@ -188,14 +200,13 @@ def operation_logs(request):
 
 
 @login_required
-@permission_required("system_management.manage_settings", raise_exception=True)
 def data_dictionary(request):
-    summary_cards = [
-        {"label": "字典条目", "value": 0, "hint": "系统维护的数据字典项数量"},
-        {"label": "待审核更新", "value": 0, "hint": "需要审核的数据字典修改请求"},
-        {"label": "引用模块", "value": 0, "hint": "引用数据字典的业务模块数量"},
-        {"label": "最近更新", "value": "--", "hint": "字典最近一次更新的时间"},
-    ]
+    # 仅系统管理员可以访问数据字典
+    is_system_admin = request.user.is_superuser or request.user.roles.filter(code='system_admin').exists()
+    if not is_system_admin:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("仅系统管理员可以访问数据字典。")
+    summary_cards = []
     context = _context(
         "数据字典",
         "📚",

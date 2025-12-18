@@ -1,0 +1,6 @@
+# 忽略 Django 模板文件
+**/templates/**/*.html
+**/admin/**/*.html
+*.html
+
+

@@ -1,0 +1,362 @@
+{% extends "plan_management/base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+<style>
+    .info-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 20px;
+    }
+    .info-card h5 {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--vh-primary);
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 16px;
+    }
+    .info-row {
+        display: flex;
+        padding: 12px 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    .info-label {
+        width: 150px;
+        font-weight: 500;
+        color: #6b7280;
+        flex-shrink: 0;
+    }
+    .info-value {
+        flex: 1;
+        color: #1f2937;
+    }
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .status-draft { background: #e9ecef; color: #495057; }
+    .status-published { background: #cfe2ff; color: #084298; }
+    .status-in_progress { background: #fff3cd; color: #856404; }
+    .status-completed { background: #d1e7dd; color: #0f5132; }
+    .status-cancelled { background: #f8d7da; color: #842029; }
+    .progress-bar-container {
+        width: 200px;
+        height: 24px;
+        background: #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #20c997);
+        transition: width 0.3s;
+    }
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px;
+        font-weight: 600;
+        color: #000;
+        z-index: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- 页面标题和操作 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">
+                {{ goal.name }}
+            </h2>
+            <p class="text-muted mb-0 mt-1">{{ goal.goal_number }}</p>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'plan_pages:strategic_goal_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>返回列表
+            </a>
+            {% if can_edit %}
+            <a href="{% url 'plan_pages:strategic_goal_edit' goal.id %}" class="btn btn-primary">
+                <i class="bi bi-pencil me-1"></i>编辑
+            </a>
+            {% endif %}
+            <a href="{% url 'plan_pages:strategic_goal_track' goal.id %}" class="btn btn-info">
+                <i class="bi bi-graph-up me-1"></i>跟踪
+            </a>
+            <a href="{% url 'plan_pages:strategic_goal_decompose' goal.id %}" class="btn btn-success">
+                <i class="bi bi-diagram-3 me-1"></i>分解
+            </a>
+            {% if can_delete %}
+            <a href="{% url 'plan_pages:strategic_goal_delete' goal.id %}" class="btn btn-danger">
+                <i class="bi bi-trash me-1"></i>删除
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- 左侧：基本信息 -->
+        <div class="col-md-8">
+            <!-- 基本信息 -->
+            <div class="info-card">
+                <h5>📋 基本信息</h5>
+                <div class="info-row">
+                    <div class="info-label">目标编号</div>
+                    <div class="info-value"><code>{{ goal.goal_number }}</code></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">目标名称</div>
+                    <div class="info-value"><strong>{{ goal.name }}</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">目标类型</div>
+                    <div class="info-value">{{ goal.get_goal_type_display }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">目标周期</div>
+                    <div class="info-value">{{ goal.get_goal_period_display }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">目标状态</div>
+                    <div class="info-value">
+                        <span class="status-badge status-{{ goal.status }}">
+                            {{ goal.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 目标指标 -->
+            <div class="info-card">
+                <h5>📊 目标指标</h5>
+                <div class="info-row">
+                    <div class="info-label">指标名称</div>
+                    <div class="info-value">{{ goal.indicator_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">指标类型</div>
+                    <div class="info-value">{{ goal.get_indicator_type_display }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">指标单位</div>
+                    <div class="info-value">{{ goal.indicator_unit|default:"-" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">目标值</div>
+                    <div class="info-value">
+                        <strong>{{ goal.target_value }}</strong>
+                        {% if goal.indicator_unit %} {{ goal.indicator_unit }}{% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">当前值</div>
+                    <div class="info-value">
+                        <strong>{{ goal.current_value }}</strong>
+                        {% if goal.indicator_unit %} {{ goal.indicator_unit }}{% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">完成率</div>
+                    <div class="info-value">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: {{ goal.completion_rate }}%"></div>
+                            <span class="progress-text">{{ goal.completion_rate }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 目标描述 -->
+            <div class="info-card">
+                <h5>📝 目标描述</h5>
+                <div class="info-row">
+                    <div class="info-label">目标描述</div>
+                    <div class="info-value">{{ goal.description|linebreaks }}</div>
+                </div>
+                {% if goal.background %}
+                <div class="info-row">
+                    <div class="info-label">目标背景</div>
+                    <div class="info-value">{{ goal.background|linebreaks }}</div>
+                </div>
+                {% endif %}
+                {% if goal.significance %}
+                <div class="info-row">
+                    <div class="info-label">目标意义</div>
+                    <div class="info-value">{{ goal.significance|linebreaks }}</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 时间信息 -->
+            <div class="info-card">
+                <h5>📅 时间信息</h5>
+                <div class="info-row">
+                    <div class="info-label">开始日期</div>
+                    <div class="info-value">{{ goal.start_date }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">结束日期</div>
+                    <div class="info-value">{{ goal.end_date }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">目标周期</div>
+                    <div class="info-value">{{ goal.duration_days }} 天</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧：关联信息 -->
+        <div class="col-md-4">
+            <!-- 责任人信息 -->
+            <div class="info-card">
+                <h5>👤 责任人信息</h5>
+                <div class="info-row">
+                    <div class="info-label">负责人</div>
+                    <div class="info-value">
+                        <strong>{{ goal.responsible_person.get_full_name|default:goal.responsible_person.username }}</strong>
+                    </div>
+                </div>
+                {% if goal.responsible_department %}
+                <div class="info-row">
+                    <div class="info-label">负责部门</div>
+                    <div class="info-value">{{ goal.responsible_department.name }}</div>
+                </div>
+                {% endif %}
+                {% if goal.participants.exists %}
+                <div class="info-row">
+                    <div class="info-label">参与人员</div>
+                    <div class="info-value">
+                        {% for participant in goal.participants.all %}
+                        <span class="badge bg-secondary me-1">{{ participant.get_full_name|default:participant.username }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 关联信息 -->
+            <div class="info-card">
+                <h5>🔗 关联信息</h5>
+                {% if goal.parent_goal %}
+                <div class="info-row">
+                    <div class="info-label">上级目标</div>
+                    <div class="info-value">
+                        <a href="{% url 'plan_pages:strategic_goal_detail' goal.parent_goal.id %}">
+                            {{ goal.parent_goal.name }}
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% if goal.child_goals.exists %}
+                <div class="info-row">
+                    <div class="info-label">下级目标</div>
+                    <div class="info-value">
+                        <span class="badge bg-info">{{ goal.child_goals.count }} 个</span>
+                        <a href="{% url 'plan_pages:strategic_goal_decompose' goal.id %}" class="ms-2 small">查看详情</a>
+                    </div>
+                </div>
+                {% endif %}
+                {% if goal.related_projects.exists %}
+                <div class="info-row">
+                    <div class="info-label">关联项目</div>
+                    <div class="info-value">
+                        {% for project in goal.related_projects.all %}
+                        <span class="badge bg-primary me-1">{{ project.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% if related_plans_count > 0 %}
+                <div class="info-row">
+                    <div class="info-label">关联计划</div>
+                    <div class="info-value">
+                        <span class="badge bg-warning">{{ related_plans_count }} 个</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 权重信息 -->
+            <div class="info-card">
+                <h5>⚖️ 权重信息</h5>
+                <div class="info-row">
+                    <div class="info-label">目标权重</div>
+                    <div class="info-value">
+                        <strong>{{ goal.weight }}%</strong>
+                    </div>
+                </div>
+                {% if goal.weight_description %}
+                <div class="info-row">
+                    <div class="info-label">权重说明</div>
+                    <div class="info-value">{{ goal.weight_description|linebreaks }}</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 系统信息 -->
+            <div class="info-card">
+                <h5>ℹ️ 系统信息</h5>
+                <div class="info-row">
+                    <div class="info-label">创建人</div>
+                    <div class="info-value">{{ goal.created_by.get_full_name|default:goal.created_by.username }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">创建时间</div>
+                    <div class="info-value">{{ goal.created_time|date:"Y-m-d H:i" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">更新时间</div>
+                    <div class="info-value">{{ goal.updated_time|date:"Y-m-d H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 进度记录 -->
+    {% if progress_records %}
+    <div class="info-card mt-4">
+        <h5>📈 最近进度记录</h5>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>记录时间</th>
+                        <th>当前值</th>
+                        <th>完成率</th>
+                        <th>进度说明</th>
+                        <th>记录人</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in progress_records %}
+                    <tr>
+                        <td>{{ record.recorded_time|date:"Y-m-d H:i" }}</td>
+                        <td>{{ record.current_value }}{% if goal.indicator_unit %} {{ goal.indicator_unit }}{% endif %}</td>
+                        <td>{{ record.completion_rate }}%</td>
+                        <td>{{ record.progress_description|truncatewords:20 }}</td>
+                        <td>{{ record.recorded_by.get_full_name|default:record.recorded_by.username }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

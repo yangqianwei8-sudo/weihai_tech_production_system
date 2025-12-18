@@ -1,0 +1,378 @@
+{% extends "customer_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 1px solid #e5e7eb;
+    }
+    .form-section {
+        margin-bottom: 32px;
+    }
+    .form-section h5 {
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--vh-primary);
+        font-weight: 600;
+        color: #1f2937;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-label {
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    .form-text {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+    .required-field::after {
+        content: " *";
+        color: #dc2626;
+    }
+    .error-list {
+        list-style: none;
+        padding: 0;
+        margin: 4px 0 0 0;
+        color: #dc2626;
+        font-size: 13px;
+    }
+    .error-list li {
+        margin-bottom: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block contract_content %}
+<div class="container-fluid py-4">
+    <!-- 页面标题区域 -->
+    <div class="center-hero mb-4">
+        <div style="position: relative; z-index: 1;">
+            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">{{ page_title }}</h1>
+            <p style="font-size: 14px; opacity: 0.9; margin: 0;">记录合同洽谈过程中的关键信息</p>
+        </div>
+    </div>
+
+    <!-- 表单 -->
+    <form method="post" class="form-card">
+        {% csrf_token %}
+        
+        <!-- 关联信息 -->
+        <div class="form-section">
+            <h5>🔗 关联信息</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">关联合同</label>
+                        {{ form.contract }}
+                        {% if form.contract.errors %}
+                            <ul class="error-list">
+                                {% for error in form.contract.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">{{ form.contract.help_text }}</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label required-field">客户</label>
+                        {{ form.client }}
+                        {% if form.client.errors %}
+                            <ul class="error-list">
+                                {% for error in form.client.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">{{ form.client.help_text }}</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">关联项目</label>
+                        {{ form.project }}
+                        {% if form.project.errors %}
+                            <ul class="error-list">
+                                {% for error in form.project.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 基本信息 -->
+        <div class="form-section">
+            <h5>📋 基本信息</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required-field">洽谈主题</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <ul class="error-list">
+                                {% for error in form.title.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label required-field">洽谈类型</label>
+                        {{ form.negotiation_type }}
+                        {% if form.negotiation_type.errors %}
+                            <ul class="error-list">
+                                {% for error in form.negotiation_type.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label required-field">洽谈状态</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <ul class="error-list">
+                                {% for error in form.status.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="form-group">
+                        <label class="form-label required-field">洽谈内容</label>
+                        {{ form.content }}
+                        {% if form.content.errors %}
+                            <ul class="error-list">
+                                {% for error in form.content.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">{{ form.content.help_text }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 参与人员 -->
+        <div class="form-section">
+            <h5>👥 参与人员</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label required-field">参与人员（我方）</label>
+                        {{ form.participants }}
+                        {% if form.participants.errors %}
+                            <ul class="error-list">
+                                {% for error in form.participants.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">按住Ctrl键可多选</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">客户参与人员</label>
+                        {{ form.client_participants }}
+                        {% if form.client_participants.errors %}
+                            <ul class="error-list">
+                                {% for error in form.client_participants.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">{{ form.client_participants.help_text }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 时间信息 -->
+        <div class="form-section">
+            <h5>📅 时间信息</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label required-field">洽谈日期</label>
+                        {{ form.negotiation_date }}
+                        {% if form.negotiation_date.errors %}
+                            <ul class="error-list">
+                                {% for error in form.negotiation_date.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">开始时间</label>
+                        {{ form.negotiation_start_time }}
+                        {% if form.negotiation_start_time.errors %}
+                            <ul class="error-list">
+                                {% for error in form.negotiation_start_time.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">结束时间</label>
+                        {{ form.negotiation_end_time }}
+                        {% if form.negotiation_end_time.errors %}
+                            <ul class="error-list">
+                                {% for error in form.negotiation_end_time.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="form-label">下次洽谈日期</label>
+                        {{ form.next_negotiation_date }}
+                        {% if form.next_negotiation_date.errors %}
+                            <ul class="error-list">
+                                {% for error in form.next_negotiation_date.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 洽谈结果 -->
+        <div class="form-section">
+            <h5>✅ 洽谈结果</h5>
+            <div class="row">
+                <div class="col-12">
+                    <div class="form-group">
+                        <label class="form-label">洽谈结果摘要</label>
+                        {{ form.result_summary }}
+                        {% if form.result_summary.errors %}
+                            <ul class="error-list">
+                                {% for error in form.result_summary.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">{{ form.result_summary.help_text }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">已达成事项</label>
+                        {{ form.agreed_items }}
+                        {% if form.agreed_items.errors %}
+                            <ul class="error-list">
+                                {% for error in form.agreed_items.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">{{ form.agreed_items.help_text }}</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">待解决事项</label>
+                        {{ form.pending_items }}
+                        {% if form.pending_items.errors %}
+                            <ul class="error-list">
+                                {% for error in form.pending_items.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">{{ form.pending_items.help_text }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 其他信息 -->
+        <div class="form-section">
+            <h5>📎 其他信息</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">附件说明</label>
+                        {{ form.attachments }}
+                        {% if form.attachments.errors %}
+                            <ul class="error-list">
+                                {% for error in form.attachments.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <small class="form-text">{{ form.attachments.help_text }}</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">备注</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <ul class="error-list">
+                                {% for error in form.notes.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 表单错误提示 -->
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- 操作按钮 -->
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <a href="{% if contract %}{% url 'business_pages:contract_detail' contract.id %}{% else %}{% url 'business_pages:contract_management_list' %}{% endif %}" class="btn btn-secondary">取消</a>
+            <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

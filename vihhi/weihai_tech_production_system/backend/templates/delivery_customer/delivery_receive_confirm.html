@@ -1,0 +1,279 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}收件确认 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:delivery_receive_list' %}">收件确认</a></li>
+<li class="breadcrumb-item active">{{ delivery.delivery_number }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作按钮 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📥 收件确认</h2>
+            <p class="text-muted mb-0">交付单号：{{ delivery.delivery_number }}</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_receive_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+            <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-eye"></i> 查看详情
+            </a>
+        </div>
+    </div>
+
+    <!-- 交付记录基本信息 - 使用样式模板 -->
+    <div class="info-card info-card-fade-in mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">交付记录信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-2">
+                <div class="info-item">
+                    <span class="info-label">交付单号</span>
+                    <span class="info-value info-value-bold">{{ delivery.delivery_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">交付标题</span>
+                    <span class="info-value">{{ delivery.title }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">交付方式</span>
+                    <span class="info-value">
+                        {% if delivery.delivery_method == 'email' %}
+                            <span class="badge bg-info">邮件</span>
+                        {% elif delivery.delivery_method == 'express' %}
+                            <span class="badge bg-primary">快递</span>
+                            {% if delivery.express_company %}
+                                <small class="text-muted ms-2">{{ delivery.express_company }}</small>
+                            {% endif %}
+                        {% elif delivery.delivery_method == 'hand_delivery' %}
+                            <span class="badge bg-success">送达</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">关联项目</span>
+                    <span class="info-value">
+                        {% if delivery.project %}
+                        <a href="#" class="text-decoration-none">
+                            {{ delivery.project.project_number }} - {{ delivery.project.name }}
+                        </a>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">送达时间</span>
+                    <span class="info-value">
+                        {% if delivery.delivered_at %}
+                            {{ delivery.delivered_at|date:"Y-m-d H:i:s" }}
+                        {% elif delivery.sent_at %}
+                            {{ delivery.sent_at|date:"Y-m-d H:i:s" }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">当前状态</span>
+                    <span class="info-value">
+                        {% if delivery.received_at %}
+                            <span class="status-badge received">已收件</span>
+                        {% elif delivery.status == 'delivered' or delivery.status == 'sent' %}
+                            <span class="status-badge pending">待收件</span>
+                        {% else %}
+                            <span class="status-badge {{ delivery.status }}">{{ delivery.get_status_display }}</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收件人信息 - 使用样式模板 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">收件人信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-2">
+                <div class="info-item">
+                    <span class="info-label">收件人姓名</span>
+                    <span class="info-value">{{ delivery.recipient_name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">联系电话</span>
+                    <span class="info-value">
+                        <a href="tel:{{ delivery.recipient_phone }}" class="text-decoration-none">
+                            <i class="bi bi-telephone"></i> {{ delivery.recipient_phone }}
+                        </a>
+                    </span>
+                </div>
+                {% if delivery.recipient_address %}
+                <div class="info-item info-item-full-width">
+                    <span class="info-label">收件地址</span>
+                    <span class="info-value">{{ delivery.recipient_address }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 收件确认表单 - 使用样式模板 -->
+    {% if can_confirm %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">收件确认</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="post" id="receiveConfirmForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="confirm" id="actionInput">
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">收件人姓名 <span class="text-danger">*</span></label>
+                        <input type="text" name="receiver_name" class="form-control" 
+                               value="{{ delivery.recipient_name }}" required placeholder="请输入收件人姓名">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">联系电话</label>
+                        <input type="text" name="receiver_phone" class="form-control" 
+                               value="{{ delivery.recipient_phone }}" placeholder="请输入联系电话">
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">收件备注</label>
+                        <textarea name="receive_notes" class="form-control" rows="3" 
+                                  placeholder="请输入收件备注（可选）"></textarea>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{% url 'delivery_pages:delivery_receive_list' %}" class="btn btn-outline-secondary">取消</a>
+                    <button type="button" class="btn btn-danger" onclick="showNotReceivedForm()">未收件</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> 确认收件
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 未收件表单（隐藏） - 使用样式模板 -->
+    <div class="info-card info-card-danger mb-4" id="notReceivedForm" style="display: none;">
+        <div class="info-card-header">
+            <h5 class="info-card-title">未收件处理</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="post" id="notReceivedFormSubmit" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="not_received">
+                
+                <div class="mb-3">
+                    <label class="form-label">未收件原因 <span class="text-danger">*</span></label>
+                    <textarea name="not_received_reason" class="form-control" rows="4" 
+                              required placeholder="请详细说明未收件原因"></textarea>
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary" onclick="hideNotReceivedForm()">取消</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> 确认未收件
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 
+        该交付记录当前状态不允许收件确认。只有已送达或已发送状态的记录才能进行收件确认。
+    </div>
+    {% endif %}
+
+    <!-- 收件历史（如果已收件） - 使用样式模板 -->
+    {% if delivery.received_at %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">收件信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-2">
+                <div class="info-item">
+                    <span class="info-label">收件状态</span>
+                    <span class="info-value">
+                        <span class="status-badge received">已收件</span>
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收件时间</span>
+                    <span class="info-value">{{ delivery.received_at|date:"Y-m-d H:i:s" }}</span>
+                </div>
+                {% if delivery.feedback_by %}
+                <div class="info-item">
+                    <span class="info-label">收件人</span>
+                    <span class="info-value">{{ delivery.feedback_by }}</span>
+                </div>
+                {% endif %}
+                {% if delivery.feedback_content %}
+                <div class="info-item info-item-full-width">
+                    <span class="info-label">收件信息</span>
+                    <span class="info-value">{{ delivery.feedback_content|linebreaks }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 交付文件清单 - 使用样式模板 -->
+    {% if delivery.files.exists %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">交付文件清单</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="list-group">
+                {% for file in delivery.files.all %}
+                {% if not file.is_deleted %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-file-earmark"></i>
+                        <span class="ms-2">{{ file.file_name }}</span>
+                        <small class="text-muted ms-2">({{ file.file_size|filesizeformat }})</small>
+                        {% if file.description %}
+                        <small class="text-muted ms-2">- {{ file.description }}</small>
+                        {% endif %}
+                    </div>
+                    <a href="{{ file.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="bi bi-download"></i> 下载
+                    </a>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function showNotReceivedForm() {
+    document.getElementById('receiveConfirmForm').style.display = 'none';
+    document.getElementById('notReceivedForm').style.display = 'block';
+}
+
+function hideNotReceivedForm() {
+    document.getElementById('receiveConfirmForm').style.display = 'block';
+    document.getElementById('notReceivedForm').style.display = 'none';
+}
+</script>
+{% endblock %}
+

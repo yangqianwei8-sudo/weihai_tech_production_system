@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.resource_standard.models import (
     ProfessionalCategory,
     StandardReviewItem,
@@ -587,4 +587,14 @@ class ProductionStatistic(models.Model):
 
     def __str__(self) -> str:
         return f"{self.statistic_type}-{self.snapshot_date}"
+
+
+# 导入生产启动相关模型
+from .models_startup import (
+    ProjectStartup,
+    ProjectDrawingDirectory,
+    ProjectDrawingFile,
+    ProjectTaskBreakdown,
+    ProjectStartupApproval,
+)
 

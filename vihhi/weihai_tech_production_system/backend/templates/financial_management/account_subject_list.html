@@ -1,0 +1,164 @@
+{% extends "financial_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">会计科目</li>
+{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+<style>
+    .filter-bar {
+        background: var(--vh-card-bg);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--vh-border);
+    }
+    .table th {
+        background: var(--vh-surface);
+        border-bottom: 2px solid var(--vh-primary);
+        font-weight: 600;
+        color: var(--vh-text);
+        font-size: var(--font-size-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 筛选栏 -->
+    <div class="filter-bar">
+        <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" placeholder="搜索编码、名称、备注..." value="{{ current_search }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="subject_type" class="form-select">
+                        <option value="">全部类型</option>
+                        {% for code, label in subject_type_choices %}
+                        <option value="{{ code }}" {% if current_subject_type == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="is_active" class="form-select">
+                        <option value="">全部状态</option>
+                        <option value="true" {% if current_is_active == 'true' %}selected{% endif %}>启用</option>
+                        <option value="false" {% if current_is_active == 'false' %}selected{% endif %}>停用</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                    <a href="{% url 'finance_pages:account_subject_management' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> 清除
+                    </a>
+                </div>
+            </div>
+        </form>
+        <div class="d-flex justify-content-end mt-3">
+            <a href="{% url 'finance_pages:account_subject_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 新增科目
+            </a>
+        </div>
+    </div>
+
+    <!-- 数据表格 -->
+    {% if page_obj %}
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">会计科目列表</h5>
+        </div>
+        <div class="info-card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>科目编码</th>
+                        <th>科目名称</th>
+                        <th>科目类型</th>
+                        <th>余额方向</th>
+                        <th>级别</th>
+                        <th>上级科目</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in subjects %}
+                    <tr>
+                        <td><code>{{ subject.code }}</code></td>
+                        <td>{{ subject.name }}</td>
+                        <td><span class="badge bg-info">{{ subject.get_subject_type_display }}</span></td>
+                        <td><span class="badge bg-secondary">{{ subject.get_direction_display }}</span></td>
+                        <td>{{ subject.level }}</td>
+                        <td>{{ subject.parent.name|default:"-" }}</td>
+                        <td>
+                            {% if subject.is_active %}
+                            <span class="badge bg-success">启用</span>
+                            {% else %}
+                            <span class="badge bg-secondary">停用</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'finance_pages:account_subject_detail' subject.id %}" class="btn btn-sm btn-outline-primary me-1" title="查看详情">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'finance_pages:account_subject_update' subject.id %}" class="btn btn-sm btn-outline-secondary" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">暂无数据</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="分页导航">
+            <ul class="pagination justify-content-center mt-4">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_subject_type %}&subject_type={{ current_subject_type }}{% endif %}{% if current_is_active %}&is_active={{ current_is_active }}{% endif %}">上一页</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_subject_type %}&subject_type={{ current_subject_type }}{% endif %}{% if current_is_active %}&is_active={{ current_is_active }}{% endif %}">下一页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            暂无数据或加载失败
+        </div>
+        {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

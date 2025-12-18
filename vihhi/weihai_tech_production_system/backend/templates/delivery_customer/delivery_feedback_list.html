@@ -1,0 +1,235 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}客户反馈 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item active">客户反馈</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">💬 客户反馈</h2>
+            <p class="text-muted mb-0">管理客户反馈记录，跟踪反馈处理情况</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="info-card info-card-warning">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">待反馈</div>
+                            <div class="info-value info-value-large">{{ pending_count }}</div>
+                        </div>
+                        <div class="text-warning" style="font-size: 2rem;">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="info-card info-card-success">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">已反馈</div>
+                            <div class="info-value info-value-large">{{ received_count }}</div>
+                        </div>
+                        <div class="text-success" style="font-size: 2rem;">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选栏 - 使用样式模板 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">筛选条件</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="get" id="filterForm" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">反馈状态</label>
+                    <select name="feedback_status" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="all" {% if feedback_status == 'all' %}selected{% endif %}>全部</option>
+                        <option value="pending" {% if feedback_status == 'pending' %}selected{% endif %}>待反馈</option>
+                        <option value="received" {% if feedback_status == 'received' %}selected{% endif %}>已反馈</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 反馈列表 - 使用样式模板 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">
+                {% if feedback_status == 'pending' %}待反馈列表
+                {% elif feedback_status == 'received' %}已反馈列表
+                {% else %}全部反馈列表
+                {% endif %}
+            </h5>
+            <div class="info-card-actions">
+                <span class="badge bg-primary">共 {{ feedback_deliveries.paginator.count }} 条</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            {% if feedback_deliveries %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>交付单号</th>
+                            <th>交付标题</th>
+                            <th>关联项目</th>
+                            <th>交付状态</th>
+                            <th>反馈状态</th>
+                            <th>反馈类型</th>
+                            <th>反馈人</th>
+                            <th>反馈时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for delivery in feedback_deliveries %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" class="text-decoration-none">
+                                    <strong>{{ delivery.delivery_number }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ delivery.title }}">
+                                    {{ delivery.title }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if delivery.project %}
+                                <a href="#" class="text-decoration-none">
+                                    {{ delivery.project.project_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.status == 'confirmed' %}
+                                    <span class="status-badge confirmed">已确认</span>
+                                {% elif delivery.status == 'received' %}
+                                    <span class="status-badge received">已接收</span>
+                                {% else %}
+                                    <span class="status-badge {{ delivery.status }}">{{ delivery.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.feedback_received %}
+                                    <span class="status-badge received">已反馈</span>
+                                {% else %}
+                                    <span class="status-badge pending">待反馈</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.feedbacks.exists %}
+                                    {% with latest_feedback=delivery.feedbacks.first %}
+                                    <span class="badge bg-info">{{ latest_feedback.get_feedback_type_display }}</span>
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.feedback_by %}
+                                    {{ delivery.feedback_by }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.feedback_time %}
+                                    {{ delivery.feedback_time|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" 
+                                       class="btn btn-outline-primary" title="查看详情">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if not delivery.feedback_received %}
+                                    <a href="{% url 'delivery_pages:delivery_feedback_create' delivery.id %}" 
+                                       class="btn btn-outline-success" title="创建反馈">
+                                        <i class="bi bi-chat-left-text"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if feedback_deliveries.has_other_pages %}
+            <nav aria-label="客户反馈分页">
+                <ul class="pagination justify-content-center">
+                    {% if feedback_deliveries.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?feedback_status={{ feedback_status }}&page=1">首页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?feedback_status={{ feedback_status }}&page={{ feedback_deliveries.previous_page_number }}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in feedback_deliveries.paginator.page_range %}
+                        {% if feedback_deliveries.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > feedback_deliveries.number|add:'-3' and num < feedback_deliveries.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?feedback_status={{ feedback_status }}&page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if feedback_deliveries.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?feedback_status={{ feedback_status }}&page={{ feedback_deliveries.next_page_number }}">下一页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?feedback_status={{ feedback_status }}&page={{ feedback_deliveries.paginator.num_pages }}">末页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">暂无反馈记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

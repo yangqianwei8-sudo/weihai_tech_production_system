@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}{% if workflow %}编辑{% else %}创建{% endif %}审批流程{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">{% if workflow %}编辑{% else %}创建{% endif %}审批流程</h2>
+        <a href="{% url 'workflow_engine:workflow_list' %}" class="btn btn-outline-secondary">返回列表</a>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">流程名称 <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required value="{{ workflow.name|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">流程代码 <span class="text-danger">*</span></label>
+                            <input type="text" name="code" class="form-control" required value="{{ workflow.code|default:'' }}" {% if workflow %}readonly{% endif %}>
+                            <small class="form-text text-muted">唯一标识，创建后不可修改</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">流程描述</label>
+                    <textarea name="description" class="form-control" rows="3">{{ workflow.description|default:'' }}</textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">流程分类</label>
+                            <input type="text" name="category" class="form-control" value="{{ workflow.category|default:'' }}" placeholder="例如：合同管理、商机管理">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">状态</label>
+                            <select name="status" class="form-select">
+                                {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if workflow.status == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-light mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">流程配置</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="allow_withdraw" id="allow_withdraw" {% if workflow.allow_withdraw or not workflow %}checked{% endif %}>
+                                    <label class="form-check-label" for="allow_withdraw">允许撤回</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="allow_reject" id="allow_reject" {% if workflow.allow_reject or not workflow %}checked{% endif %}>
+                                    <label class="form-check-label" for="allow_reject">允许驳回</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="allow_transfer" id="allow_transfer" {% if workflow.allow_transfer %}checked{% endif %}>
+                                    <label class="form-check-label" for="allow_transfer">允许转交</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">超时时间（小时）</label>
+                                    <input type="number" name="timeout_hours" class="form-control" value="{{ workflow.timeout_hours|default:'' }}" min="0" placeholder="为空则不限制">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">超时处理方式</label>
+                                    <select name="timeout_action" class="form-select">
+                                        {% for value, label in timeout_action_choices %}
+                                        <option value="{{ value }}" {% if workflow.timeout_action == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'workflow_engine:workflow_list' %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

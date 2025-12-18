@@ -1,0 +1,163 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案全文检索 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:project_archive_list' %}">档案管理</a></li>
+<li class="breadcrumb-item"><a href="#">档案检索</a></li>
+<li class="breadcrumb-item active">全文检索</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">🔍 档案全文检索</h2>
+            <p class="text-muted mb-0">通过关键词快速检索档案，支持项目文档、行政档案、项目归档的全文搜索</p>
+        </div>
+        <div>
+            <a href="{% url 'archive_management:archive_search_advanced' %}" class="btn btn-secondary">
+                <i class="bi bi-sliders"></i> 高级检索
+            </a>
+        </div>
+    </div>
+
+    <!-- 检索表单 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">检索条件</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">检索关键词 <span class="text-danger">*</span></label>
+                    <input type="text" name="keyword" class="form-control form-control-lg" 
+                           placeholder="请输入关键词，支持档案名称、编号、描述等" 
+                           value="{{ keyword }}" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">检索范围</label>
+                    <select name="search_range" class="form-select">
+                        <option value="all" {% if search_range == 'all' %}selected{% endif %}>全部</option>
+                        <option value="project" {% if search_range == 'project' %}selected{% endif %}>项目档案</option>
+                        <option value="administrative" {% if search_range == 'administrative' %}selected{% endif %}>行政档案</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> 检索
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 检索结果 -->
+    {% if keyword %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">检索结果</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-primary">找到 {{ result_count }} 条结果</span>
+                {% if search_duration %}
+                <span class="badge bg-secondary">耗时 {{ search_duration }} 秒</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="info-card-body">
+            {% if page.object_list %}
+            <div class="list-group">
+                {% for result in page.object_list %}
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <a href="{{ result.url }}" class="text-decoration-none">
+                                    {{ result.title }}
+                                </a>
+                                <span class="badge bg-{% if result.type == 'project_document' %}primary{% elif result.type == 'administrative_archive' %}success{% else %}info{% endif %} ms-2">
+                                    {% if result.type == 'project_document' %}项目文档
+                                    {% elif result.type == 'administrative_archive' %}行政档案
+                                    {% elif result.type == 'project_archive' %}项目归档
+                                    {% endif %}
+                                </span>
+                            </h6>
+                            <p class="mb-1">
+                                <small class="text-muted">
+                                    <strong>编号：</strong>{{ result.number }}
+                                    {% if result.project %}
+                                    | <strong>项目：</strong>{{ result.project.name|default:result.project.project_number }}
+                                    {% endif %}
+                                    {% if result.category %}
+                                    | <strong>分类：</strong>{{ result.category.name }}
+                                    {% endif %}
+                                    | <strong>状态：</strong>{{ result.get_status_display }}
+                                    | <strong>创建时间：</strong>{{ result.created_time|date:"Y-m-d H:i" }}
+                                </small>
+                            </p>
+                            {% if result.description %}
+                            <p class="mb-0 text-muted small">
+                                {{ result.description|truncatewords:30 }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <a href="{{ result.url }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-eye"></i> 查看
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 分页 -->
+            {% if page.has_other_pages %}
+            <nav aria-label="分页导航" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if page.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?keyword={{ keyword }}&search_range={{ search_range }}&page={{ page.previous_page_number }}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page.paginator.page_range %}
+                    {% if page.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page.number|add:'-3' and num < page.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?keyword={{ keyword }}&search_range={{ search_range }}&page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?keyword={{ keyword }}&search_range={{ search_range }}&page={{ page.next_page_number }}">下一页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 未找到匹配的档案，请尝试其他关键词。
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="info-card mb-4">
+        <div class="info-card-body text-center py-5">
+            <i class="bi bi-search" style="font-size: 4rem; color: #ccc;"></i>
+            <p class="text-muted mt-3">请输入关键词开始检索</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

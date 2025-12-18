@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('project_center', '0009_projectteamnotification_operator_context'),
+        ('project_center', '0001_initial_squashed_0016_projectmeetingrecord_projectdesignreply'),
         ('resource_standard', '0004_systemparameter_professionalcategory'),
     ]
 

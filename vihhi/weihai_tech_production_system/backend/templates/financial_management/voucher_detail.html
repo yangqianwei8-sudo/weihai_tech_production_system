@@ -1,0 +1,199 @@
+{% extends "financial_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'finance_pages:voucher_management' %}">凭证管理</a></li>
+<li class="breadcrumb-item active">{{ voucher.voucher_number }}</li>
+{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+        <!-- 操作按钮 -->
+    <div class="text-end mb-4">
+        <a href="{% url 'finance_pages:voucher_management' %}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+        {% if voucher.status != 'posted' %}
+        <a href="{% url 'finance_pages:voucher_update' voucher.id %}" class="btn btn-primary me-2">
+            <i class="bi bi-pencil"></i> 编辑
+        </a>
+        {% endif %}
+        {% if can_review and voucher.status in 'submitted,draft' %}
+        <a href="{% url 'finance_pages:voucher_approve' voucher.id %}" class="btn btn-success me-2">
+            <i class="bi bi-check-circle"></i> 审核
+        </a>
+        {% endif %}
+        {% if can_post and voucher.status == 'approved' %}
+        <a href="{% url 'finance_pages:voucher_post' voucher.id %}" class="btn btn-info">
+            <i class="bi bi-book"></i> 过账
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="info-card">
+        <h5>基本信息</h5>
+        <div class="info-row">
+            <div class="info-item">
+                <span class="info-label">凭证字号</span>
+                <span class="info-value"><code>{{ voucher.voucher_number }}</code></span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">凭证日期</span>
+                <span class="info-value">{{ voucher.voucher_date|date:"Y-m-d" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">状态</span>
+                <span class="info-value">
+                    {% if voucher.status == 'draft' %}
+                    <span class="badge bg-secondary">草稿</span>
+                    {% elif voucher.status == 'submitted' %}
+                    <span class="badge bg-warning">已提交</span>
+                    {% elif voucher.status == 'approved' %}
+                    <span class="badge bg-success">已审核</span>
+                    {% elif voucher.status == 'posted' %}
+                    <span class="badge bg-primary">已过账</span>
+                    {% else %}
+                    <span class="badge bg-danger">已拒绝</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">附件数</span>
+                <span class="info-value">{{ voucher.attachment_count }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">制单人</span>
+                <span class="info-value">{{ voucher.preparer.get_full_name|default:voucher.preparer.username|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">审核人</span>
+                <span class="info-value">{{ voucher.reviewer.get_full_name|default:voucher.reviewer.username|default:"-" }}</span>
+            </div>
+            {% if voucher.reviewed_time %}
+            <div class="info-item">
+                <span class="info-label">审核时间</span>
+                <span class="info-value">{{ voucher.reviewed_time|date:"Y-m-d H:i:s" }}</span>
+            </div>
+            {% endif %}
+            {% if voucher.posted_by %}
+            <div class="info-item">
+                <span class="info-label">过账人</span>
+                <span class="info-value">{{ voucher.posted_by.get_full_name|default:voucher.posted_by.username }}</span>
+            </div>
+            {% endif %}
+            {% if voucher.posted_time %}
+            <div class="info-item">
+                <span class="info-label">过账时间</span>
+                <span class="info-value">{{ voucher.posted_time|date:"Y-m-d H:i:s" }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 金额信息 -->
+    <div class="info-card">
+        <h5>金额信息</h5>
+        <div class="info-row">
+            <div class="info-item">
+                <span class="info-label">借方合计</span>
+                <span class="info-value" style="font-size: 18px; font-weight: 700; color: #142F5B;">¥{{ voucher.total_debit|floatformat:2 }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">贷方合计</span>
+                <span class="info-value" style="font-size: 18px; font-weight: 700; color: #142F5B;">¥{{ voucher.total_credit|floatformat:2 }}</span>
+            </div>
+            <div class="info-item" style="grid-column: span 2;">
+                <span class="info-label">借贷平衡</span>
+                <span class="info-value">
+                    {% if voucher.total_debit == voucher.total_credit %}
+                    <span class="badge bg-success">✓ 平衡</span>
+                    {% else %}
+                    <span class="badge bg-danger">✗ 不平衡（差额：¥{{ voucher.total_debit|add:voucher.total_credit|floatformat:2 }}）</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 凭证分录 -->
+    {% if entries %}
+    <div class="info-card">
+        <h5>凭证分录 ({{ entries|length }} 行)</h5>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>行号</th>
+                        <th>会计科目</th>
+                        <th>摘要</th>
+                        <th class="text-end">借方金额</th>
+                        <th class="text-end">贷方金额</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                    <tr>
+                        <td>{{ entry.line_number }}</td>
+                        <td><code>{{ entry.account_subject.code }}</code> {{ entry.account_subject.name }}</td>
+                        <td>{{ entry.summary }}</td>
+                        <td class="text-end">
+                            {% if entry.debit_amount > 0 %}
+                            <strong>¥{{ entry.debit_amount|floatformat:2 }}</strong>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if entry.credit_amount > 0 %}
+                            <strong>¥{{ entry.credit_amount|floatformat:2 }}</strong>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f9fafb; font-weight: 700;">
+                        <td colspan="3" class="text-end">合计：</td>
+                        <td class="text-end">¥{{ voucher.total_debit|floatformat:2 }}</td>
+                        <td class="text-end">¥{{ voucher.total_credit|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 备注信息 -->
+    {% if voucher.notes %}
+    <div class="info-card">
+        <h5>备注信息</h5>
+        <p style="color: #374151; white-space: pre-wrap;">{{ voucher.notes }}</p>
+    </div>
+    {% endif %}
+
+    <!-- 其他信息 -->
+    <div class="info-card">
+        <h5>其他信息</h5>
+        <div class="info-row">
+            <div class="info-item">
+                <span class="info-label">创建时间</span>
+                <span class="info-value">{{ voucher.created_time|date:"Y-m-d H:i:s" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">更新时间</span>
+                <span class="info-value">{{ voucher.updated_time|date:"Y-m-d H:i:s" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

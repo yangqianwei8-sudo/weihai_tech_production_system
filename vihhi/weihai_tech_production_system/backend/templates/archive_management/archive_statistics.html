@@ -1,0 +1,25 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案统计 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">档案统计</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3>📊 档案统计</h3>
+            <div>
+                <a href="{% url 'archive_management:project_archive_list' %}" class="btn btn-light btn-sm">返回首页</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">档案统计功能正在开发中...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

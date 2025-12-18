@@ -1,0 +1,272 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案借阅详情 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:archive_borrow_list' %}">档案借阅</a></li>
+<li class="breadcrumb-item active">详情</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📖 档案借阅详情</h2>
+            <p class="text-muted mb-0">借阅单号：<code>{{ borrow.borrow_number }}</code></p>
+        </div>
+        <div>
+            <a href="{% url 'archive_management:archive_borrow_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <!-- 状态提示 -->
+    {% if is_overdue %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> <strong>逾期警告</strong>：该借阅已逾期 {{ overdue_days }} 天，请尽快归还！
+    </div>
+    {% endif %}
+
+    <!-- 借阅基本信息 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">借阅基本信息</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-{% if borrow.status == 'returned' %}success{% elif borrow.status == 'out' %}primary{% elif borrow.status == 'approved' %}info{% elif borrow.status == 'pending' %}warning{% elif borrow.status == 'rejected' %}danger{% elif borrow.status == 'overdue' %}danger{% else %}secondary{% endif %}">
+                    {{ borrow.get_status_display }}
+                </span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">借阅单号</span>
+                        <span class="info-value"><code>{{ borrow.borrow_number }}</code></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">借阅状态</span>
+                        <span class="info-value">
+                            <span class="badge bg-{% if borrow.status == 'returned' %}success{% elif borrow.status == 'out' %}primary{% elif borrow.status == 'approved' %}info{% elif borrow.status == 'pending' %}warning{% elif borrow.status == 'rejected' %}danger{% elif borrow.status == 'overdue' %}danger{% else %}secondary{% endif %}">
+                                {{ borrow.get_status_display }}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+                {% if borrow.project_document %}
+                <div class="col-md-12">
+                    <div class="info-item">
+                        <span class="info-label">借阅档案（项目文档）</span>
+                        <span class="info-value">
+                            <strong>{{ borrow.project_document.document_name }}</strong>
+                            <small class="text-muted">（{{ borrow.project_document.document_number }}）</small>
+                        </span>
+                    </div>
+                </div>
+                {% elif borrow.administrative_archive %}
+                <div class="col-md-12">
+                    <div class="info-item">
+                        <span class="info-label">借阅档案（行政档案）</span>
+                        <span class="info-value">
+                            <strong>{{ borrow.administrative_archive.archive_name }}</strong>
+                            <small class="text-muted">（{{ borrow.administrative_archive.archive_number }}）</small>
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">借阅人</span>
+                        <span class="info-value">{{ borrow.borrower.username }}</span>
+                    </div>
+                </div>
+                {% if borrow.borrower_department %}
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">借阅部门</span>
+                        <span class="info-value">{{ borrow.borrower_department.name }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">借阅日期</span>
+                        <span class="info-value">{{ borrow.borrow_date|date:"Y-m-d" }}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">归还日期</span>
+                        <span class="info-value {% if is_overdue %}text-danger{% endif %}">
+                            {{ borrow.return_date|date:"Y-m-d" }}
+                            {% if is_overdue %}<i class="bi bi-exclamation-triangle"></i> 已逾期{% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">借阅方式</span>
+                        <span class="info-value">{{ borrow.get_borrow_method_display }}</span>
+                    </div>
+                </div>
+                {% if borrow.borrow_purpose %}
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">借阅用途</span>
+                        <span class="info-value">{{ borrow.borrow_purpose }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="col-md-12">
+                    <div class="info-item">
+                        <span class="info-label">借阅事由</span>
+                        <span class="info-value">{{ borrow.borrow_reason|linebreaks }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审批信息 -->
+    {% if borrow.approver %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">审批信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">审批人</span>
+                        <span class="info-value">{{ borrow.approver.username }}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">审批时间</span>
+                        <span class="info-value">{{ borrow.approved_time|date:"Y-m-d H:i" }}</span>
+                    </div>
+                </div>
+                {% if borrow.approval_opinion %}
+                <div class="col-md-12">
+                    <div class="info-item">
+                        <span class="info-label">审批意见</span>
+                        <span class="info-value">{{ borrow.approval_opinion|linebreaks }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 出库信息 -->
+    {% if borrow.out_time %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">出库信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">出库人</span>
+                        <span class="info-value">{{ borrow.out_by.username|default:"-" }}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">出库时间</span>
+                        <span class="info-value">{{ borrow.out_time|date:"Y-m-d H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 归还信息 -->
+    {% if borrow.returned_time %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">归还信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">归还人</span>
+                        <span class="info-value">{{ borrow.returned_by.username|default:"-" }}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">归还时间</span>
+                        <span class="info-value">{{ borrow.returned_time|date:"Y-m-d H:i" }}</span>
+                    </div>
+                </div>
+                {% if borrow.return_status %}
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">归还状态</span>
+                        <span class="info-value">{{ borrow.return_status }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                {% if borrow.return_notes %}
+                <div class="col-md-12">
+                    <div class="info-item">
+                        <span class="info-label">归还备注</span>
+                        <span class="info-value">{{ borrow.return_notes|linebreaks }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 操作记录 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">操作记录</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">创建时间</span>
+                        <span class="info-value">{{ borrow.created_time|date:"Y-m-d H:i" }}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">更新时间</span>
+                        <span class="info-value">{{ borrow.updated_time|date:"Y-m-d H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    {% if borrow.status == 'approved' and not borrow.out_time %}
+    <div class="d-flex justify-content-end gap-2 mb-4">
+        <a href="{% url 'archive_management:archive_borrow_return' borrow.pk %}" class="btn btn-primary">
+            <i class="bi bi-box-arrow-in-right"></i> 办理出库
+        </a>
+    </div>
+    {% elif borrow.status == 'out' %}
+    <div class="d-flex justify-content-end gap-2 mb-4">
+        <a href="{% url 'archive_management:archive_borrow_return' borrow.pk %}" class="btn btn-success">
+            <i class="bi bi-arrow-counterclockwise"></i> 办理归还
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}流程详情 - {{ workflow.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">{{ workflow.name }}</h2>
+        <div>
+            <a href="{% url 'workflow_engine:workflow_edit' workflow.id %}" class="btn btn-outline-primary">编辑流程</a>
+            <a href="{% url 'workflow_engine:workflow_list' %}" class="btn btn-outline-secondary">返回列表</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">流程信息</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">流程代码：</dt>
+                        <dd class="col-sm-9"><code>{{ workflow.code }}</code></dd>
+                        <dt class="col-sm-3">流程分类：</dt>
+                        <dd class="col-sm-9">{{ workflow.category|default:"-" }}</dd>
+                        <dt class="col-sm-3">状态：</dt>
+                        <dd class="col-sm-9">
+                            {% if workflow.status == 'active' %}
+                            <span class="badge bg-success">启用</span>
+                            {% elif workflow.status == 'inactive' %}
+                            <span class="badge bg-secondary">停用</span>
+                            {% else %}
+                            <span class="badge bg-warning">草稿</span>
+                            {% endif %}
+                        </dd>
+                        <dt class="col-sm-3">流程描述：</dt>
+                        <dd class="col-sm-9">{{ workflow.description|default:"-" }}</dd>
+                        <dt class="col-sm-3">创建人：</dt>
+                        <dd class="col-sm-9">{{ workflow.created_by.username }}</dd>
+                        <dt class="col-sm-3">创建时间：</dt>
+                        <dd class="col-sm-9">{{ workflow.created_time|date:"Y-m-d H:i" }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">审批节点</h5>
+                    <a href="{% url 'workflow_engine:node_create' workflow.id %}" class="btn btn-sm btn-primary">添加节点</a>
+                </div>
+                <div class="card-body">
+                    {% if nodes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">顺序</th>
+                                    <th>节点名称</th>
+                                    <th>节点类型</th>
+                                    <th>审批人类型</th>
+                                    <th>审批模式</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for node in nodes %}
+                                <tr>
+                                    <td>{{ node.sequence }}</td>
+                                    <td><strong>{{ node.name }}</strong></td>
+                                    <td>{{ node.get_node_type_display }}</td>
+                                    <td>{{ node.get_approver_type_display|default:"-" }}</td>
+                                    <td>{{ node.get_approval_mode_display }}</td>
+                                    <td>
+                                        <a href="{% url 'workflow_engine:node_edit' node.id %}" class="btn btn-sm btn-outline-primary">编辑</a>
+                                        <form method="post" action="{% url 'workflow_engine:node_delete' node.id %}" class="d-inline" onsubmit="return confirm('确定要删除此节点吗？');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">暂无审批节点，<a href="{% url 'workflow_engine:node_create' workflow.id %}">点击添加</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h6 class="mb-0">流程配置</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bi {% if workflow.allow_withdraw %}bi-check-circle text-success{% else %}bi-x-circle text-muted{% endif %}"></i>
+                            允许撤回
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi {% if workflow.allow_reject %}bi-check-circle text-success{% else %}bi-x-circle text-muted{% endif %}"></i>
+                            允许驳回
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi {% if workflow.allow_transfer %}bi-check-circle text-success{% else %}bi-x-circle text-muted{% endif %}"></i>
+                            允许转交
+                        </li>
+                        <li class="mb-2">
+                            <strong>超时时间：</strong>
+                            {{ workflow.timeout_hours|default:"不限制" }} 小时
+                        </li>
+                        <li>
+                            <strong>超时处理：</strong>
+                            {{ workflow.get_timeout_action_display }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

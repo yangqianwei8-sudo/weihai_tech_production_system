@@ -4,7 +4,7 @@
 {% block title %}项目批量导入{% endblock %}
 
 {% block breadcrumb_items %}
-<li class="breadcrumb-item"><a href="{% url 'project_pages:project_list' %}">项目总览</a></li>
+<li class="breadcrumb-item"><a href="{% url 'production_pages:project_list' %}">项目总览</a></li>
 <li class="breadcrumb-item active">批量导入</li>
 {% endblock %}
 
@@ -18,7 +18,7 @@
                         <h4 class="mb-0">批量导入项目</h4>
                         <small class="text-white-50">支持 CSV 文件，导入后自动创建项目与关键成员关系。</small>
                     </div>
-                    <a class="btn btn-light btn-sm" href="{% url 'project_pages:project_import_admin' %}?download=template">
+                    <a class="btn btn-light btn-sm" href="{% url 'production_pages:project_import_admin' %}?download=template">
                         <i class="bi bi-download"></i> 下载模板
                     </a>
                 </div>
@@ -33,7 +33,7 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-end gap-2">
-                            <a class="btn btn-secondary" href="{% url 'project_pages:project_list' %}">返回</a>
+                            <a class="btn btn-secondary" href="{% url 'production_pages:project_list' %}">返回</a>
                             <button type="submit" class="btn btn-primary">开始导入</button>
                         </div>
                     </form>

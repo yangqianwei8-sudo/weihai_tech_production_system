@@ -1,0 +1,368 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}新建档案借阅 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'archive_management:archive_borrow_list' %}">档案借阅</a></li>
+<li class="breadcrumb-item active">新建借阅</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📖 新建档案借阅</h2>
+            <p class="text-muted mb-0">创建档案借阅申请，提交后将进入审批流程</p>
+        </div>
+        <div>
+            <a href="{% url 'archive_management:archive_borrow_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <!-- 表单卡片 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">借阅信息</h5>
+        </div>
+        <div class="info-card-body">
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                <h6><i class="bi bi-exclamation-triangle"></i> 表单验证失败</h6>
+                <ul class="mb-0">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <li>{{ field }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <form method="post" id="borrowForm">
+                {% csrf_token %}
+                
+                <div class="row g-3">
+                    <!-- 档案类型选择 -->
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 请选择要借阅的项目文档或行政档案（二选一）
+                        </div>
+                    </div>
+
+                    <!-- 项目文档 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.project_document.id_for_label }}" class="form-label">
+                            {{ form.project_document.label }}
+                        </label>
+                        {{ form.project_document }}
+                        {% if form.project_document.errors %}
+                        <div class="text-danger small">{{ form.project_document.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 行政档案 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.administrative_archive.id_for_label }}" class="form-label">
+                            {{ form.administrative_archive.label }}
+                        </label>
+                        {{ form.administrative_archive }}
+                        {% if form.administrative_archive.errors %}
+                        <div class="text-danger small">{{ form.administrative_archive.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 借阅事由 -->
+                    <div class="col-md-12">
+                        <label for="{{ form.borrow_reason.id_for_label }}" class="form-label">
+                            {{ form.borrow_reason.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.borrow_reason }}
+                        {% if form.borrow_reason.errors %}
+                        <div class="text-danger small">{{ form.borrow_reason.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 借阅日期 -->
+                    <div class="col-md-4">
+                        <label for="{{ form.borrow_date.id_for_label }}" class="form-label">
+                            {{ form.borrow_date.label }}
+                        </label>
+                        {{ form.borrow_date }}
+                        {% if form.borrow_date.errors %}
+                        <div class="text-danger small">{{ form.borrow_date.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 归还日期 -->
+                    <div class="col-md-4">
+                        <label for="{{ form.return_date.id_for_label }}" class="form-label">
+                            {{ form.return_date.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.return_date }}
+                        {% if form.return_date.errors %}
+                        <div class="text-danger small">{{ form.return_date.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 借阅方式 -->
+                    <div class="col-md-4">
+                        <label for="{{ form.borrow_method.id_for_label }}" class="form-label">
+                            {{ form.borrow_method.label }}
+                        </label>
+                        {{ form.borrow_method }}
+                        {% if form.borrow_method.errors %}
+                        <div class="text-danger small">{{ form.borrow_method.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 借阅部门 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.borrower_department.id_for_label }}" class="form-label">
+                            {{ form.borrower_department.label }}
+                        </label>
+                        {{ form.borrower_department }}
+                        {% if form.borrower_department.errors %}
+                        <div class="text-danger small">{{ form.borrower_department.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 借阅用途 -->
+                    <div class="col-md-6">
+                        <label for="{{ form.borrow_purpose.id_for_label }}" class="form-label">
+                            {{ form.borrow_purpose.label }}
+                        </label>
+                        {{ form.borrow_purpose }}
+                        {% if form.borrow_purpose.errors %}
+                        <div class="text-danger small">{{ form.borrow_purpose.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'archive_management:archive_borrow_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> 提交借阅申请
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 可借阅档案列表 -->
+    <div class="row">
+        <!-- 项目文档列表 -->
+        {% if project_documents %}
+        <div class="col-md-6">
+            <div class="info-card mb-4">
+                <div class="info-card-header">
+                    <h5 class="info-card-title">可借阅项目文档</h5>
+                    <div class="info-card-actions">
+                        <span class="badge bg-secondary">共 {{ project_documents|length }} 条</span>
+                    </div>
+                </div>
+                <div class="info-card-body">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>文档名称</th>
+                                    <th>项目</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in project_documents %}
+                                <tr>
+                                    <td>{{ doc.document_name|truncatewords:5 }}</td>
+                                    <td><small>{{ doc.project.project_name|truncatewords:3|default:"-" }}</small></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="selectProjectDocument({{ doc.id }}, '{{ doc.document_name }}')">
+                                            <i class="bi bi-check-circle"></i> 选择
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 行政档案列表 -->
+        {% if administrative_archives %}
+        <div class="col-md-6">
+            <div class="info-card mb-4">
+                <div class="info-card-header">
+                    <h5 class="info-card-title">可借阅行政档案</h5>
+                    <div class="info-card-actions">
+                        <span class="badge bg-secondary">共 {{ administrative_archives|length }} 条</span>
+                    </div>
+                </div>
+                <div class="info-card-body">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>档案名称</th>
+                                    <th>分类</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for archive in administrative_archives %}
+                                <tr>
+                                    <td>{{ archive.archive_name|truncatewords:5 }}</td>
+                                    <td><small>{{ archive.category.name|default:"-" }}</small></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="selectAdministrativeArchive({{ archive.id }}, '{{ archive.archive_name }}')">
+                                            <i class="bi bi-check-circle"></i> 选择
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 借阅说明 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">借阅说明</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> 借阅流程</h6>
+                <ol class="mb-0">
+                    <li><strong>选择档案</strong>：选择要借阅的项目文档或行政档案</li>
+                    <li><strong>填写信息</strong>：填写借阅事由、日期、方式等信息</li>
+                    <li><strong>提交申请</strong>：提交后将进入审批流程</li>
+                    <li><strong>审批通过</strong>：审批通过后可以出库借阅</li>
+                    <li><strong>归还档案</strong>：借阅完成后需要归还档案</li>
+                </ol>
+            </div>
+            <div class="alert alert-warning">
+                <h6><i class="bi bi-exclamation-triangle"></i> 注意事项</h6>
+                <ul class="mb-0">
+                    <li>借阅事由和归还日期为必填项</li>
+                    <li>归还日期必须晚于借阅日期</li>
+                    <li>只能选择项目文档或行政档案其中之一</li>
+                    <li>借阅单号将自动生成，格式：BOR-YYYYMMDD-序号</li>
+                    <li>超期未归还将产生逾期记录</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectProjectDocument(docId, docName) {
+    const docSelect = document.getElementById('{{ form.project_document.id_for_label }}');
+    const archiveSelect = document.getElementById('{{ form.administrative_archive.id_for_label }}');
+    
+    if (docSelect) {
+        docSelect.value = docId;
+        // 清空行政档案选择
+        if (archiveSelect) {
+            archiveSelect.value = '';
+        }
+        docSelect.dispatchEvent(new Event('change'));
+    }
+    
+    showAlert('已选择项目文档：' + docName);
+}
+
+function selectAdministrativeArchive(archiveId, archiveName) {
+    const archiveSelect = document.getElementById('{{ form.administrative_archive.id_for_label }}');
+    const docSelect = document.getElementById('{{ form.project_document.id_for_label }}');
+    
+    if (archiveSelect) {
+        archiveSelect.value = archiveId;
+        // 清空项目文档选择
+        if (docSelect) {
+            docSelect.value = '';
+        }
+        archiveSelect.dispatchEvent(new Event('change'));
+    }
+    
+    showAlert('已选择行政档案：' + archiveName);
+}
+
+function showAlert(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <i class="bi bi-check-circle"></i> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.info-card-body').insertBefore(alertDiv, document.querySelector('form'));
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+
+// 表单提交验证
+document.getElementById('borrowForm').addEventListener('submit', function(e) {
+    const projectDoc = document.getElementById('{{ form.project_document.id_for_label }}').value;
+    const adminArchive = document.getElementById('{{ form.administrative_archive.id_for_label }}').value;
+    const borrowReason = document.getElementById('{{ form.borrow_reason.id_for_label }}').value;
+    const returnDate = document.getElementById('{{ form.return_date.id_for_label }}').value;
+    const borrowDate = document.getElementById('{{ form.borrow_date.id_for_label }}').value;
+    
+    if (!projectDoc && !adminArchive) {
+        e.preventDefault();
+        alert('请选择要借阅的项目文档或行政档案');
+        return false;
+    }
+    
+    if (projectDoc && adminArchive) {
+        e.preventDefault();
+        alert('不能同时选择项目文档和行政档案，请只选择其中一个');
+        return false;
+    }
+    
+    if (!borrowReason.trim()) {
+        e.preventDefault();
+        alert('请填写借阅事由');
+        return false;
+    }
+    
+    if (!returnDate) {
+        e.preventDefault();
+        alert('请选择归还日期');
+        return false;
+    }
+    
+    if (borrowDate && returnDate && new Date(returnDate) <= new Date(borrowDate)) {
+        e.preventDefault();
+        alert('归还日期必须晚于借阅日期');
+        return false;
+    }
+    
+    if (!confirm('确定要提交借阅申请吗？提交后将进入审批流程。')) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+{% endblock %}

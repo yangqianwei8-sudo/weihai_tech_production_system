@@ -1,4 +1,5 @@
 from django.urls import path, include
+from django.shortcuts import redirect
 from rest_framework.routers import DefaultRouter
 from . import views
 from . import views_pages
@@ -23,7 +24,6 @@ urlpatterns = [
     
     # 页面路由
     path('create/', views_pages.project_create, name='project_create'),
-    path('team/config/', views_pages.project_team_config, name='project_team_config'),
     path('<int:project_id>/edit/', views_pages.project_edit, name='project_edit'),
     path('<int:project_id>/complete/', views_pages.project_complete, name='project_complete'),
     path('<int:project_id>/team/', views_pages.project_team, name='project_team'),
@@ -38,6 +38,8 @@ urlpatterns = [
     path('<int:project_id>/start-notices/<int:notice_id>/action/', views_pages.project_start_notice_action, name='project_start_notice_action'),
     path('list/', views_pages.project_list, name='project_list'),
     path('list/export/', views_pages.project_list_export, name='project_list_export'),
+    # 兼容旧的项目查询URL，重定向到项目总览
+    path('query/', lambda request: redirect('production_pages:project_list', permanent=False)),
     path('<int:project_id>/detail/', views_pages.project_detail, name='project_detail'),
     path('tasks/dashboard/', views_pages.project_task_dashboard, name='project_task_dashboard'),
     path('<int:project_id>/client-pre-docs/', views_pages.project_client_pre_docs, name='project_client_pre_docs'),
@@ -46,7 +48,6 @@ urlpatterns = [
     path('<int:project_id>/design-upload/', views_pages.project_design_upload, name='project_design_upload'),
     path('<int:project_id>/internal-verify/', views_pages.project_internal_verify, name='project_internal_verify'),
     path('<int:project_id>/client-confirm/', views_pages.project_client_confirm_outcome, name='project_client_confirm_outcome'),
-    path('query/', views_pages.project_query, name='project_query'),
     path('<int:project_id>/archive/', views_pages.project_archive, name='project_archive'),
     path('monitor/', views_pages.project_monitor, name='project_monitor'),
 ]

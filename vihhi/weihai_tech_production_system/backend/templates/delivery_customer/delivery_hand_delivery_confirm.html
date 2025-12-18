@@ -1,0 +1,271 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}现场送达确认 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:delivery_hand_delivery_list' %}">现场送达</a></li>
+<li class="breadcrumb-item active">{{ delivery.delivery_number }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作按钮 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">🚶 现场送达确认</h2>
+            <p class="text-muted mb-0">交付单号：{{ delivery.delivery_number }}</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_hand_delivery_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+            <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-eye"></i> 查看详情
+            </a>
+        </div>
+    </div>
+
+    <!-- 交付记录基本信息 - 使用样式模板 -->
+    <div class="info-card info-card-fade-in mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">交付记录信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-2">
+                <div class="info-item">
+                    <span class="info-label">交付单号</span>
+                    <span class="info-value info-value-bold">{{ delivery.delivery_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">交付标题</span>
+                    <span class="info-value">{{ delivery.title }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">关联项目</span>
+                    <span class="info-value">
+                        {% if delivery.project %}
+                        <a href="#" class="text-decoration-none">
+                            {{ delivery.project.project_number }} - {{ delivery.project.name }}
+                        </a>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">优先级</span>
+                    <span class="info-value">
+                        {% if delivery.priority == 'urgent' %}
+                            <span class="badge bg-danger">紧急</span>
+                        {% elif delivery.priority == 'high' %}
+                            <span class="badge bg-warning">高</span>
+                        {% elif delivery.priority == 'normal' %}
+                            <span class="badge bg-info">普通</span>
+                        {% else %}
+                            <span class="badge bg-secondary">低</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收件人信息 - 使用样式模板 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">收件人信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-2">
+                <div class="info-item">
+                    <span class="info-label">收件人姓名</span>
+                    <span class="info-value">{{ delivery.recipient_name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">联系电话</span>
+                    <span class="info-value">
+                        <a href="tel:{{ delivery.recipient_phone }}" class="text-decoration-none">
+                            <i class="bi bi-telephone"></i> {{ delivery.recipient_phone }}
+                        </a>
+                    </span>
+                </div>
+                {% if delivery.recipient_address %}
+                <div class="info-item info-item-full-width">
+                    <span class="info-label">送达地址</span>
+                    <span class="info-value">{{ delivery.recipient_address }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 送达确认表单 - 使用样式模板 -->
+    {% if can_deliver %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">送达确认</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="post" id="deliveryConfirmForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="confirm" id="actionInput">
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">送达人 <span class="text-danger">*</span></label>
+                        <select name="delivery_person_id" class="form-select" required>
+                            <option value="">请选择送达人</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}" {% if delivery.delivery_person.id == user.id %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">送达备注</label>
+                        <textarea name="delivery_notes" class="form-control" rows="3" 
+                                  placeholder="请输入送达备注（可选）">{{ delivery.delivery_notes }}</textarea>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">送达凭证</label>
+                        <input type="file" name="delivery_file" class="form-control" 
+                               accept="image/*,.pdf,.doc,.docx">
+                        <small class="text-muted">支持上传现场照片、签收单等凭证（可选）</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{% url 'delivery_pages:delivery_hand_delivery_list' %}" class="btn btn-outline-secondary">取消</a>
+                    <button type="button" class="btn btn-danger" onclick="showFailForm()">送达失败</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> 确认送达
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 送达失败表单（隐藏） - 使用样式模板 -->
+    <div class="info-card info-card-danger mb-4" id="failForm" style="display: none;">
+        <div class="info-card-header">
+            <h5 class="info-card-title">送达失败处理</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="post" id="failFormSubmit" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="fail">
+                
+                <div class="mb-3">
+                    <label class="form-label">失败原因 <span class="text-danger">*</span></label>
+                    <textarea name="fail_reason" class="form-control" rows="4" 
+                              required placeholder="请详细说明送达失败原因"></textarea>
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary" onclick="hideFailForm()">取消</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> 确认失败
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 
+        该交付记录当前状态不允许送达确认。只有审核通过且未送达的记录才能进行送达确认。
+    </div>
+    {% endif %}
+
+    <!-- 送达历史（如果已送达） - 使用样式模板 -->
+    {% if delivery.delivered_at %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">送达信息</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-2">
+                <div class="info-item">
+                    <span class="info-label">送达状态</span>
+                    <span class="info-value">
+                        {% if delivery.status == 'delivered' %}
+                            <span class="status-badge delivered">已送达</span>
+                        {% elif delivery.status == 'failed' %}
+                            <span class="status-badge failed">送达失败</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">送达时间</span>
+                    <span class="info-value">{{ delivery.delivered_at|date:"Y-m-d H:i:s" }}</span>
+                </div>
+                {% if delivery.delivery_person %}
+                <div class="info-item">
+                    <span class="info-label">送达人</span>
+                    <span class="info-value">{{ delivery.delivery_person.get_full_name|default:delivery.delivery_person.username }}</span>
+                </div>
+                {% endif %}
+                {% if delivery.delivery_notes %}
+                <div class="info-item info-item-full-width">
+                    <span class="info-label">送达备注</span>
+                    <span class="info-value">{{ delivery.delivery_notes|linebreaks }}</span>
+                </div>
+                {% endif %}
+                {% if delivery.error_message %}
+                <div class="info-item info-item-full-width">
+                    <span class="info-label">失败原因</span>
+                    <span class="info-value text-danger">{{ delivery.error_message }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 交付文件清单 - 使用样式模板 -->
+    {% if delivery.files.exists %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">交付文件清单</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="list-group">
+                {% for file in delivery.files.all %}
+                {% if not file.is_deleted %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-file-earmark"></i>
+                        <span class="ms-2">{{ file.file_name }}</span>
+                        <small class="text-muted ms-2">({{ file.file_size|filesizeformat }})</small>
+                        {% if file.description %}
+                        <small class="text-muted ms-2">- {{ file.description }}</small>
+                        {% endif %}
+                    </div>
+                    <a href="{{ file.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="bi bi-download"></i> 下载
+                    </a>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function showFailForm() {
+    document.getElementById('deliveryConfirmForm').style.display = 'none';
+    document.getElementById('failForm').style.display = 'block';
+}
+
+function hideFailForm() {
+    document.getElementById('deliveryConfirmForm').style.display = 'block';
+    document.getElementById('failForm').style.display = 'none';
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,236 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}交付统计 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item active">交付统计</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📈 交付统计</h2>
+            <p class="text-muted mb-0">交付效率与及时率分析</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <!-- 总体统计 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="info-card info-card-info">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">交付总数</div>
+                            <div class="info-value info-value-large">{{ total_count }}</div>
+                        </div>
+                        <div class="text-info" style="font-size: 2rem;">
+                            <i class="bi bi-files"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-success">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">今日交付</div>
+                            <div class="info-value info-value-large">{{ time_statistics.today_count }}</div>
+                        </div>
+                        <div class="text-success" style="font-size: 2rem;">
+                            <i class="bi bi-calendar-day"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-warning">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">本周交付</div>
+                            <div class="info-value info-value-large">{{ time_statistics.week_count }}</div>
+                        </div>
+                        <div class="text-warning" style="font-size: 2rem;">
+                            <i class="bi bi-calendar-week"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-danger">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">已逾期</div>
+                            <div class="info-value info-value-large">{{ overdue_count }}</div>
+                        </div>
+                        <div class="text-danger" style="font-size: 2rem;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态分布统计 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">交付状态分布</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                {% for status_code, status_data in status_distribution.items %}
+                <div class="col-md-3 mb-3">
+                    <div class="info-card info-card-flat">
+                        <div class="info-card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="info-label">{{ status_data.label }}</div>
+                                    <div class="info-value info-value-large">{{ status_data.count }}</div>
+                                </div>
+                                <span class="status-badge {{ status_code }}">{{ status_data.label }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 交付方式统计 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">交付方式统计</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                {% for method_code, method_data in method_distribution.items %}
+                <div class="col-md-4 mb-3">
+                    <div class="info-card info-card-flat">
+                        <div class="info-card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="info-label">{{ method_data.label }}</div>
+                                    <div class="info-value info-value-large">{{ method_data.count }}</div>
+                                </div>
+                                <div style="font-size: 2rem;">
+                                    {% if method_code == 'email' %}
+                                    <i class="bi bi-envelope text-primary"></i>
+                                    {% elif method_code == 'express' %}
+                                    <i class="bi bi-box-seam text-info"></i>
+                                    {% elif method_code == 'hand_delivery' %}
+                                    <i class="bi bi-person-walking text-success"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件统计 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">文件统计</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-2">
+                <div class="info-item">
+                    <span class="info-label">文件总数</span>
+                    <span class="info-value info-value-large">{{ file_statistics.total_files }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">文件总大小</span>
+                    <span class="info-value info-value-large">
+                        {% if file_statistics.total_size %}
+                            {% widthratio file_statistics.total_size 1048576 1 %} MB
+                        {% else %}
+                            0 MB
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 时间统计 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">时间统计</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="info-grid info-grid-3">
+                <div class="info-item">
+                    <span class="info-label">今日交付</span>
+                    <span class="info-value info-value-large">{{ time_statistics.today_count }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">本周交付</span>
+                    <span class="info-value info-value-large">{{ time_statistics.week_count }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">本月交付</span>
+                    <span class="info-value info-value-large">{{ time_statistics.month_count }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 风险等级分布 -->
+    {% if risk_distribution %}
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">风险等级分布</h5>
+        </div>
+        <div class="info-card-body">
+            <div class="row">
+                {% for risk_code, risk_data in risk_distribution.items %}
+                <div class="col-md-3 mb-3">
+                    <div class="info-card info-card-flat">
+                        <div class="info-card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="info-label">{{ risk_data.label }}</div>
+                                    <div class="info-value info-value-large">{{ risk_data.count }}</div>
+                                </div>
+                                <div>
+                                    {% if risk_code == 'low' %}
+                                    <span class="badge bg-success">低风险</span>
+                                    {% elif risk_code == 'medium' %}
+                                    <span class="badge bg-warning">中风险</span>
+                                    {% elif risk_code == 'high' %}
+                                    <span class="badge bg-danger">高风险</span>
+                                    {% elif risk_code == 'critical' %}
+                                    <span class="badge bg-dark">严重风险</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

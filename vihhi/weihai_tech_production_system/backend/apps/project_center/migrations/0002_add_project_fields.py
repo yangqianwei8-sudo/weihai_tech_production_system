@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('customer_success', '0002_initial'),
+        ('customer_management', '0001_initial'),
         ('project_center', '0001_initial'),
     ]
 
@@ -157,7 +157,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='project',
             name='client',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='customer_success.client', verbose_name='客户'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='customer_management.client', verbose_name='客户'),
         ),
         migrations.AlterField(
             model_name='project',

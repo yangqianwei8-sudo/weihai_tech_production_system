@@ -1,11 +1,3 @@
-def _permission_granted(required_code, user_permissions: set) -> bool:
-    if not required_code:
-        return True
-    if required_code in user_permissions:
-        return True
-    if isinstance(required_code, str) and required_code.endswith('.view_assigned'):
-        return required_code.replace('view_assigned', 'view_all') in user_permissions
-    return False
 from datetime import timedelta
 
 from django.shortcuts import render, redirect
@@ -18,22 +10,35 @@ from django.utils import timezone
 from django.urls import reverse, NoReverseMatch
 
 from backend.apps.project_center.models import Project, ProjectMilestone, ProjectTeamNotification, ProjectTask
-from backend.apps.project_center.views_pages import _user_matches_role
+from backend.apps.system_management.services import get_user_permission_codes
+
+
+def _permission_granted(required_code, user_permissions: set) -> bool:
+    if not required_code:
+        return True
+    # 检查是否有所有权限
+    if '__all__' in user_permissions:
+        return True
+    if required_code in user_permissions:
+        return True
+    if isinstance(required_code, str) and required_code.endswith('.view_assigned'):
+        return required_code.replace('view_assigned', 'view_all') in user_permissions
+    return False
 
 HOME_ACTION_DEFINITIONS = [
     {
         "id": "project_create",
         "label": "新建项目",
         "icon": "➕",
-        "url_name": "project_pages:project_create",
-        "permission": "project_center.create",
+        "url_name": "production_pages:project_create",
+        "permission": "production_management.create",
     },
     {
         "id": "project_monitor",
         "label": "项目监控",
         "icon": "📊",
-        "url_name": "project_pages:project_list",
-        "permission": "project_center.view_all",
+        "url_name": "production_pages:project_list",
+        "permission": "production_management.view_all",
     },
     {
         "id": "schedule_meeting",
@@ -44,84 +49,84 @@ HOME_ACTION_DEFINITIONS = [
     },
 ]
 
-HOME_NAV_STRUCTURE = [{'label': '项目中心',
-  'icon': '📊',
-  'permission': 'project_center.view_assigned',
-  'children': [{'label': '项目总览',
-                'url_name': 'project_pages:project_list',
-                'permission': 'project_center.view_assigned'},
-               {'label': '项目创建', 'url_name': 'project_pages:project_create', 'permission': 'project_center.create'},
-               {'label': '团队配置', 'url_name': 'project_pages:project_team_config', 'permission': 'project_center.configure_team'},
-               {'label': '项目监控', 'url_name': 'project_pages:project_monitor', 'permission': 'project_center.monitor'},
-               {'label': '项目档案', 'url_name': 'project_pages:project_query', 'permission': 'project_center.archive'}]},
- {'label': '生产中心',
-  'icon': '🏭',
-  'permission': None,
-  'children': [{'label': '意见填报', 'url_name': 'production_quality_pages:opinion_create', 'permission': None},
-               {'label': '质量审核',
-                'url_name': 'production_quality_pages:opinion_review',
-                'permission': 'production_quality.professional_review'},
-               {'label': '报告生成',
-                'url_name': 'production_quality_pages:report_generate',
-                'permission': 'production_quality.generate_report'},
-               {'label': '生产统计',
-                'url_name': 'production_quality_pages:production_stats',
-                'permission': 'production_quality.view_statistics'},
-               {'label': '任务看板',
-                'url_name': 'collaboration_pages:task_board',
-                'permission': 'task_collaboration.assign'}]},
- {'label': '交付中心',
-  'icon': '📦',
-  'permission': 'delivery_center.view',
-  'children': [{'label': '报告交付', 'url_name': 'delivery_pages:report_delivery', 'permission': 'delivery_portal.submit'},
-               {'label': '客户协同', 'url_name': 'delivery_pages:customer_collaboration', 'permission': 'delivery_portal.submit'},
-               {'label': '客户门户', 'url_name': 'delivery_pages:customer_portal', 'permission': 'delivery_portal.configure'},
-               {'label': '电子签章', 'url_name': 'delivery_pages:electronic_signature', 'permission': 'delivery_portal.approve'}]},
- {'label': '商务中心',
-  'icon': '💼',
-  'permission': 'customer_success.view',
-  'children': [{'label': '客户管理', 'url_name': 'business_pages:customer_management', 'permission': 'customer_success.manage'},
-               {'label': '合同管理', 'url_name': 'business_pages:contract_management', 'permission': 'customer_success.manage'},
-               {'label': '项目结算', 'url_name': 'business_pages:project_settlement', 'permission': 'settlement_center.initiate'},
-               {'label': '产值分析', 'url_name': 'business_pages:output_analysis', 'permission': 'settlement_center.view_analysis'},
-               {'label': '收款跟踪', 'url_name': 'business_pages:payment_tracking', 'permission': 'settlement_center.manage_finance'}]},
- {'label': '协作中心',
-  'icon': '🤝',
-  'permission': 'task_collaboration.execute',
-  'children': [{'label': '协作空间', 'url_name': 'collaboration_pages:workspace', 'permission': 'task_collaboration.assign'},
-               {'label': '流程引擎', 'url_name': 'collaboration_pages:process_engine', 'permission': 'task_collaboration.manage'},
-               {'label': '工时填报',
-                'url_name': 'collaboration_pages:timesheet',
-                'permission': 'task_collaboration.audit_timesheet'},
-               {'label': '消息中心', 'url_name': 'collaboration_pages:message_center', 'permission': 'task_collaboration.assign'}]},
- {'label': '知识中心',
-  'icon': '📚',
-  'permission': 'resource_center.view',
-  'children': [{'label': '标准规范库',
-                'url_name': 'resource_standard:standard_list',
-                'permission': 'resource_center.manage_library'},
-               {'label': '报告模板库',
-                'url_name': 'resource_standard:report_template_list',
-                'permission': 'resource_center.manage_library'},
-               {'label': '知识案例库', 'url_name': 'resource_standard:risk_case_list', 'permission': 'resource_center.view'},
-               {'label': '专业分类库',
-                'url_name': 'resource_standard:professional_category_list',
-                'permission': 'resource_center.data_maintenance'}]},
- {'label': '系统管理',
-  'icon': '⚙️',
-  'permission': 'system_management.view_settings',
-  'children': [{'label': '用户与权限',
-                'url': '/admin/system_management/user/',
-                'permission': 'system_management.manage_users'},
-               {'label': '系统设置', 'url_name': 'system_pages:system_settings', 'permission': 'system_management.manage_settings'},
-               {'label': '操作日志', 'url_name': 'system_pages:operation_logs', 'permission': 'system_management.manage_settings'},
-               {'label': '数据字典', 'url_name': 'system_pages:data_dictionary', 'permission': 'system_management.manage_settings'}]}]
+# 菜单结构：直接对应home页左侧菜单，取消所有"中心"概念
+HOME_NAV_STRUCTURE = [
+    # 按数据库模块定义顺序排列，确保与数据库一致
+    {'label': '客户管理', 'icon': '👥', 'url_name': 'business_pages:customer_management_home', 'permission': 'customer_management.client.view'},
+    {'label': '商机管理', 'icon': '💼', 'url_name': 'business_pages:opportunity_management', 'permission': 'customer_success.opportunity.view'},
+    {'label': '合同管理', 'icon': '📄', 'url_name': 'business_pages:contract_management_list', 'permission': 'customer_management.contract.view'},
+    {'label': '回款管理', 'icon': '💰', 'url_name': 'settlement_pages:payment_plan_list', 'permission': 'payment_management.payment_plan.view'},  # 回款管理独立模块
+    {'label': '生产管理', 'icon': '🏗️', 'url_name': 'production_pages:project_list', 'permission': 'production_management.view_assigned'},
+    {'label': '生产质量', 'icon': '🔍', 'url_name': 'production_quality_pages:opinion_review', 'permission': 'production_quality.view'},
+    {'label': '资源管理', 'icon': '🗂️', 'url_name': 'resource_standard_pages:standard_list', 'permission': 'resource_center.view'},
+    {'label': '任务协作', 'icon': '🤝', 'url_name': 'collaboration_pages:task_board', 'permission': 'task_collaboration.view'},
+    {'label': '交付管理', 'icon': '📦', 'url_name': 'delivery_pages:report_delivery', 'permission': 'delivery_center.view'},
+    {'label': '档案管理', 'icon': '📁', 'url_name': 'archive_management:archive_list', 'permission': 'archive_management.view'},
+    {'label': '计划管理', 'icon': '📅', 'url_name': 'plan_pages:plan_list', 'permission': 'plan_management.view'},
+    {'label': '诉讼管理', 'icon': '⚖️', 'url_name': 'litigation_pages:litigation_home', 'permission': 'litigation_management.view'},
+    {'label': '风险管理', 'icon': '⚠️', 'url_name': '#', 'permission': 'risk_management.view'},  # 占位，待实现
+    {'label': '财务管理', 'icon': '💵', 'url_name': 'finance_pages:financial_home', 'permission': 'financial_management.view'},
+    {'label': '人事管理', 'icon': '👤', 'url_name': 'personnel_pages:personnel_home', 'permission': 'personnel_management.view'},
+    {'label': '行政管理', 'icon': '🏢', 'url_name': 'admin_pages:administrative_home', 'permission': 'administrative_management.view'},
+    {'label': '系统管理', 'icon': '⚙️', 'url_name': 'system_pages:system_settings', 'permission': 'system_management.view'},
+    # 注意：权限管理仅保留在Django Admin后台管理中，不添加到前端导航栏
+]
+
+
+def _build_full_top_nav(permission_set, user=None):
+    """构建完整的顶部导航菜单
+    
+    Args:
+        permission_set: 用户权限集合
+        user: 当前用户对象（可选）
+    
+    Returns:
+        list: 导航菜单项列表
+    """
+    nav = []
+    for item in HOME_NAV_STRUCTURE:
+        # 检查权限
+        if item.get('permission'):
+            if not _permission_granted(item['permission'], permission_set):
+                continue
+        
+        # 构建URL
+        url = '#'
+        if item.get('url_name'):
+            try:
+                url = reverse(item['url_name'])
+            except NoReverseMatch:
+                url = item.get('url', '#')
+        else:
+            url = item.get('url', '#')
+        
+        nav.append({
+            'label': item['label'],
+            'icon': item.get('icon', ''),
+            'url': url,
+        })
+    
+    return nav
 
 
 def _serialize_task_for_home(task):
     project = task.project
     project_number = project.project_number if project else ''
     project_name = project.name if project else '关联项目'
+    
+    # 根据任务类型设置跳转URL
+    url = '#'
+    if project:
+        if task.task_type == 'project_complete_info':
+            # 完善项目信息 -> 跳转到项目信息完善页面
+            url = reverse('production_pages:project_complete', args=[project.id])
+        elif task.task_type == 'configure_team':
+            # 配置项目团队 -> 跳转到团队配置页面
+            url = reverse('production_pages:project_team', args=[project.id])
+        else:
+            # 其他任务 -> 跳转到项目详情页面
+            url = reverse('production_pages:project_detail', args=[project.id])
+    
     return {
         'id': task.id,
         'title': task.title,
@@ -132,490 +137,236 @@ def _serialize_task_for_home(task):
         'due_time': task.due_time,
         'completed_time': getattr(task, 'completed_time', None),
         'description': task.description,
-        'url': reverse('project_pages:project_detail', args=[project.id]) if project else '#',
+        'url': url,
     }
 
 
 def home(request):
-    """系统首页"""
+    """系统首页 - Django工作台页面"""
+    from django.contrib.auth.decorators import login_required
+    from django.db.models import Count, Q, Sum
+    from datetime import timedelta
+    
+    # 如果未登录，重定向到登录页
     if not request.user.is_authenticated:
         return redirect('login')
-    # 登录后不再强制进入资料完善页面，直接进入工作台
-
+    
     user = request.user
-    today = timezone.now().date()
-    week_ahead = today + timedelta(days=7)
-
-    task_queryset = ProjectTask.objects.filter(
-        status__in=ProjectTask.ACTIVE_STATUSES
-    ).select_related(
-        'project',
-        'project__project_manager',
-        'project__business_manager',
-        'project__client_leader',
-        'project__design_leader',
-        'assigned_to',
-    ).prefetch_related('project__team_members', 'project__team_members__user').order_by('due_time', 'created_time')
-
-    user_active_tasks = []
-    for task in task_queryset:
-        project = task.project
-        if task.assigned_to_id == user.id or _user_matches_role(user, project, task.assigned_role):
-            user_active_tasks.append(task)
-
-    recent_completed_tasks = ProjectTask.objects.filter(
-        status='completed',
-        completed_by=user,
-    ).select_related('project').order_by('-completed_time')[:5]
-
-    due_today_tasks = [
-        task for task in user_active_tasks
-        if task.due_time and task.due_time.date() == today
-    ]
-    overdue_tasks = [
-        task for task in user_active_tasks
-        if task.due_time and task.due_time.date() < today
-    ]
-
-    task_board = {
-        'pending': [_serialize_task_for_home(t) for t in user_active_tasks if t.status == 'pending'][:4],
-        'in_progress': [_serialize_task_for_home(t) for t in user_active_tasks if t.status == 'in_progress'][:4],
-        'completed': [_serialize_task_for_home(t) for t in recent_completed_tasks],
-    }
-    task_counts = {
-        'total': len(user_active_tasks),
-        'due_today': len(due_today_tasks),
-        'overdue': len(overdue_tasks),
-    }
-
-    projects_all = Project.objects.all()
-    project_total = projects_all.count()
-    project_in_progress = projects_all.filter(status='in_progress').count()
-    project_completed = projects_all.filter(status='completed').count()
-    project_waiting = projects_all.filter(status__in=['waiting_start', 'configuring']).count()
-
-    user_projects = projects_all.filter(
-        Q(project_manager=request.user) | Q(team_members__user=request.user)
-    ).distinct()
-    my_projects_count = user_projects.count()
-
-    user_milestones = ProjectMilestone.objects.filter(project__in=user_projects)
-    pending_milestones = user_milestones.filter(is_completed=False)
-    due_today = pending_milestones.filter(planned_date=today)
-    overdue = pending_milestones.filter(planned_date__lt=today)
-    upcoming = pending_milestones.filter(planned_date__gte=today, planned_date__lte=week_ahead)
-
-    project_cards = []
-    for project in user_projects.order_by('-updated_time')[:4]:
-        milestones = ProjectMilestone.objects.filter(project=project)
-        total = milestones.count()
-        completed = milestones.filter(is_completed=True).count()
-        progress = int(completed / total * 100) if total else 0
-        project_cards.append({
-            'id': project.id,
-            'number': project.project_number,
-            'name': project.name,
-            'manager': project.project_manager.get_full_name() if project.project_manager else '待分配',
-            'business_manager': project.business_manager.get_full_name() if project.business_manager else '待分配',
-            'progress': progress,
-            'status_display': project.get_status_display(),
-        })
-
-    user_roles = request.user.roles.prefetch_related("custom_permissions")
-    user_permissions = {
-        perm.code for role in user_roles for perm in role.custom_permissions.all()
-    }
-    user_role_label = request.user.position or next(
-        (role.name for role in user_roles if role.name),
-        "角色未配置",
-    )
-
-    lead_projects = user_projects.filter(project_manager=request.user)
-    lead_project_cards = []
-    for project in lead_projects.order_by('-updated_time')[:4]:
-        risk_level = '良好'
-        if project.status == 'suspended':
-            risk_level = '暂停'
-        elif project.status in ['waiting_start', 'configuring']:
-            risk_level = '待开工'
-        lead_project_cards.append({
-            'id': project.id,
-            'number': project.project_number,
-            'name': project.name,
-            'status': project.get_status_display(),
-            'risk': risk_level,
-            'progress': min(100, max(0, ProjectMilestone.objects.filter(project=project, is_completed=True).count() * 20)),
-        })
-
-    kanban = {
-        'todo': user_projects.filter(status__in=['waiting_start', 'configuring'])[:5],
-        'in_progress': user_projects.filter(status='in_progress')[:5],
-        'done': user_projects.filter(status__in=['completed', 'archived'])[:5],
-    }
-
-    activities = []
-    for milestone in user_milestones.order_by('-actual_date', '-planned_date')[:5]:
-        activities.append({
-            'icon': '📁' if milestone.is_completed else '🗂',
-            'title': f"{milestone.project.project_number} · {milestone.name}",
-            'description': '里程碑已完成' if milestone.is_completed else '待完成里程碑',
-            'time': milestone.actual_date.strftime('%Y-%m-%d') if milestone.actual_date else (milestone.planned_date.strftime('%Y-%m-%d') if milestone.planned_date else '待定'),
-        })
-
-    schedule_items = []
-    for milestone in upcoming.order_by('planned_date')[:4]:
-        schedule_items.append({
-            'time': milestone.planned_date.strftime('%m-%d') if milestone.planned_date else '待定',
-            'title': milestone.name,
-            'project': milestone.project.name,
-        })
-
-    centers_navigation = []
-    for section in HOME_NAV_STRUCTURE:
-        if not _permission_granted(section["permission"], user_permissions):
-            continue
-        children = []
-        for child in section["children"]:
-            permission = child.get("permission")
-            if permission and not _permission_granted(permission, user_permissions):
-                continue
-            url = child.get("url")
-            if not url:
-                url_name = child.get("url_name")
-                if url_name:
-                    try:
-                        url = reverse(url_name)
-                    except NoReverseMatch:
-                        url = '#'
-                else:
-                    url = '#'
-            subitems_payload = []
-            for sub in child.get("subitems", []):
-                if isinstance(sub, dict):
-                    sub_perm = sub.get("permission")
-                    if sub_perm and not _permission_granted(sub_perm, user_permissions):
-                        continue
-                    sub_url = sub.get("url")
-                    if not sub_url:
-                        sub_url_name = sub.get("url_name")
-                        if sub_url_name:
-                            try:
-                                sub_url = reverse(sub_url_name)
-                            except NoReverseMatch:
-                                sub_url = '#'
-                        else:
-                            sub_url = '#'
-                    subitems_payload.append({
-                        "label": sub.get("label", "功能开发中"),
-                        "url": sub_url or '#',
-                    })
-                else:
-                    subitems_payload.append({
-                        "label": str(sub),
-                        "url": '#',
-                    })
-            child_payload = {
-                "label": child["label"],
-                "url": url,
-                "subitems": subitems_payload,
-            }
-            children.append(child_payload)
-        if not children:
-            continue
-        centers_navigation.append({
-            "label": section["label"],
-            "icon": section["icon"],
-            "items": children,
-        })
-
-    quick_actions = []
-    for action in HOME_ACTION_DEFINITIONS:
-        if action["permission"] not in user_permissions:
-            continue
-        url = reverse(action["url_name"]) if action["url_name"] else '#'
-        quick_actions.append({
-            "label": action["label"],
-            "icon": action["icon"],
-            "url": url,
-        })
-
-    notifications_qs = ProjectTeamNotification.objects.filter(
-        recipient=user,
-    ).select_related('project').order_by('is_read', '-created_time')[:20]
-
-    notification_center = []
-    if notifications_qs:
-        team_items = []
-        quality_items = []
-        team_unread = 0
-        quality_unread = 0
-
-        def _build_entry(notification_obj):
-            project = notification_obj.project
-            context_data = notification_obj.context or {}
-            base_url = '#'
-            if project:
-                if context_data.get('action') in {'project_received', 'assigned_project_manager'} and project.status in {'waiting_receive', 'configuring'} and notification_obj.recipient.roles.filter(code='project_manager').exists():
-                    base_url = reverse('project_pages:project_complete', args=[project.id])
-                else:
-                    base_url = reverse('project_pages:project_detail', args=[project.id])
-            link_url = notification_obj.action_url or base_url
-            return {
-                'id': notification_obj.id,
-                'title': notification_obj.title,
-                'subtitle': project.project_number if project else '',
-                'detail': notification_obj.message,
-                'is_unread': not notification_obj.is_read,
-                'url': link_url,
-            }
-
-        for notif in notifications_qs:
-            entry = _build_entry(notif)
-            if notif.category == 'quality_alert':
-                if entry['is_unread']:
-                    quality_unread += 1
-                if len(quality_items) < 6:
-                    quality_items.append(entry)
-            else:
-                if entry['is_unread']:
-                    team_unread += 1
-                if len(team_items) < 6:
-                    team_items.append(entry)
-
-        if quality_items:
-            notification_center.append({
-                'title': '质量提醒',
-                'icon': '⚠️',
-                'unread_count': quality_unread,
-                'items': quality_items,
+    permission_set = get_user_permission_codes(user)
+    
+    # 构建导航菜单（centers_navigation）
+    centers_navigation = _build_full_top_nav(permission_set, user)
+    
+    # 初始化统计数据
+    pending_counts = {'personal': 0, 'due_today': 0, 'overdue': 0}
+    approval_stats = {'my_pending': 0, 'my_submitted': 0}
+    delivery_stats = {'pending': 0}
+    stats_cards = []
+    task_board = {'pending': [], 'in_progress': [], 'completed': []}
+    
+    # 获取待办任务统计
+    try:
+        today = timezone.now().date()
+        user_tasks = ProjectTask.objects.filter(
+            Q(assigned_to=user) | Q(created_by=user)
+        ).exclude(status='completed')
+        
+        pending_counts['personal'] = user_tasks.count()
+        pending_counts['due_today'] = user_tasks.filter(due_time__date=today).count()
+        pending_counts['overdue'] = user_tasks.filter(due_time__lt=timezone.now()).exclude(status='completed').count()
+        
+        # 构建任务看板
+        pending_tasks = user_tasks.filter(status='pending')[:10]
+        in_progress_tasks = user_tasks.filter(status='in_progress')[:10]
+        completed_tasks = ProjectTask.objects.filter(
+            Q(assigned_to=user) | Q(created_by=user),
+            status='completed'
+        ).order_by('-completed_time')[:10]
+        
+        task_board['pending'] = [_serialize_task_for_home(task) for task in pending_tasks]
+        task_board['in_progress'] = [_serialize_task_for_home(task) for task in in_progress_tasks]
+        task_board['completed'] = [_serialize_task_for_home(task) for task in completed_tasks]
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('获取任务统计失败: %s', str(e))
+    
+    # 获取审批统计
+    try:
+        from backend.apps.workflow_engine.models import ApprovalInstance
+        
+        approval_stats['my_pending'] = ApprovalInstance.objects.filter(
+            status='pending',
+            records__approver=user,
+            records__result='pending'
+        ).distinct().count()
+        
+        approval_stats['my_submitted'] = ApprovalInstance.objects.filter(
+            applicant=user
+        ).count()
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('获取审批统计失败: %s', str(e))
+    
+    # 获取交付统计
+    try:
+        from backend.apps.delivery_customer.models import DeliveryReport
+        
+        delivery_stats['pending'] = DeliveryReport.objects.filter(
+            status='pending'
+        ).count()
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('获取交付统计失败: %s', str(e))
+    
+    # 构建统计卡片
+    try:
+        # 进行中项目数
+        try:
+            active_projects = Project.objects.filter(
+                status__in=['in_progress', 'planning']
+            ).count()
+            stats_cards.append({
+                'label': '进行中项目',
+                'value': active_projects,
+                'url': reverse('production_pages:project_list'),
+                'variant': 'info'
             })
-
-        if team_items:
-            notification_center.append({
-                'title': '团队通知',
-                'icon': '👥',
-                'unread_count': team_unread,
-                'items': team_items,
+        except Exception:
+            pass
+        
+        # 本月完成项目数
+        try:
+            this_month = timezone.now().replace(day=1)
+            completed_projects = Project.objects.filter(
+                status='completed',
+                updated_time__gte=this_month
+            ).count()
+            stats_cards.append({
+                'label': '本月完成',
+                'value': completed_projects,
+                'url': reverse('production_pages:project_list'),
+                'variant': 'success'
             })
-    if 'task_collaboration.execute' in user_permissions:
-        todo_tasks = kanban['todo'][:3]
-        task_board_url = reverse('collaboration_pages:task_board')
-        task_items = []
-        for task in todo_tasks:
-            task_items.append({
-                'title': task.name,
-                'subtitle': task.project_number,
-                'detail': task.get_status_display() if hasattr(task, 'get_status_display') else task.status,
-                'url': f"{task_board_url}?project={task.id}",
+        except Exception:
+            pass
+        
+        # 待审批任务
+        if approval_stats['my_pending'] > 0:
+            stats_cards.append({
+                'label': '待审批',
+                'value': approval_stats['my_pending'],
+                'url': '#',
+                'variant': 'danger'
             })
-        notification_center.append({
-            'title': '任务提醒',
-            'icon': '✅',
-            'items': task_items,
-        })
-
-    if upcoming:
-        notification_center.append({
-            'title': '里程碑提醒',
-            'icon': '🗂',
-            'items': [
-                {
-                    'title': milestone.project.name if milestone.project else '未知项目',
-                    'subtitle': milestone.name,
-                    'detail': milestone.planned_date.strftime('%m-%d') if milestone.planned_date else '待定',
-                }
-                for milestone in upcoming[:4]
-            ],
-        })
-
-    is_technical_manager = user.roles.filter(code='technical_manager').exists() or user.is_superuser
-    if is_technical_manager:
-        waiting_receive_qs = Project.objects.filter(
-            status='waiting_receive',
-            project_manager__isnull=True,
-        ).order_by('created_time')[:6]
-        if waiting_receive_qs.exists():
-            items = []
-            for proj in waiting_receive_qs:
-                items.append({
-                    'title': proj.project_number or proj.name,
-                    'subtitle': proj.name,
-                    'detail': f"商务经理：{proj.business_manager.get_full_name() if proj.business_manager else '未指定'}",
-                    'url': reverse('project_pages:project_receive', args=[proj.id]),
-                    'is_unread': True,
+        
+        # 待处理事项
+        try:
+            from backend.apps.administrative_management.models import AdministrativeAffair
+            pending_affairs = AdministrativeAffair.objects.filter(
+                status='pending',
+                responsible_user=user
+            ).count()
+            if pending_affairs > 0:
+                stats_cards.append({
+                    'label': '待处理事项',
+                    'value': pending_affairs,
+                    'url': reverse('admin_pages:affair_list'),
+                    'variant': 'warning'
                 })
-            notification_center.append({
-                'title': '项目待接收',
-                'icon': '📬',
-                'unread_count': waiting_receive_qs.count(),
-                'items': items,
-            })
-
-    this_month_start = today.replace(day=1)
-    milestones_completed = user_milestones.filter(is_completed=True, actual_date__gte=this_month_start).count()
-    data_cards = {
-        'personal': {
-            'title': '个人指标',
-            'value': f"本月完成任务 {milestones_completed}",
-            'extra': f"逾期 {overdue.count()} · 待办 {pending_milestones.count()}",
-        },
-        'team': {
-            'title': '团队指标',
-            'value': f"管理项目 {lead_projects.count()}",
-            'extra': f"参与项目 {user_projects.count()} · 进行中 {user_projects.filter(status='in_progress').count()}",
-        },
-        'company': {
-            'title': '公司指标',
-            'value': f"项目总数 {project_total}",
-            'extra': f"在建 {project_in_progress} · 已完成 {project_completed}",
-        },
-    }
-
-    nav_sections = [
-        {
-            'title': None,
-            'items': [
-                {'label': '我的工作台', 'icon': '🧰', 'url': reverse('home'), 'active': True},
-            ]
-        }
-    ]
-    for section in centers_navigation:
-        module_entries = []
-        for module in section['items']:
-            subgroups = []
-            for sub in module.get('subitems', []):
-                if isinstance(sub, dict):
-                    subgroups.append(
-                        {
-                            'label': sub.get('label', '功能开发中'),
-                            'url': sub.get('url', '#'),
-                            'subitems': sub.get('subitems', []),
-                        }
-                    )
-                else:
-                    subgroups.append(
-                        {
-                            'label': str(sub),
-                            'url': module.get('url', '#'),
-                            'subitems': [],
-                        }
-                    )
-            module_entries.append(
-                {
-                    'label': module['label'],
-                    'url': module.get('url', '#'),
-                    'subitems': subgroups,
-                }
-            )
-        if module_entries:
-            nav_sections.append({
-                'title': section['label'],
-                'items': module_entries,
-                'icon': section['icon'],
-            })
-
-    stats_cards = [
-        {
-            'label': '项目总数',
-            'value': project_total,
-            'trend': f'进行中 {project_in_progress} · 已完成 {project_completed}',
-            'variant': 'default'
-        },
-        {
-            'label': '待办任务',
-            'value': pending_milestones.count(),
-            'trend': f'今日 {due_today.count()} · 逾期 {overdue.count()}',
-            'variant': 'warning'
-        },
-        {
-            'label': '风险项目',
-            'value': project_waiting,
-            'trend': '需关注开工与配置进度',
-            'variant': 'danger'
-        },
-        {
-            'label': '今日里程碑',
-            'value': due_today.count(),
-            'trend': f"剩余 {pending_milestones.count()} 个待办",
-            'variant': 'success'
-        },
-        {
-            'label': '参与项目',
-            'value': my_projects_count,
-            'trend': f'管理中 {lead_projects.count()}',
-            'variant': 'default'
-        },
-    ]
-
-    announcements = [
-        {'title': '生产系统 1.3.0 版本上线', 'content': '新增项目总览仪表盘、自定义权限模板等功能。', 'date': today.strftime('%Y-%m-%d')},
-        {'title': '12 月安全生产月', 'content': '请各项目部及时提交安全排查报告。', 'date': (today - timedelta(days=1)).strftime('%Y-%m-%d')},
-    ]
-
+        except Exception:
+            pass
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('构建统计卡片失败: %s', str(e))
+    
+    # 构建上下文
     context = {
-        'nav_sections': nav_sections,
+        'user': user,
+        'is_superuser': user.is_superuser,
+        'centers_navigation': centers_navigation,
+        'pending_counts': pending_counts,
+        'approval_stats': approval_stats,
+        'delivery_stats': delivery_stats,
         'stats_cards': stats_cards,
-        'kanban': kanban,
-        'project_cards': project_cards,
-        'lead_project_cards': lead_project_cards,
-        'pending_counts': {
-            'personal': task_counts['total'],
-            'due_today': task_counts['due_today'],
-            'overdue': task_counts['overdue'],
-        },
-        'project_counts': {
-            'total': project_total,
-            'in_progress': project_in_progress,
-            'completed': project_completed,
-            'waiting': project_waiting,
-        },
-        'my_projects_count': my_projects_count,
-        'lead_projects_count': lead_projects.count(),
-        'activities': activities,
-        'schedule_items': schedule_items,
-        'announcements': announcements,
-        'status_bar': {
-            'online_users': 18,
-            'uptime_hours': 168,
-            'last_sync': '5 分钟前',
-        },
-        'quick_actions': quick_actions,
-        'notification_center': notification_center,
-        'data_cards': data_cards,
-        'user_role_label': user_role_label,
         'task_board': task_board,
-        'task_counts': task_counts,
     }
-
+    
     return render(request, 'home.html', context)
 
 
 def login_view(request):
-    """登录页面"""
-    if request.user.is_authenticated:
-        return redirect('home')
+    """登录页面 - 返回前端Vue登录页面，统一使用Vue登录"""
+    # 统一使用Vue登录页面，Django模板登录已暂时注释
+    # 无论是否登录，都返回前端页面，由前端路由处理登录逻辑
+    import os
+    from django.conf import settings
+    from django.http import HttpResponse
 
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+    # 前端构建文件路径
+    frontend_dist_path = os.path.join(settings.BASE_DIR.parent, 'frontend', 'dist', 'index.html')
 
-        if username and password:
-            user = authenticate(request, username=username, password=password)
-            if user:
-                if user.is_active:
-                    login(request, user)
-                    if not user.profile_completed:
-                        return redirect('complete_profile')
-                    next_url = request.GET.get('next', 'home')
-                    return redirect(next_url)
-                else:
-                    messages.error(request, '用户账户已被禁用')
-            else:
-                messages.error(request, '用户名或密码错误')
-        else:
-            messages.error(request, '请输入用户名和密码')
+    if os.path.exists(frontend_dist_path):
+        # 如果前端构建文件存在，返回前端页面
+        with open(frontend_dist_path, 'r', encoding='utf-8') as f:
+            return HttpResponse(f.read(), content_type='text/html')
+    else:
+        # 如果前端构建文件不存在，返回一个简单的提示页面
+        return HttpResponse('''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>维海科技信息化管理平台 - 登录</title>
+            <meta charset="UTF-8">
+        </head>
+        <body>
+            <h1>维海科技信息化管理平台</h1>
+            <p>前端页面未找到，请先构建前端应用。</p>
+            <p><a href="/admin/login/">访问后台管理登录</a></p>
+        </body>
+        </html>
+        ''', content_type='text/html')
 
-    return render(request, 'login.html')
+    # ========== Django模板登录（已暂时注释）==========
+    # if request.user.is_authenticated:
+    #     # 已登录用户，根据next参数决定重定向目标
+    #     next_url = request.GET.get('next', '')
+    #     if next_url and ('admin' in next_url or next_url.startswith('/admin')):
+    #         return redirect('admin:index')
+    #     else:
+    #         return redirect('home')  # 重定向到前端首页
+    #
+    # if request.method == 'POST':
+    #     username = request.POST.get('username')
+    #     password = request.POST.get('password')
+    #
+    #     if username and password:
+    #         user = authenticate(request, username=username, password=password)
+    #         if user:
+    #             if user.is_active:
+    #                 login(request, user)
+    #                 if not user.profile_completed:
+    #                     return redirect('complete_profile')
+    #                 
+    #                 # 根据next参数决定重定向目标
+    #                 next_url = request.GET.get('next', 'home')
+    #                 if next_url and ('admin' in next_url or next_url.startswith('/admin')):
+    #                     # 如果next包含admin，重定向到后台管理
+    #                     return redirect('admin:index')
+    #                 else:
+    #                     # 否则重定向到前端首页
+    #                     return redirect('home')
+    #             else:
+    #                 messages.error(request, '用户账户已被禁用')
+    #         else:
+    #             messages.error(request, '用户名或密码错误')
+    #     else:
+    #         messages.error(request, '请输入用户名和密码')
+    #
+    # return render(request, 'login.html')
 
 
 def logout_view(request):
@@ -630,7 +381,30 @@ def health_check(request):
     """健康检查端点"""
     return JsonResponse({
         'status': 'healthy',
-        'service': '维海科技生产信息化管理系统',
+        'service': '维海科技信息化管理平台',
         'version': '1.0.0',
         'timestamp': '2025-11-06T14:01:28Z'
     })
+
+
+def favicon_view(request):
+    """Favicon视图"""
+    from django.http import HttpResponse
+    from django.conf import settings
+    import os
+    
+    favicon_path = os.path.join(settings.STATIC_ROOT or settings.STATICFILES_DIRS[0] if settings.STATICFILES_DIRS else '', 'favicon.ico')
+    if os.path.exists(favicon_path):
+        with open(favicon_path, 'rb') as f:
+            return HttpResponse(f.read(), content_type='image/x-icon')
+    return HttpResponse(status=204)
+
+
+def test_admin_page(request):
+    """测试admin页面"""
+    return redirect('admin:index')
+
+
+def django_service_control(request):
+    """Django服务控制"""
+    return JsonResponse({'status': 'ok'})

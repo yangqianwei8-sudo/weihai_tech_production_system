@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.resource_standard.models import ProfessionalCategory
 from backend.apps.production_quality.models import Opinion
 from backend.apps.production_quality.services import dispatch_quality_alerts

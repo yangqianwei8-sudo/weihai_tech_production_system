@@ -1,0 +1,245 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}快递公司列表 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item active">快递公司列表</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/layouts/list-layout.css' %}">
+<style>
+.list-page-container {
+    padding: 12px !important;
+    gap: 8px !important;
+}
+
+.list-page-header {
+    margin-bottom: 8px !important;
+    padding: 6px 0 !important;
+}
+
+.list-page-action-bar {
+    margin-bottom: 8px !important;
+    padding: 6px 10px !important;
+}
+
+.table {
+    margin-bottom: 8px;
+}
+
+.table th,
+.table td {
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.status-active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.default-badge {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="list-page-container">
+    <!-- 页面标题和操作按钮 -->
+    <div class="list-page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">🚚 快递公司列表</h4>
+            <small class="text-muted">管理快递公司信息</small>
+        </div>
+        {% if can_create %}
+        <div>
+            <a href="{% url 'delivery_pages:express_company_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> 创建快递公司
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 搜索和筛选栏 -->
+    <div class="list-page-filters mb-2">
+        <form method="get" class="d-flex gap-2 align-items-end">
+            <div class="flex-grow-1">
+                <label class="form-label small mb-1">搜索</label>
+                <input type="text" name="search" class="form-control form-control-sm" 
+                       placeholder="快递公司名称、代码、别名、联系电话..." 
+                       value="{{ search_query }}">
+            </div>
+            <div style="width: 150px;">
+                <label class="form-label small mb-1">状态</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>全部</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>启用</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>禁用</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search"></i> 搜索
+                </button>
+                <a href="{% url 'delivery_pages:express_company_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle"></i> 重置
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="list-page-table">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 15%;">快递公司名称</th>
+                        <th style="width: 12%;">代码</th>
+                        <th style="width: 15%;">别名</th>
+                        <th style="width: 12%;">联系电话</th>
+                        <th style="width: 8%;">状态</th>
+                        <th style="width: 8%;">默认</th>
+                        <th style="width: 8%;">排序</th>
+                        <th style="width: 17%;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if companies %}
+                        {% for company in companies %}
+                        <tr>
+                            <td>{{ forloop.counter0|add:companies.start_index }}</td>
+                            <td>
+                                <strong>{{ company.name }}</strong>
+                            </td>
+                            <td>
+                                {% if company.code %}
+                                    <code>{{ company.code }}</code>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if company.alias %}
+                                    <small>{{ company.alias|truncatewords:5 }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if company.contact_phone %}
+                                    {{ company.contact_phone }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if company.is_active %}
+                                    <span class="status-badge status-active">启用</span>
+                                {% else %}
+                                    <span class="status-badge status-inactive">禁用</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if company.is_default %}
+                                    <span class="default-badge">默认</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ company.sort_order }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'delivery_pages:express_company_detail' company.id %}" 
+                                       class="btn btn-outline-info" title="查看详情">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if can_create %}
+                                    <a href="{% url 'delivery_pages:express_company_edit' company.id %}" 
+                                       class="btn btn-outline-primary" title="编辑">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'delivery_pages:express_company_delete' company.id %}" 
+                                       class="btn btn-outline-danger" 
+                                       onclick="return confirm('确定要删除快递公司\"{{ company.name }}\"吗？');" 
+                                       title="删除">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox"></i> 暂无数据
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    {% if companies.has_other_pages %}
+    <nav aria-label="分页导航">
+        <ul class="pagination justify-content-center mb-0">
+            {% if companies.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">首页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ companies.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">上一页</a>
+                </li>
+            {% endif %}
+            
+            {% for num in companies.paginator.page_range %}
+                {% if companies.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > companies.number|add:'-3' and num < companies.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if companies.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ companies.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">下一页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ companies.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">末页</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import RegistrationRequest, Department, Role
+from backend.apps.system_management.models import RegistrationRequest, Department, Role
 
 
 CONSULTING_UNIT_POSITIONS = [

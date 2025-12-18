@@ -29,10 +29,12 @@ class NotificationMessage:
 def send_email_notification(message: NotificationMessage) -> bool:
     if not message.to_emails:
         return False
+    # 强制使用公司对公邮箱作为发件人
+    company_email = getattr(settings, 'COMPANY_EMAIL', 'whkj@vihgroup.com.cn')
     email = EmailMultiAlternatives(
         subject=message.subject,
         body=message.body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=company_email,
         to=list(message.to_emails),
     )
     if message.html_body:

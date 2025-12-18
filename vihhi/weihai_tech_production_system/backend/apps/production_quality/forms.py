@@ -6,7 +6,7 @@ from django import forms
 from django.db.models import Q
 from django.forms import inlineformset_factory
 
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.resource_standard.models import (
     ProfessionalCategory,
     StandardReviewItem,

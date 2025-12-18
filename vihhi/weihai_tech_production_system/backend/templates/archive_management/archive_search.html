@@ -1,0 +1,129 @@
+{% extends "archive_management/base.html" %}
+{% load static %}
+
+{% block title %}档案查询 - 档案管理{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">档案查询</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3>🔍 档案查询</h3>
+            <div>
+                <a href="{% url 'archive_management:project_archive_list' %}" class="btn btn-light btn-sm">返回首页</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- 搜索表单 -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <form method="get" class="d-flex gap-2">
+                        <select name="type" class="form-select" style="max-width: 150px;">
+                            <option value="">全部类型</option>
+                            <option value="project" {% if archive_type == 'project' %}selected{% endif %}>项目档案</option>
+                            <option value="administrative" {% if archive_type == 'administrative' %}selected{% endif %}>行政档案</option>
+                        </select>
+                        <input type="text" name="search" class="form-control" placeholder="搜索档案编号、名称、项目名称..." value="{{ search }}" style="max-width: 400px;">
+                        <button type="submit" class="btn btn-primary">搜索</button>
+                        <a href="{% url 'archive_management:archive_search' %}" class="btn btn-secondary">重置</a>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 项目档案结果 -->
+            {% if archive_type == 'project' or not archive_type %}
+            {% if project_documents %}
+            <div class="mb-4">
+                <h5 class="mb-3">项目档案文档</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>文档编号</th>
+                                <th>文档名称</th>
+                                <th>项目</th>
+                                <th>文档类型</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in project_documents %}
+                            <tr>
+                                <td>{{ doc.document_number }}</td>
+                                <td>{{ doc.document_name }}</td>
+                                <td>{{ doc.project.project_name|default:"-" }}</td>
+                                <td>{{ doc.get_document_type_display }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ doc.status }}">
+                                        {{ doc.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'archive_management:project_document_detail' doc.pk %}" class="btn btn-sm btn-outline-primary">查看</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- 行政档案结果 -->
+            {% if archive_type == 'administrative' or not archive_type %}
+            {% if administrative_archives %}
+            <div class="mb-4">
+                <h5 class="mb-3">行政档案</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>档案编号</th>
+                                <th>档案名称</th>
+                                <th>分类</th>
+                                <th>归档日期</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for archive in administrative_archives %}
+                            <tr>
+                                <td>{{ archive.archive_number }}</td>
+                                <td>{{ archive.archive_name }}</td>
+                                <td>{{ archive.category.name|default:"-" }}</td>
+                                <td>{{ archive.archive_date|date:"Y-m-d" }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ archive.status }}">
+                                        {{ archive.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'archive_management:administrative_archive_detail' archive.pk %}" class="btn btn-sm btn-outline-primary">查看</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- 无结果提示 -->
+            {% if not project_documents and not administrative_archives %}
+            <div class="text-center text-muted py-5">
+                <p>暂无查询结果</p>
+                <p class="small">请尝试使用其他关键词搜索</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

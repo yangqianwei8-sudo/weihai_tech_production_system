@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('customer_success', '0001_initial'),
+        ('customer_management', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('estimated_cost', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True, verbose_name='预估成本')),
                 ('created_time', models.DateTimeField(default=django.utils.timezone.now, verbose_name='创建时间')),
                 ('updated_time', models.DateTimeField(auto_now=True, verbose_name='更新时间')),
-                ('client', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='customer_success.client', verbose_name='客户')),
+                ('client', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='customer_management.client', verbose_name='客户')),
                 ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='created_projects', to=settings.AUTH_USER_MODEL, verbose_name='创建人')),
                 ('project_manager', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='managed_projects', to=settings.AUTH_USER_MODEL, verbose_name='项目经理')),
             ],

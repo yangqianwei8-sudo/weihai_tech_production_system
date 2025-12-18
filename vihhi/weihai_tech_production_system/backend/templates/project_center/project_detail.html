@@ -9,33 +9,34 @@
 <div class="project-detail container-fluid py-4">
     <style>
         :root {
-            --brand-deep: #142F5B;
-            --brand-primary: #1B3F77;
-            --brand-medium: #2D5DA8;
-            --brand-light: #4A7FDB;
-            --brand-soft: #E8F0FD;
-            --brand-surface: #F7FAFF;
-            --brand-accent: #D62828;
-            --brand-accent-soft: #FDE7E7;
-            --text-primary: #1F2937;
-            --text-secondary: #6B7280;
-            --text-tertiary: #9CA3AF;
-            --border-light: #E5E7EB;
-            --success: #27AE60;
-            --warning: #F97316;
-            --danger: #E74C3C;
+            /* 使用common.css中的变量 */
+            --brand-deep: var(--vh-primary);
+            --brand-primary: var(--vh-primary-light);
+            --brand-medium: var(--vh-primary-muted);
+            --brand-light: var(--vh-primary-light);
+            --brand-soft: var(--vh-info-soft);
+            --brand-surface: var(--vh-surface);
+            --brand-accent: var(--vh-accent);
+            --brand-accent-soft: var(--vh-accent-soft);
+            --text-primary: var(--vh-text);
+            --text-secondary: var(--vh-text-muted);
+            --text-tertiary: var(--vh-text-light);
+            --border-light: var(--vh-border-light);
+            --success: var(--vh-success);
+            --warning: var(--vh-warning);
+            --danger: var(--vh-error);
         }
         .project-detail {
             color: var(--text-primary);
         }
         .project-header-card {
             background: linear-gradient(135deg, rgba(20, 47, 91, 0.96) 0%, rgba(27, 63, 119, 0.88) 55%, rgba(214, 40, 40, 0.82) 100%);
-            border-radius: 24px;
-            padding: 32px;
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-xl);
             color: #fff;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(10, 45, 93, 0.25);
+            box-shadow: var(--shadow-xl);
         }
         .project-header-card::before,
         .project-header-card::after {
@@ -606,7 +607,7 @@
                     <h1 class="project-name">{{ project.name }}</h1>
                     <div class="project-badges">
                         <span class="badge">{{ project.project_number }}</span>
-                        <span class="badge">{{ project.get_status_display }}</span>
+                        <span class="status-badge {{ project.status }}">{{ project.get_status_display }}</span>
                         <span class="badge">优先级：{{ project.priority|default:"中" }}</span>
                         {% if project.service_type %}
                         <span class="badge">{{ project.service_type.name }}</span>
@@ -617,28 +618,28 @@
             <div class="project-quick-actions">
                 <button class="btn btn-outline-light btn-sm"><i class="bi bi-star"></i> 关注项目</button>
                 {% if edit_permitted %}
-                <a href="{% url 'project_pages:project_edit' project.id %}" class="btn btn-light btn-sm text-primary fw-semibold"><i class="bi bi-pencil-square"></i> 编辑信息</a>
+                <a href="{% url 'production_pages:project_edit' project.id %}" class="btn btn-light btn-sm text-primary fw-semibold"><i class="bi bi-pencil-square"></i> 编辑信息</a>
                 {% endif %}
                 {% if team_manage_permitted %}
-                <a href="{% url 'project_pages:project_team' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-people"></i> 配置团队</a>
+                <a href="{% url 'production_pages:project_team' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-people"></i> 配置团队</a>
                 {% endif %}
                 {% if quick_links.complete_info %}
-                <a href="{% url 'project_pages:project_complete' project.id %}" class="btn btn-light btn-sm text-primary fw-semibold"><i class="bi bi-clipboard-check"></i> 信息完善</a>
+                <a href="{% url 'production_pages:project_complete' project.id %}" class="btn btn-light btn-sm text-primary fw-semibold"><i class="bi bi-clipboard-check"></i> 信息完善</a>
                 {% endif %}
                 {% if quick_links.design_reply %}
-                <a href="{% url 'project_pages:project_design_reply' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-pencil"></i> 设计方回复</a>
+                <a href="{% url 'production_pages:project_design_reply' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-pencil"></i> 设计方回复</a>
                 {% endif %}
                 {% if quick_links.meeting_log %}
-                <a href="{% url 'project_pages:project_meeting_log' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-people-fill"></i> 三方会议</a>
+                <a href="{% url 'production_pages:project_meeting_log' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-people-fill"></i> 三方会议</a>
                 {% endif %}
                 {% if quick_links.design_upload %}
-                <a href="{% url 'project_pages:project_design_upload' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-upload"></i> 改图上传</a>
+                <a href="{% url 'production_pages:project_design_upload' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-upload"></i> 改图上传</a>
                 {% endif %}
                 {% if quick_links.internal_verify %}
-                <a href="{% url 'project_pages:project_internal_verify' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-check2-circle"></i> 核图确认</a>
+                <a href="{% url 'production_pages:project_internal_verify' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-check2-circle"></i> 核图确认</a>
                 {% endif %}
                 {% if quick_links.client_confirm %}
-                <a href="{% url 'project_pages:project_client_confirm_outcome' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-file-earmark-check"></i> 成果确认</a>
+                <a href="{% url 'production_pages:project_client_confirm_outcome' project.id %}" class="btn btn-outline-light btn-sm"><i class="bi bi-file-earmark-check"></i> 成果确认</a>
                 {% endif %}
                 <button class="btn btn-outline-light btn-sm"><i class="bi bi-download"></i> 导出报告</button>
             </div>
@@ -685,37 +686,37 @@
                             <span class="chevron">›</span>
                         </a>
                         {% if quick_links.design_reply %}
-                        <a class="project-nav-link" href="{% url 'project_pages:project_design_reply' project.id %}">
+                        <a class="project-nav-link" href="{% url 'production_pages:project_design_reply' project.id %}">
                             <span><i class="bi bi-pencil"></i> 设计方回复</span>
                             <span class="chevron">›</span>
                         </a>
                         {% endif %}
                         {% if quick_links.meeting_log %}
-                        <a class="project-nav-link" href="{% url 'project_pages:project_meeting_log' project.id %}">
+                        <a class="project-nav-link" href="{% url 'production_pages:project_meeting_log' project.id %}">
                             <span><i class="bi bi-people-fill"></i> 三方会议</span>
                             <span class="chevron">›</span>
                         </a>
                         {% endif %}
                         {% if quick_links.design_upload %}
-                        <a class="project-nav-link" href="{% url 'project_pages:project_design_upload' project.id %}">
+                        <a class="project-nav-link" href="{% url 'production_pages:project_design_upload' project.id %}">
                             <span><i class="bi bi-upload"></i> 改图上传</span>
                             <span class="chevron">›</span>
                         </a>
                         {% endif %}
                         {% if quick_links.internal_verify %}
-                        <a class="project-nav-link" href="{% url 'project_pages:project_internal_verify' project.id %}">
+                        <a class="project-nav-link" href="{% url 'production_pages:project_internal_verify' project.id %}">
                             <span><i class="bi bi-shield-check"></i> 核图确认</span>
                             <span class="chevron">›</span>
                         </a>
                         {% endif %}
                         {% if quick_links.client_confirm %}
-                        <a class="project-nav-link" href="{% url 'project_pages:project_client_confirm_outcome' project.id %}">
+                        <a class="project-nav-link" href="{% url 'production_pages:project_client_confirm_outcome' project.id %}">
                             <span><i class="bi bi-file-earmark-check"></i> 成果确认</span>
                             <span class="chevron">›</span>
                         </a>
                         {% endif %}
                         {% if quick_links.complete_info %}
-                        <a class="project-nav-link" href="{% url 'project_pages:project_complete' project.id %}">
+                        <a class="project-nav-link" href="{% url 'production_pages:project_complete' project.id %}">
                             <span><i class="bi bi-clipboard-check"></i> 信息完善</span>
                             <span class="chevron">›</span>
                         </a>
@@ -865,7 +866,7 @@
                         <div class="col-12">
                             <div class="alert alert-info border-0 shadow-sm d-flex align-items-center" role="alert">
                                 <i class="bi bi-link-45deg me-2"></i>
-                                <div>合同与回款信息已迁移至商务中心，请前往 <a href="{% url 'business_pages:contract_management' %}" class="alert-link">商务中心 · 合同管理</a> 查看。</div>
+                                <div>合同与回款信息已迁移至商务中心，请前往 <a href="{% url 'business_pages:contract_management_list' %}" class="alert-link">商务中心 · 合同管理</a> 查看。</div>
                             </div>
                         </div>
                         <div class="col-12">
@@ -1063,7 +1064,7 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h6 class="card-title mb-0">启动状态</h6>
-                                        <span class="badge {% if launch.status_code == 'started' %}bg-success{% elif launch.status_code == 'ready_to_start' %}bg-primary{% elif launch.status_code == 'changes_requested' %}bg-warning text-dark{% elif launch.status_code == 'precheck_in_progress' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                                        <span class="status-badge {{ launch.status_code }}">
                                             {{ launch.status_label }}
                                         </span>
                                     </div>
@@ -1453,7 +1454,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body border-top">
-        <form method="post" action="{% url 'project_pages:project_drawing_submit' project.id %}" enctype="multipart/form-data" class="row g-3">
+        <form method="post" action="{% url 'production_pages:project_drawing_submit' project.id %}" enctype="multipart/form-data" class="row g-3">
             {% csrf_token %}
             <div class="col-12">
                 <label class="form-label">提交标题 <span class="text-danger">*</span></label>

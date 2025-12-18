@@ -1,0 +1,118 @@
+{% extends "financial_management/base.html" %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'finance_pages:fund_flow_management' %}">资金流水</a></li>
+<li class="breadcrumb-item active">{{ fund_flow.flow_number }}</li>
+{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/common.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+        <!-- 操作按钮 -->
+    <div class="text-end mb-4">
+        <a href="{% url 'finance_pages:fund_flow_management' %}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+        <a href="{% url 'finance_pages:fund_flow_update' fund_flow.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> 编辑
+        </a>
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="info-card">
+        <h5>基本信息</h5>
+        <div class="info-row">
+            <div class="info-item">
+                <span class="info-label">流水号</span>
+                <span class="info-value"><code>{{ fund_flow.flow_number }}</code></span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">发生日期</span>
+                <span class="info-value">{{ fund_flow.flow_date|date:"Y-m-d" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">流水类型</span>
+                <span class="info-value">
+                    {% if fund_flow.flow_type == 'income' %}
+                    <span class="badge bg-success">收入</span>
+                    {% elif fund_flow.flow_type == 'expense' %}
+                    <span class="badge bg-danger">支出</span>
+                    {% else %}
+                    <span class="badge bg-info">转账</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">账户名称</span>
+                <span class="info-value">{{ fund_flow.account_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">对方单位</span>
+                <span class="info-value">{{ fund_flow.counterparty|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">摘要</span>
+                <span class="info-value">{{ fund_flow.summary }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 金额信息 -->
+    <div class="info-card">
+        <h5>金额信息</h5>
+        <div class="info-row">
+            <div class="info-item" style="grid-column: span 2;">
+                <span class="info-label">金额</span>
+                <span class="info-value" style="font-size: 24px; font-weight: 700; 
+                    {% if fund_flow.flow_type == 'income' %}color: #059669;
+                    {% elif fund_flow.flow_type == 'expense' %}color: #dc2626;
+                    {% else %}color: #142F5B;{% endif %}">
+                    {% if fund_flow.flow_type == 'expense' %}-{% endif %}¥{{ fund_flow.amount|floatformat:2 }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关联信息 -->
+    <div class="info-card">
+        <h5>关联信息</h5>
+        <div class="info-row">
+            {% if fund_flow.project %}
+            <div class="info-item">
+                <span class="info-label">关联项目</span>
+                <span class="info-value">
+                    <a href="/project/{{ fund_flow.project.id }}/" target="_blank">
+                        {{ fund_flow.project.name }}
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+            {% if fund_flow.voucher %}
+            <div class="info-item">
+                <span class="info-label">关联凭证</span>
+                <span class="info-value">
+                    <a href="{% url 'finance_pages:voucher_detail' fund_flow.voucher.id %}">
+                        {{ fund_flow.voucher.voucher_number }}
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <span class="info-label">创建人</span>
+                <span class="info-value">{{ fund_flow.created_by.get_full_name|default:fund_flow.created_by.username|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">创建时间</span>
+                <span class="info-value">{{ fund_flow.created_time|date:"Y-m-d H:i:s" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,470 +1,249 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from backend.apps.system_management.models import PermissionItem, Role
+from backend.apps.system_management.models import Role
+from backend.apps.permission_management.models import PermissionItem
 
 
 PERMISSION_DEFINITIONS = [
-    # 项目中心
-    {"code": "project_center.view_all", "module": "project_center", "action": "view_all", "name": "项目中心-查看全部", "description": "查看所有项目及统计信息"},
-    {"code": "project_center.view_assigned", "module": "project_center", "action": "view_assigned", "name": "项目中心-查看负责项目", "description": "查看本人相关项目数据"},
-    {"code": "project_center.create", "module": "project_center", "action": "create", "name": "项目中心-创建项目", "description": "创建新项目、录入基础信息"},
-    {"code": "project_center.configure_team", "module": "project_center", "action": "configure_team", "name": "项目中心-团队配置", "description": "配置项目团队成员及角色"},
-    {"code": "project_center.monitor", "module": "project_center", "action": "monitor", "name": "项目中心-项目监控", "description": "监控项目进度、风险、里程碑"},
-    {"code": "project_center.archive", "module": "project_center", "action": "archive", "name": "项目中心-项目归档", "description": "归档项目资料、导出报表"},
-    {"code": "project_center.manage_finance", "module": "project_center", "action": "manage_finance", "name": "项目中心-财务管理", "description": "管理项目合同、费用、回款计划"},
-    {"code": "project_center.delete", "module": "project_center", "action": "delete", "name": "项目中心-项目删除终止", "description": "删除或终止项目，需要审批"},
-    {"code": "project_center.approve_stage", "module": "project_center", "action": "approve_stage", "name": "项目中心-阶段审批", "description": "审批项目阶段流转"},
-    {"code": "project_center.export", "module": "project_center", "action": "export", "name": "项目中心-数据导出", "description": "导出项目数据并记录审计"},
+    # 生产管理（原项目中心）
+    {"code": "production_management.view_all", "module": "生产管理", "action": "view_all", "name": "生产管理-查看全部", "description": "查看所有项目及统计信息"},
+    {"code": "production_management.view_assigned", "module": "生产管理", "action": "view_assigned", "name": "生产管理-查看负责项目", "description": "查看本人相关项目数据"},
+    {"code": "production_management.create", "module": "生产管理", "action": "create", "name": "生产管理-创建项目", "description": "创建新项目、录入基础信息"},
+    {"code": "production_management.configure_team", "module": "生产管理", "action": "configure_team", "name": "生产管理-团队配置", "description": "配置项目团队成员及角色"},
+    {"code": "production_management.monitor", "module": "生产管理", "action": "monitor", "name": "生产管理-项目监控", "description": "监控项目进度、风险、里程碑"},
+    {"code": "production_management.archive", "module": "生产管理", "action": "archive", "name": "生产管理-项目归档", "description": "归档项目资料、导出报表"},
+    {"code": "production_management.delete", "module": "生产管理", "action": "delete", "name": "生产管理-项目删除终止", "description": "删除或终止项目，需要审批"},
+    {"code": "production_management.export", "module": "生产管理", "action": "export", "name": "生产管理-数据导出", "description": "导出项目数据并记录审计"},
 
-    # 任务与协作中心
-    {"code": "task_collaboration.manage", "module": "task_collaboration", "action": "manage", "name": "任务协作-流程配置", "description": "配置任务流程、模板、审批节点"},
-    {"code": "task_collaboration.assign", "module": "task_collaboration", "action": "assign", "name": "任务协作-任务分配", "description": "分配任务、调整进度、指派责任人"},
-    {"code": "task_collaboration.execute", "module": "task_collaboration", "action": "execute", "name": "任务协作-任务执行", "description": "领取任务、提交成果、更新进度"},
-    {"code": "task_collaboration.audit_timesheet", "module": "task_collaboration", "action": "audit_timesheet", "name": "任务协作-工时审核", "description": "审核工时填报与任务消耗"},
-    {"code": "task_collaboration.view_all", "module": "task_collaboration", "action": "view_all", "name": "任务协作-查看全部", "description": "查看全局任务和协作动态"},
-    {"code": "task_collaboration.comment", "module": "task_collaboration", "action": "comment", "name": "任务协作-留言沟通", "description": "在任务中留言、协作沟通"},
+    # 任务协作
+    {"code": "task_collaboration.manage", "module": "任务协作", "action": "manage", "name": "任务协作-流程配置", "description": "配置任务流程、模板、审批节点"},
+    {"code": "task_collaboration.assign", "module": "任务协作", "action": "assign", "name": "任务协作-任务分配", "description": "分配任务、调整进度、指派责任人"},
+    {"code": "task_collaboration.execute", "module": "任务协作", "action": "execute", "name": "任务协作-任务执行", "description": "领取任务、提交成果、更新进度"},
+    {"code": "task_collaboration.audit_timesheet", "module": "任务协作", "action": "audit_timesheet", "name": "任务协作-工时审核", "description": "审核工时填报与任务消耗"},
+    {"code": "task_collaboration.view_all", "module": "任务协作", "action": "view_all", "name": "任务协作-查看全部", "description": "查看全局任务和协作动态"},
+    {"code": "task_collaboration.comment", "module": "任务协作", "action": "comment", "name": "任务协作-留言沟通", "description": "在任务中留言、协作沟通"},
 
-    # 生产与质量中心
-    {"code": "production_quality.submit_feedback", "module": "production_quality", "action": "submit_feedback", "name": "生产质量-意见填报", "description": "提交优化意见、质量问题、检查结果"},
-    {"code": "production_quality.professional_review", "module": "production_quality", "action": "professional_review", "name": "生产质量-专业审核", "description": "对专业意见与成果进行审核"},
-    {"code": "production_quality.project_review", "module": "production_quality", "action": "project_review", "name": "生产质量-项目审核", "description": "项目负责人对整体质量成果进行审核"},
-    {"code": "production_quality.generate_report", "module": "production_quality", "action": "generate_report", "name": "生产质量-生成报告", "description": "生成质量报告、优化成果"},
-    {"code": "production_quality.view_statistics", "module": "production_quality", "action": "view_statistics", "name": "生产质量-统计分析", "description": "查看质量统计、指标分析"},
-    {"code": "production_quality.manage_standard", "module": "production_quality", "action": "manage_standard", "name": "生产质量-质量设置", "description": "维护质量标准、检查清单"},
+    # 生产质量
+    {"code": "production_quality.submit_feedback", "module": "生产质量", "action": "submit_feedback", "name": "生产质量-意见填报", "description": "提交优化意见、质量问题、检查结果"},
+    {"code": "production_quality.professional_review", "module": "生产质量", "action": "professional_review", "name": "生产质量-专业审核", "description": "对专业意见与成果进行审核"},
+    {"code": "production_quality.project_review", "module": "生产质量", "action": "project_review", "name": "生产质量-项目审核", "description": "项目负责人对整体质量成果进行审核"},
+    {"code": "production_quality.generate_report", "module": "生产质量", "action": "generate_report", "name": "生产质量-生成报告", "description": "生成质量报告、优化成果"},
+    {"code": "production_quality.view_statistics", "module": "生产质量", "action": "view_statistics", "name": "生产质量-统计分析", "description": "查看质量统计、指标分析"},
+    {"code": "production_quality.manage_standard", "module": "生产质量", "action": "manage_standard", "name": "生产质量-质量设置", "description": "维护质量标准、检查清单"},
 
-    # 交付与客户门户
-    {"code": "delivery_center.view", "module": "delivery_center", "action": "view", "name": "交付中心-访问", "description": "查看交付中心导航与相关功能入口"},
-    {"code": "delivery_portal.view", "module": "delivery_portal", "action": "view", "name": "交付门户-查看", "description": "查看交付成果、客户协同记录"},
-    {"code": "delivery_portal.submit", "module": "delivery_portal", "action": "submit", "name": "交付门户-成果提交", "description": "提交交付成果、上传报告"},
-    {"code": "delivery_portal.approve", "module": "delivery_portal", "action": "approve", "name": "交付门户-成果审核", "description": "审核或确认交付成果"},
-    {"code": "delivery_portal.configure", "module": "delivery_portal", "action": "configure", "name": "交付门户-配置管理", "description": "配置客户门户、访问权限"},
-    {"code": "delivery_portal.sign", "module": "delivery_portal", "action": "sign", "name": "交付门户-电子签章", "description": "完成交付电子签章确认"},
+    # 交付客户
+    {"code": "delivery_center.view", "module": "交付客户", "action": "view", "name": "交付管理-访问", "description": "查看交付管理导航与相关功能入口"},
+    {"code": "delivery_center.view_all", "module": "交付客户", "action": "view_all", "name": "交付管理-查看全部", "description": "查看所有交付记录（不限创建人）"},
+    {"code": "delivery_center.create", "module": "交付客户", "action": "create", "name": "交付管理-创建", "description": "创建交付记录"},
+    {"code": "delivery_center.edit", "module": "交付客户", "action": "edit", "name": "交付管理-编辑", "description": "编辑交付记录"},
+    {"code": "delivery_center.edit_assigned", "module": "交付客户", "action": "edit_assigned", "name": "交付管理-编辑分配", "description": "编辑自己创建的交付记录"},
+    {"code": "delivery_center.view_statistics", "module": "交付客户", "action": "view_statistics", "name": "交付管理-查看统计", "description": "查看交付统计信息"},
+    {"code": "delivery_portal.view", "module": "交付客户", "action": "view", "name": "交付门户-查看", "description": "查看交付成果、客户协同记录"},
+    {"code": "delivery_portal.submit", "module": "交付客户", "action": "submit", "name": "交付门户-成果提交", "description": "提交交付成果、上传报告"},
+    {"code": "delivery_portal.approve", "module": "交付客户", "action": "approve", "name": "交付门户-成果审核", "description": "审核或确认交付成果"},
+    {"code": "delivery_portal.configure", "module": "交付客户", "action": "configure", "name": "交付门户-配置管理", "description": "配置客户门户、访问权限"},
+    {"code": "delivery_portal.sign", "module": "交付客户", "action": "sign", "name": "交付门户-电子签章", "description": "完成交付电子签章确认"},
 
-    # 结算中心
-    {"code": "settlement_center.initiate", "module": "settlement_center", "action": "initiate", "name": "结算中心-发起结算", "description": "发起项目结算流程"},
-    {"code": "settlement_center.manage_output", "module": "settlement_center", "action": "manage_output", "name": "结算中心-产值管理", "description": "管理项目产值与成本"},
-    {"code": "settlement_center.manage_finance", "module": "settlement_center", "action": "manage_finance", "name": "结算中心-财务管理", "description": "处理财务台账、开票、收款"},
-    {"code": "settlement_center.approve", "module": "settlement_center", "action": "approve", "name": "结算中心-审批", "description": "审批结算、确认款项"},
-    {"code": "settlement_center.view_analysis", "module": "settlement_center", "action": "view_analysis", "name": "结算中心-统计分析", "description": "查看结算统计与分析报表"},
-    {"code": "settlement_center.configure", "module": "settlement_center", "action": "configure", "name": "结算中心-财务设置", "description": "维护财务参数、审批流程"},
-    {"code": "settlement_center.view_sensitive", "module": "settlement_center", "action": "view_sensitive", "name": "结算中心-敏感金额查看", "description": "查看敏感财务金额与利润"},
+    # 结算管理
+    {"code": "settlement_management.initiate", "module": "结算管理", "action": "initiate", "name": "结算管理-发起结算", "description": "发起项目结算流程"},
+    {"code": "settlement_management.manage_output", "module": "结算管理", "action": "manage_output", "name": "结算管理-产值管理", "description": "管理项目产值与成本"},
+    {"code": "settlement_management.view", "module": "结算管理", "action": "view", "name": "结算管理-查看", "description": "查看项目结算和合同结算单"},
+    {"code": "settlement_management.settlement.view", "module": "结算管理", "action": "settlement.view", "name": "结算管理-查看结算", "description": "查看项目结算和合同结算单"},
+    {"code": "settlement_management.settlement.create", "module": "结算管理", "action": "settlement.create", "name": "结算管理-创建结算", "description": "创建项目结算和合同结算单"},
+    {"code": "settlement_management.settlement.manage", "module": "结算管理", "action": "settlement.manage", "name": "结算管理-管理结算", "description": "管理结算单，编辑和删除"},
+    {"code": "settlement_management.settlement.finance_review", "module": "结算管理", "action": "settlement.finance_review", "name": "结算管理-财务审核", "description": "财务审核结算单"},
+    {"code": "settlement_management.settlement.manager_approve", "module": "结算管理", "action": "settlement.manager_approve", "name": "结算管理-部门经理审批", "description": "部门经理审批结算单"},
+    {"code": "settlement_management.settlement.gm_approve", "module": "结算管理", "action": "settlement.gm_approve", "name": "结算管理-总经理审批", "description": "总经理审批结算单"},
+    {"code": "settlement_management.settlement.confirm", "module": "结算管理", "action": "settlement.confirm", "name": "结算管理-确认结算", "description": "确认结算单，更新合同结算金额"},
+    {"code": "settlement_management.view_analysis", "module": "结算管理", "action": "view_analysis", "name": "结算管理-统计分析", "description": "查看结算统计与分析报表"},
+    {"code": "settlement_management.payment_record.create", "module": "结算管理", "action": "payment_record.create", "name": "结算管理-创建回款记录", "description": "创建回款记录"},
 
-    # 资源与标准中心
-    {"code": "resource_center.manage_library", "module": "resource_center", "action": "manage_library", "name": "资源中心-标准库维护", "description": "维护企业标准、模板、指标库"},
-    {"code": "resource_center.manage_template", "module": "resource_center", "action": "manage_template", "name": "资源中心-模板管理", "description": "维护模板资源"},
-    {"code": "resource_center.manage_professional", "module": "resource_center", "action": "manage_professional", "name": "资源中心-专业标准维护", "description": "维护各专业标准数据"},
-    {"code": "resource_center.view", "module": "resource_center", "action": "view", "name": "资源中心-查看", "description": "查看知识库与参考资料"},
-    {"code": "resource_center.contribute", "module": "resource_center", "action": "contribute", "name": "资源中心-知识贡献", "description": "提交知识库案例与资料"},
-    {"code": "resource_center.data_maintenance", "module": "resource_center", "action": "data_maintenance", "name": "资源中心-数据维护", "description": "维护数据字典与基础数据"},
+    # 结算管理（结算相关权限，回款管理已独立为 payment_management）
+    {"code": "settlement_center.view", "module": "结算管理", "action": "view", "name": "结算管理-查看", "description": "查看结算和回款管理"},
+    {"code": "settlement_center.payment_record.create", "module": "结算管理", "action": "payment_record.create", "name": "结算管理-创建回款记录", "description": "创建回款记录"},
+    {"code": "settlement_center.payment_record.view", "module": "结算管理", "action": "payment_record.view", "name": "结算管理-查看回款记录", "description": "查看回款记录"},
+    {"code": "settlement_center.payment_record.confirm", "module": "结算管理", "action": "payment_record.confirm", "name": "结算管理-确认回款记录", "description": "确认回款记录"},
+    
+    # 回款管理（独立模块）
+    {"code": "payment_management.view", "module": "回款管理", "action": "view", "name": "回款管理-查看", "description": "查看回款管理模块"},
+    {"code": "payment_management.payment_plan.view", "module": "回款管理", "action": "payment_plan.view", "name": "回款管理-查看回款计划", "description": "查看回款计划列表和详情"},
+    {"code": "payment_management.payment_plan.create", "module": "回款管理", "action": "payment_plan.create", "name": "回款管理-创建回款计划", "description": "创建回款计划"},
+    {"code": "payment_management.payment_plan.manage", "module": "回款管理", "action": "payment_plan.manage", "name": "回款管理-管理回款计划", "description": "编辑和删除回款计划"},
+    {"code": "payment_management.payment_record.view", "module": "回款管理", "action": "payment_record.view", "name": "回款管理-查看回款记录", "description": "查看回款记录列表和详情"},
+    {"code": "payment_management.payment_record.create", "module": "回款管理", "action": "payment_record.create", "name": "回款管理-创建回款记录", "description": "创建回款记录"},
+    {"code": "payment_management.payment_record.confirm", "module": "回款管理", "action": "payment_record.confirm", "name": "回款管理-确认回款记录", "description": "确认回款记录"},
+    {"code": "payment_management.statistics.view", "module": "回款管理", "action": "statistics.view", "name": "回款管理-查看统计", "description": "查看回款统计和分析报表"},
 
-    # 客户成功中心
-    {"code": "customer_success.manage", "module": "customer_success", "action": "manage", "name": "客户成功-客户管理", "description": "管理客户档案、商机跟踪"},
-    {"code": "customer_success.view", "module": "customer_success", "action": "view", "name": "客户成功-查看", "description": "查看客户信息、跟踪记录"},
-    {"code": "customer_success.analyze", "module": "customer_success", "action": "analyze", "name": "客户成功-价值分析", "description": "分析客户价值、满意度"},
-    {"code": "customer_success.opportunity", "module": "customer_success", "action": "opportunity", "name": "客户成功-商机挖掘", "description": "商机识别与跟进"},
+    # 资源标准
+    {"code": "resource_center.manage_library", "module": "资源标准", "action": "manage_library", "name": "资源标准-标准库维护", "description": "维护企业标准、模板、指标库"},
+    {"code": "resource_center.manage_template", "module": "资源标准", "action": "manage_template", "name": "资源标准-模板管理", "description": "维护模板资源"},
+    {"code": "resource_center.manage_professional", "module": "资源标准", "action": "manage_professional", "name": "资源标准-专业标准维护", "description": "维护各专业标准数据"},
+    {"code": "resource_center.view", "module": "资源标准", "action": "view", "name": "资源标准-查看", "description": "查看知识库与参考资料"},
+    {"code": "resource_center.contribute", "module": "资源标准", "action": "contribute", "name": "资源标准-知识贡献", "description": "提交知识库案例与资料"},
+    {"code": "resource_center.data_maintenance", "module": "资源标准", "action": "data_maintenance", "name": "资源标准-数据维护", "description": "维护数据字典与基础数据"},
 
-    # 风控中心
-    {"code": "risk_management.view", "module": "risk_management", "action": "view", "name": "风控中心-查看", "description": "查看风险事件、预警信息"},
-    {"code": "risk_management.manage", "module": "risk_management", "action": "manage", "name": "风控中心-处理", "description": "处理风险事件、制定方案"},
-    {"code": "risk_management.analyze", "module": "risk_management", "action": "analyze", "name": "风控中心-风险分析", "description": "分析风险趋势、生成报告"},
-    {"code": "risk_management.configure", "module": "risk_management", "action": "configure", "name": "风控中心-配置", "description": "维护风险规则、预警设置"},
+    # 客户管理（按《客户管理详细设计方案 v1.12》实现）
+    # 客户信息管理
+    {"code": "customer_management.client.view_assigned", "module": "客户管理", "action": "client.view_assigned", "name": "客户信息-查看本人负责", "description": "查看本人负责的客户"},
+    {"code": "customer_management.client.view_department", "module": "客户管理", "action": "client.view_department", "name": "客户信息-查看本部门", "description": "查看本部门负责的客户"},
+    {"code": "customer_management.client.view_all", "module": "客户管理", "action": "client.view_all", "name": "客户信息-查看全部", "description": "查看所有客户（不限负责人）"},
+    {"code": "customer_management.client.view", "module": "客户管理", "action": "client.view", "name": "客户信息-查看", "description": "查看客户信息（根据权限自动分级：本人/本部门/全部）"},
+    {"code": "customer_management.client.create", "module": "客户管理", "action": "client.create", "name": "客户信息-创建", "description": "创建新客户"},
+    {"code": "customer_management.client.edit", "module": "客户管理", "action": "client.edit", "name": "客户信息-编辑", "description": "编辑客户信息"},
+    {"code": "customer_management.client.delete", "module": "客户管理", "action": "client.delete", "name": "客户信息-删除", "description": "删除客户"},
+    {"code": "customer_management.client.export", "module": "客户管理", "action": "client.export", "name": "客户信息-导出", "description": "导出客户数据"},
+    {"code": "customer_management.client.approve", "module": "客户管理", "action": "client.approve", "name": "客户信息-审批", "description": "审批客户创建/修改申请"},
+    
+    # 客户人员管理
+    {"code": "customer_management.contact.view", "module": "客户管理", "action": "contact.view", "name": "客户人员-查看", "description": "查看客户联系人信息"},
+    {"code": "customer_management.contact.create", "module": "客户管理", "action": "contact.create", "name": "客户人员-创建", "description": "创建客户联系人"},
+    {"code": "customer_management.contact.edit", "module": "客户管理", "action": "contact.edit", "name": "客户人员-编辑", "description": "编辑客户联系人信息"},
+    {"code": "customer_management.contact.delete", "module": "客户管理", "action": "contact.delete", "name": "客户人员-删除", "description": "删除客户联系人"},
+    
+    # 客户关系管理
+    {"code": "customer_management.relationship.view", "module": "客户管理", "action": "relationship.view", "name": "客户关系-查看", "description": "查看跟进与拜访记录"},
+    {"code": "customer_management.relationship.create", "module": "客户管理", "action": "relationship.create", "name": "客户关系-创建", "description": "创建跟进与拜访记录"},
+    {"code": "customer_management.relationship.edit", "module": "客户管理", "action": "relationship.edit", "name": "客户关系-编辑", "description": "编辑跟进与拜访记录"},
+    {"code": "customer_management.relationship.delete", "module": "客户管理", "action": "relationship.delete", "name": "客户关系-删除", "description": "删除跟进与拜访记录"},
+    {"code": "customer_management.relationship.upgrade", "module": "客户管理", "action": "relationship.upgrade", "name": "客户关系-关系升级", "description": "管理客户关系升级"},
+    
+    # 客户公海
+    {"code": "customer_management.public_sea.view", "module": "客户管理", "action": "public_sea.view", "name": "客户公海-查看", "description": "查看客户公海列表"},
+    {"code": "customer_management.public_sea.claim", "module": "客户管理", "action": "public_sea.claim", "name": "客户公海-认领", "description": "认领公海客户"},
+    
+    # 客户分析
+    {"code": "customer_management.analysis.view", "module": "客户管理", "action": "analysis.view", "name": "客户分析-查看", "description": "查看客户价值分析、满意度分析"},
+    
+    
+    # 商机管理
+    {"code": "customer_management.opportunity", "module": "商机管理", "action": "opportunity", "name": "商机管理-商机挖掘", "description": "商机识别与跟进"},
+    {"code": "customer_management.opportunity.view", "module": "商机管理", "action": "opportunity.view", "name": "商机管理-查看", "description": "查看商机列表和详情"},
+    {"code": "customer_management.opportunity.view_all", "module": "商机管理", "action": "opportunity.view_all", "name": "商机管理-查看全部", "description": "查看所有商机（不限负责商务）"},
+    {"code": "customer_management.opportunity.create", "module": "商机管理", "action": "opportunity.create", "name": "商机管理-创建", "description": "创建新商机"},
+    {"code": "customer_management.opportunity.manage", "module": "商机管理", "action": "opportunity.manage", "name": "商机管理-管理", "description": "编辑和删除商机"},
+    {"code": "customer_management.opportunity.approve", "module": "商机管理", "action": "opportunity.approve", "name": "商机管理-审批", "description": "审批商机报价"},
+    {"code": "customer_management.quotation.view", "module": "商机管理", "action": "quotation.view", "name": "报价管理-查看", "description": "查看报价记录"},
+    {"code": "customer_management.quotation.create", "module": "商机管理", "action": "quotation.create", "name": "报价管理-创建", "description": "创建报价记录"},
+    {"code": "customer_management.quotation.manage", "module": "商机管理", "action": "quotation.manage", "name": "报价管理-管理", "description": "管理报价记录"},
+    
+    # 合同管理
+    {"code": "customer_management.contract.view", "module": "合同管理", "action": "contract.view", "name": "合同管理-查看", "description": "查看合同信息、合同列表"},
+    {"code": "customer_management.contract.create", "module": "合同管理", "action": "contract.create", "name": "合同管理-创建", "description": "创建合同"},
+    {"code": "customer_management.contract.manage", "module": "合同管理", "action": "contract.manage", "name": "合同管理-管理", "description": "编辑和删除合同"},
+
+    # 风险管理
+    {"code": "risk_management.view", "module": "风险管理", "action": "view", "name": "风控中心-查看", "description": "查看风险事件、预警信息"},
+    {"code": "risk_management.manage", "module": "风险管理", "action": "manage", "name": "风控中心-处理", "description": "处理风险事件、制定方案"},
+    {"code": "risk_management.analyze", "module": "风险管理", "action": "analyze", "name": "风控中心-风险分析", "description": "分析风险趋势、生成报告"},
+    {"code": "risk_management.configure", "module": "风险管理", "action": "configure", "name": "风控中心-配置", "description": "维护风险规则、预警设置"},
 
     # 系统管理
-    {"code": "system_management.manage_users", "module": "system_management", "action": "manage_users", "name": "系统管理-用户管理", "description": "管理用户账号、角色、组织"},
-    {"code": "system_management.manage_settings", "module": "system_management", "action": "manage_settings", "name": "系统管理-配置管理", "description": "维护系统配置、参数设置"},
-    {"code": "system_management.view_settings", "module": "system_management", "action": "view_settings", "name": "系统管理-查看设置", "description": "查看系统配置、参数"},
-    {"code": "system_management.audit", "module": "system_management", "action": "audit", "name": "系统管理-权限审计", "description": "执行权限审计、操作日志"},
-    {"code": "system_management.backup", "module": "system_management", "action": "backup", "name": "系统管理-数据备份", "description": "执行数据备份与恢复"},
+    {"code": "system_management.manage_users", "module": "系统管理", "action": "manage_users", "name": "系统管理-用户管理", "description": "管理用户账号、角色、组织"},
+    {"code": "system_management.manage_settings", "module": "系统管理", "action": "manage_settings", "name": "系统管理-配置管理", "description": "维护系统配置、参数设置"},
+    {"code": "system_management.view_settings", "module": "系统管理", "action": "view_settings", "name": "系统管理-查看设置", "description": "查看系统配置、参数"},
+    {"code": "system_management.audit", "module": "系统管理", "action": "audit", "name": "系统管理-权限审计", "description": "执行权限审计、操作日志"},
+    {"code": "system_management.backup", "module": "系统管理", "action": "backup", "name": "系统管理-数据备份", "description": "执行数据备份与恢复"},
+
+    # 人事管理
+    {"code": "personnel_management.view", "module": "人事管理", "action": "view", "name": "人事管理-查看", "description": "查看人事管理模块"},
+    {"code": "personnel_management.manage", "module": "人事管理", "action": "manage", "name": "人事管理-管理", "description": "管理人事管理模块"},
+    {"code": "personnel_management.employee.view", "module": "人事管理", "action": "employee.view", "name": "员工档案-查看", "description": "查看员工档案信息"},
+    {"code": "personnel_management.employee.create", "module": "人事管理", "action": "employee.create", "name": "员工档案-创建", "description": "创建员工档案"},
+    {"code": "personnel_management.employee.manage", "module": "人事管理", "action": "employee.manage", "name": "员工档案-管理", "description": "管理员工档案信息"},
+    {"code": "personnel_management.attendance.view", "module": "人事管理", "action": "attendance.view", "name": "考勤-查看", "description": "查看考勤记录"},
+    {"code": "personnel_management.attendance.manage", "module": "人事管理", "action": "attendance.manage", "name": "考勤-管理", "description": "管理考勤记录"},
+    {"code": "personnel_management.leave.view", "module": "人事管理", "action": "leave.view", "name": "请假-查看", "description": "查看请假申请"},
+    {"code": "personnel_management.leave.apply", "module": "人事管理", "action": "leave.apply", "name": "请假-申请", "description": "提交请假申请"},
+    {"code": "personnel_management.leave.approve", "module": "人事管理", "action": "leave.approve", "name": "请假-审批", "description": "审批请假申请"},
+    {"code": "personnel_management.training.view", "module": "人事管理", "action": "training.view", "name": "培训-查看", "description": "查看培训记录"},
+    {"code": "personnel_management.training.create", "module": "人事管理", "action": "training.create", "name": "培训-创建", "description": "创建培训记录"},
+    {"code": "personnel_management.training.manage", "module": "人事管理", "action": "training.manage", "name": "培训-管理", "description": "管理培训记录"},
+    {"code": "personnel_management.performance.view", "module": "人事管理", "action": "performance.view", "name": "绩效-查看", "description": "查看绩效考核"},
+    {"code": "personnel_management.performance.create", "module": "人事管理", "action": "performance.create", "name": "绩效-创建", "description": "创建绩效考核"},
+    {"code": "personnel_management.performance.review", "module": "人事管理", "action": "performance.review", "name": "绩效-评价", "description": "评价绩效考核"},
+    {"code": "personnel_management.salary.view", "module": "人事管理", "action": "salary.view", "name": "薪资-查看", "description": "查看薪资记录"},
+    {"code": "personnel_management.salary.manage", "module": "人事管理", "action": "salary.manage", "name": "薪资-管理", "description": "管理薪资记录"},
+    {"code": "personnel_management.contract.view", "module": "人事管理", "action": "contract.view", "name": "合同-查看", "description": "查看劳动合同"},
+    {"code": "personnel_management.contract.create", "module": "人事管理", "action": "contract.create", "name": "合同-创建", "description": "创建劳动合同"},
+    {"code": "personnel_management.contract.manage", "module": "人事管理", "action": "contract.manage", "name": "合同-管理", "description": "管理劳动合同"},
+    
+    # 档案管理
+    {"code": "archive_management.view", "module": "档案管理", "action": "view", "name": "档案管理-查看", "description": "查看档案管理模块"},
+    {"code": "archive_management.archive.view", "module": "档案管理", "action": "archive.view", "name": "档案管理-查看档案", "description": "查看档案列表和详情"},
+    {"code": "archive_management.archive.create", "module": "档案管理", "action": "archive.create", "name": "档案管理-创建档案", "description": "创建档案"},
+    {"code": "archive_management.archive.manage", "module": "档案管理", "action": "archive.manage", "name": "档案管理-管理档案", "description": "编辑和删除档案"},
+    {"code": "archive_management.borrow.view", "module": "档案管理", "action": "borrow.view", "name": "档案管理-查看借阅", "description": "查看档案借阅记录"},
+    {"code": "archive_management.borrow.create", "module": "档案管理", "action": "borrow.create", "name": "档案管理-创建借阅", "description": "创建档案借阅申请"},
+    
+    # 计划管理
+    {"code": "plan_management.view", "module": "计划管理", "action": "view", "name": "计划管理-查看", "description": "查看计划管理模块"},
+    {"code": "plan_management.plan.view", "module": "计划管理", "action": "plan.view", "name": "计划管理-查看计划", "description": "查看计划列表和详情"},
+    {"code": "plan_management.plan.create", "module": "计划管理", "action": "plan.create", "name": "计划管理-创建计划", "description": "创建计划"},
+    {"code": "plan_management.plan.manage", "module": "计划管理", "action": "plan.manage", "name": "计划管理-管理计划", "description": "编辑和删除计划"},
+    {"code": "plan_management.goal.view", "module": "计划管理", "action": "goal.view", "name": "计划管理-查看目标", "description": "查看战略目标"},
+    {"code": "plan_management.goal.create", "module": "计划管理", "action": "goal.create", "name": "计划管理-创建目标", "description": "创建战略目标"},
+    
+    # 诉讼管理
+    {"code": "litigation_management.view", "module": "诉讼管理", "action": "view", "name": "诉讼管理-查看", "description": "查看诉讼管理模块"},
+    {"code": "litigation_management.case.view", "module": "诉讼管理", "action": "case.view", "name": "诉讼管理-查看案件", "description": "查看诉讼案件列表和详情"},
+    {"code": "litigation_management.case.create", "module": "诉讼管理", "action": "case.create", "name": "诉讼管理-创建案件", "description": "创建诉讼案件"},
+    {"code": "litigation_management.case.manage", "module": "诉讼管理", "action": "case.manage", "name": "诉讼管理-管理案件", "description": "编辑和删除诉讼案件"},
+    {"code": "litigation_management.expense.view", "module": "诉讼管理", "action": "expense.view", "name": "诉讼管理-查看费用", "description": "查看诉讼费用"},
+    {"code": "litigation_management.expense.create", "module": "诉讼管理", "action": "expense.create", "name": "诉讼管理-创建费用", "description": "创建诉讼费用记录"},
+    
+    # 财务管理
+    {"code": "financial_management.view", "module": "财务管理", "action": "view", "name": "财务管理-查看", "description": "查看财务管理模块"},
+    {"code": "financial_management.account.view", "module": "财务管理", "action": "account.view", "name": "财务管理-查看科目", "description": "查看会计科目"},
+    {"code": "financial_management.account.manage", "module": "财务管理", "action": "account.manage", "name": "财务管理-管理科目", "description": "管理会计科目"},
+    {"code": "financial_management.voucher.view", "module": "财务管理", "action": "voucher.view", "name": "财务管理-查看凭证", "description": "查看记账凭证"},
+    {"code": "financial_management.voucher.create", "module": "财务管理", "action": "voucher.create", "name": "财务管理-创建凭证", "description": "创建记账凭证"},
+    {"code": "financial_management.budget.view", "module": "财务管理", "action": "budget.view", "name": "财务管理-查看预算", "description": "查看预算管理"},
+    {"code": "financial_management.budget.manage", "module": "财务管理", "action": "budget.manage", "name": "财务管理-管理预算", "description": "管理预算"},
+    
+    # 行政管理
+    {"code": "administrative_management.view", "module": "行政管理", "action": "view", "name": "行政管理-查看", "description": "查看行政管理模块"},
+    {"code": "administrative_management.affair.view", "module": "行政管理", "action": "affair.view", "name": "行政管理-查看事务", "description": "查看行政事务列表和详情"},
+    {"code": "administrative_management.affair.create", "module": "行政管理", "action": "affair.create", "name": "行政管理-创建事务", "description": "创建行政事务"},
+    {"code": "administrative_management.supplies.view", "module": "行政管理", "action": "supplies.view", "name": "行政管理-查看用品", "description": "查看办公用品管理"},
+    {"code": "administrative_management.supplies.manage", "module": "行政管理", "action": "supplies.manage", "name": "行政管理-管理用品", "description": "管理办公用品"},
+    {"code": "administrative_management.meeting.view", "module": "行政管理", "action": "meeting.view", "name": "行政管理-查看会议", "description": "查看会议管理"},
+    {"code": "administrative_management.meeting.manage", "module": "行政管理", "action": "meeting.manage", "name": "行政管理-管理会议", "description": "管理会议和会议室"},
 ]
 
 
-ROLE_PERMISSION_MAP = {
-    "system_admin": {
-        "name": "系统管理员",
-        "description": "拥有平台全部功能的管理员角色",
-        "permissions": "__all__",
-    },
-    "general_manager": {
-        "name": "总经理",
-        "description": "公司管理层，查看与管理全局业务",
-        "permissions": "__all__",
-    },
-    "technical_manager": {
-        "name": "技术部经理",
-        "description": "负责技术部业务与生产协作管理",
-        "permissions": [
-            "project_center.view_all",
-            "project_center.create",
-            "project_center.configure_team",
-            "project_center.monitor",
-            "project_center.archive",
-            "project_center.manage_finance",
-            "project_center.approve_stage",
-            "project_center.export",
-            "task_collaboration.manage",
-            "task_collaboration.assign",
-            "task_collaboration.execute",
-            "task_collaboration.audit_timesheet",
-            "task_collaboration.view_all",
-            "task_collaboration.comment",
-            "delivery_center.view",
-            "production_quality.submit_feedback",
-            "production_quality.professional_review",
-            "production_quality.project_review",
-            "production_quality.generate_report",
-            "production_quality.view_statistics",
-            "production_quality.manage_standard",
-            "delivery_portal.view",
-            "delivery_portal.submit",
-            "delivery_portal.approve",
-            "delivery_portal.configure",
-            "delivery_portal.sign",
-            "settlement_center.initiate",
-            "settlement_center.manage_output",
-            "settlement_center.manage_finance",
-            "settlement_center.approve",
-            "settlement_center.view_analysis",
-            "settlement_center.configure",
-            "settlement_center.view_sensitive",
-            "resource_center.manage_library",
-            "resource_center.manage_template",
-            "resource_center.manage_professional",
-            "resource_center.view",
-            "resource_center.contribute",
-            "resource_center.data_maintenance",
-            "customer_success.manage",
-            "customer_success.view",
-            "customer_success.analyze",
-            "customer_success.opportunity",
-            "risk_management.view",
-            "risk_management.manage",
-            "risk_management.analyze",
-            "system_management.view_settings",
-            "system_management.audit",
-        ],
-    },
-    "project_manager": {
-        "name": "项目负责人",
-        "description": "管理所负责项目的全流程",
-        "permissions": [
-            "project_center.view_assigned",
-            "project_center.create",
-            "project_center.configure_team",
-            "project_center.monitor",
-            "project_center.archive",
-            "project_center.manage_finance",
-            "project_center.approve_stage",
-            "task_collaboration.assign",
-            "task_collaboration.execute",
-            "task_collaboration.audit_timesheet",
-            "task_collaboration.comment",
-            "delivery_center.view",
-            "delivery_portal.view",
-            "production_quality.submit_feedback",
-            "production_quality.professional_review",
-            "production_quality.project_review",
-            "production_quality.generate_report",
-            "production_quality.view_statistics",
-            "delivery_portal.submit",
-            "delivery_portal.approve",
-            "delivery_portal.sign",
-            "settlement_center.initiate",
-            "settlement_center.manage_output",
-            "settlement_center.view_analysis",
-            "resource_center.view",
-            "resource_center.contribute",
-            "customer_success.manage",
-            "customer_success.view",
-            "customer_success.analyze",
-            "risk_management.view",
-            "risk_management.manage",
-        ],
-    },
-    "professional_lead": {
-        "name": "专业负责人",
-        "description": "负责专业团队管理与审核",
-        "permissions": [
-            "project_center.view_assigned",
-            "project_center.monitor",
-            "task_collaboration.assign",
-            "task_collaboration.execute",
-            "task_collaboration.comment",
-            "delivery_center.view",
-            "delivery_portal.view",
-            "production_quality.submit_feedback",
-            "production_quality.professional_review",
-            "production_quality.generate_report",
-            "production_quality.view_statistics",
-            "delivery_portal.submit",
-            "delivery_portal.approve",
-            "delivery_portal.sign",
-            "resource_center.view",
-            "resource_center.contribute",
-            "resource_center.manage_professional",
-            "customer_success.view",
-            "risk_management.view",
-        ],
-    },
-    "professional_engineer": {
-        "name": "专业工程师",
-        "description": "执行任务、提交质量成果",
-        "permissions": [
-            "project_center.view_assigned",
-            "task_collaboration.execute",
-            "task_collaboration.comment",
-            "production_quality.submit_feedback",
-            "delivery_center.view",
-            "delivery_portal.view",
-            "resource_center.view",
-            "resource_center.contribute",
-        ],
-    },
-    "technical_assistant": {
-        "name": "技术助理",
-        "description": "协助项目资料整理与基础运营",
-        "permissions": [
-            "project_center.view_assigned",
-            "task_collaboration.execute",
-            "task_collaboration.comment",
-            "production_quality.submit_feedback",
-            "delivery_center.view",
-            "delivery_portal.view",
-        ],
-    },
-    "business_team": {
-        "name": "商务部经理",
-        "description": "负责商务、结算、客户相关工作",
-        "permissions": [
-            "project_center.view_all",
-            "project_center.create",
-            "project_center.manage_finance",
-            "project_center.monitor",
-            "project_center.export",
-            "task_collaboration.view_all",
-            "task_collaboration.assign",
-            "task_collaboration.comment",
-            "delivery_center.view",
-            "delivery_portal.view",
-            "delivery_portal.configure",
-            "delivery_portal.approve",
-            "delivery_portal.sign",
-            "settlement_center.initiate",
-            "settlement_center.manage_finance",
-            "settlement_center.manage_output",
-            "settlement_center.approve",
-            "settlement_center.view_analysis",
-            "settlement_center.view_sensitive",
-            "customer_success.manage",
-            "customer_success.view",
-            "customer_success.analyze",
-            "customer_success.opportunity",
-            "resource_center.view",
-            "risk_management.view",
-        ],
-    },
-    "business_assistant": {
-        "name": "商务助理",
-        "description": "协助商务信息维护与客户跟进",
-        "permissions": [
-            "project_center.view_assigned",
-            "project_center.manage_finance",
-            "task_collaboration.execute",
-            "task_collaboration.comment",
-            "delivery_center.view",
-            "delivery_portal.view",
-            "settlement_center.manage_finance",
-            "settlement_center.view_analysis",
-            "customer_success.manage",
-            "customer_success.view",
-            "resource_center.view",
-        ],
-    },
-    "cost_team": {
-        "name": "造价审核人",
-        "description": "负责成本、造价审核与管理",
-        "permissions": [
-            "project_center.view_all",
-            "task_collaboration.view_all",
-            "resource_center.manage_professional",
-            "resource_center.view",
-            "production_quality.professional_review",
-            "production_quality.manage_standard",
-            "settlement_center.manage_output",
-            "settlement_center.approve",
-            "settlement_center.view_analysis",
-            "settlement_center.view_sensitive",
-            "risk_management.view",
-        ],
-    },
-    "cost_engineer": {
-        "name": "造价工程师",
-        "description": "负责造价测算与结算准备",
-        "permissions": [
-            "project_center.view_assigned",
-            "task_collaboration.execute",
-            "task_collaboration.comment",
-            "resource_center.manage_professional",
-            "resource_center.view",
-            "production_quality.submit_feedback",
-            "settlement_center.manage_output",
-            "settlement_center.view_analysis",
-            "delivery_center.view",
-            "delivery_portal.view",
-        ],
-    },
-    "admin_office": {
-        "name": "行政主管",
-        "description": "负责行政、人事及基础财务支撑",
-        "permissions": [
-            "project_center.view_all",
-            "settlement_center.manage_finance",
-            "settlement_center.view_analysis",
-            "system_management.manage_users",
-            "system_management.manage_settings",
-            "system_management.view_settings",
-            "system_management.audit",
-            "resource_center.data_maintenance",
-        ],
-    },
-    "finance_supervisor": {
-        "name": "财务主管",
-        "description": "负责财务管理、付款审批和分析",
-        "permissions": [
-            "project_center.view_all",
-            "project_center.manage_finance",
-            "settlement_center.manage_finance",
-            "settlement_center.approve",
-            "settlement_center.view_analysis",
-            "settlement_center.view_sensitive",
-            "settlement_center.configure",
-            "delivery_center.view",
-            "delivery_portal.view",
-            "customer_success.view",
-            "system_management.view_settings",
-        ],
-    },
-    "design_project_lead": {
-        "name": "设计方项目负责人",
-        "description": "外部设计方项目负责人",
-        "permissions": [
-            "project_center.view_assigned",
-            "task_collaboration.assign",
-            "task_collaboration.execute",
-            "task_collaboration.comment",
-            "delivery_center.view",
-            "delivery_portal.submit",
-            "delivery_portal.approve",
-            "delivery_portal.view",
-            "delivery_portal.sign",
-            "customer_success.view",
-        ],
-    },
-    "design_professional_lead": {
-        "name": "设计方专业负责人",
-        "description": "外部设计方专业负责人",
-        "permissions": [
-            "project_center.view_assigned",
-            "task_collaboration.assign",
-            "task_collaboration.execute",
-            "task_collaboration.comment",
-            "delivery_center.view",
-            "delivery_portal.submit",
-            "delivery_portal.view",
-            "delivery_portal.sign",
-        ],
-    },
-    "design_engineer": {
-        "name": "设计方专业工程师",
-        "description": "外部设计方专业工程师",
-        "permissions": [
-            "task_collaboration.execute",
-            "task_collaboration.comment",
-            "delivery_center.view",
-            "delivery_portal.view",
-        ],
-    },
-    "client_project_lead": {
-        "name": "甲方项目负责人",
-        "description": "客户方项目负责人",
-        "permissions": [
-            "project_center.view_assigned",
-            "delivery_center.view",
-            "delivery_portal.approve",
-            "delivery_portal.view",
-            "delivery_portal.sign",
-            "settlement_center.approve",
-            "customer_success.manage",
-            "customer_success.view",
-        ],
-    },
-    "client_professional_lead": {
-        "name": "甲方专业负责人",
-        "description": "客户方专业负责人",
-        "permissions": [
-            "project_center.view_assigned",
-            "delivery_center.view",
-            "delivery_portal.approve",
-            "delivery_portal.view",
-            "delivery_portal.sign",
-            "customer_success.view",
-        ],
-    },
-    "client_engineer": {
-        "name": "甲方专业工程师",
-        "description": "客户方专业工程师",
-        "permissions": [
-            "project_center.view_assigned",
-            "delivery_center.view",
-            "delivery_portal.view",
-            "customer_success.view",
-        ],
-    },
-}
-
-
 class Command(BaseCommand):
-    help = "Seed business permission items and default role assignments"
+    help = "Seed permission items from PERMISSION_DEFINITIONS"
 
-    @transaction.atomic
     def handle(self, *args, **options):
-        self.stdout.write(self.style.MIGRATE_HEADING("Seeding permission items..."))
-        permission_lookup = {}
-        for definition in PERMISSION_DEFINITIONS:
-            item, created = PermissionItem.objects.update_or_create(
-                code=definition["code"],
-                defaults={
-                    "module": definition["module"],
-                    "action": definition["action"],
-                    "name": definition["name"],
-                    "description": definition.get("description", ""),
-                    "is_active": True,
-                },
+        created_count = 0
+        updated_count = 0
+        
+        with transaction.atomic():
+            for perm_def in PERMISSION_DEFINITIONS:
+                perm_item, created = PermissionItem.objects.update_or_create(
+                    code=perm_def['code'],
+                    defaults={
+                        'module': perm_def['module'],
+                        'action': perm_def['action'],
+                        'name': perm_def['name'],
+                        'description': perm_def['description'],
+                        'is_active': perm_def.get('is_active', True),  # 支持 is_active 字段
+                    }
+                )
+                if created:
+                    created_count += 1
+                    self.stdout.write(
+                        self.style.SUCCESS(f'✓ 创建权限: {perm_def["code"]}')
+                    )
+                else:
+                    updated_count += 1
+                    self.stdout.write(
+                        self.style.WARNING(f'↻ 更新权限: {perm_def["code"]}')
+                    )
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'\n完成！创建 {created_count} 个权限，更新 {updated_count} 个权限。'
             )
-            permission_lookup[item.code] = item
-            self.stdout.write(f"  - {'Created' if created else 'Updated'} permission: {item.code}")
-
-        all_permissions = list(permission_lookup.values())
-
-        self.stdout.write(self.style.MIGRATE_HEADING("Seeding roles and assigning permissions..."))
-        for role_code, payload in ROLE_PERMISSION_MAP.items():
-            role, created = Role.objects.update_or_create(
-                code=role_code,
-                defaults={
-                    "name": payload["name"],
-                    "description": payload.get("description", ""),
-                    "is_active": True,
-                },
-            )
-            permissions = payload["permissions"]
-            if permissions == "__all__":
-                role.custom_permissions.set(all_permissions)
-            else:
-                missing = [code for code in permissions if code not in permission_lookup]
-                if missing:
-                    raise ValueError(f"Permission codes not found for role {role_code}: {missing}")
-                role.custom_permissions.set([permission_lookup[code] for code in permissions])
-            role.save()
-            self.stdout.write(f"  - {'Created' if created else 'Updated'} role: {role.name}")
-
-        self.stdout.write(self.style.SUCCESS("Permission seeding completed."))
+        )

@@ -18,17 +18,18 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from backend.apps.project_center.models import Project
-from backend.apps.project_center.views_pages import (
+from backend.apps.production_management.models import Project
+from backend.apps.production_management.views_pages import (
     _has_permission,
     _project_ids_user_can_access,
-    get_user_permission_codes,
 )
 from backend.apps.system_management.models import User
+from backend.apps.system_management.services import get_user_permission_codes
 from backend.apps.resource_standard.models import ProfessionalCategory, StandardReviewItem, ReportTemplate
+from backend.core.views import _permission_granted, HOME_NAV_STRUCTURE, _build_full_top_nav
 
 from .forms import OpinionAttachmentFormSet, OpinionBulkImportForm, OpinionForm
-from .models import (
+from backend.apps.production_quality.models import (
     Opinion,
     OpinionParticipant,
     OpinionReview,
@@ -106,6 +107,108 @@ IMPORT_COLUMNS = [
     ("saving_amount", "节省金额", False),
     ("calculation_note", "计算说明", False),
 ]
+
+
+def _build_production_top_nav(permission_set):
+    """
+    生成生产管理专用的顶部导航菜单 - 已废弃
+    
+    注意：此函数已不再使用，系统现在统一使用 _build_full_top_nav 生成全局系统主菜单。
+    保留此函数仅用于历史参考，可以安全删除。
+    """
+    from django.urls import reverse, NoReverseMatch
+    
+    # 定义生产管理功能模块（从左到右的顺序）
+    production_modules = [
+        {
+            'label': '生产启动',
+            'url_name': 'production_quality_pages:production_startup_list',
+            'permission': None,
+            'icon': '🚀',
+        },
+        {
+            'label': '意见填报',
+            'url_name': 'production_quality_pages:opinion_create',
+            'permission': None,  # 意见填报无需权限
+            'icon': '✍️',
+        },
+        {
+            'label': '草稿管理',
+            'url_name': 'production_quality_pages:opinion_drafts',
+            'permission': None,  # 草稿管理无需权限（只能看自己的）
+            'icon': '📝',
+        },
+        {
+            'label': '质量审核',
+            'url_name': 'production_quality_pages:opinion_review',
+            'permission': 'production_quality.professional_review',
+            'icon': '✅',
+        },
+        {
+            'label': '审核列表',
+            'url_name': 'production_quality_pages:opinion_review_list',
+            'permission': 'production_quality.professional_review',
+            'icon': '📋',
+        },
+        {
+            'label': '意见导入',
+            'url_name': 'production_quality_pages:opinion_import',
+            'permission': None,  # 意见导入无需权限
+            'icon': '📥',
+        },
+        {
+            'label': '报告生成',
+            'url_name': 'production_quality_pages:report_generate',
+            'permission': 'production_quality.generate_report',
+            'icon': '📊',
+        },
+        {
+            'label': '生产统计',
+            'url_name': 'production_quality_pages:production_stats',
+            'permission': 'production_quality.view_statistics',
+            'icon': '📈',
+        },
+    ]
+    
+    # 过滤有权限的模块，直接返回导航项
+    nav_items = []
+    for module in production_modules:
+        if not module.get('permission') or _permission_granted(module['permission'], permission_set):
+            try:
+                url = reverse(module['url_name'])
+            except NoReverseMatch:
+                url = '#'
+            nav_items.append({
+                'label': module['label'],
+                'url': url,
+                'icon': module.get('icon', ''),
+            })
+    
+    return nav_items
+
+
+# 使用统一的顶部导航菜单生成函数
+from backend.core.views import _build_full_top_nav
+
+
+def _context(page_title, page_icon, description, summary_cards=None, sections=None, request=None):
+    """构建页面上下文"""
+    context = {
+        "page_title": page_title,
+        "page_icon": page_icon,
+        "description": description,
+        "summary_cards": summary_cards or [],
+        "sections": sections or [],
+    }
+    
+    if request and request.user.is_authenticated:
+        permission_set = get_user_permission_codes(request.user)
+        # 统一使用全局系统主菜单（与客户管理、财务管理模块保持一致）
+        context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
+    else:
+        context['full_top_nav'] = []
+    
+    return context
 
 ISSUE_CATEGORY_LOOKUP = {}
 for value, label in Opinion.IssueCategory.choices:

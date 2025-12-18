@@ -1,0 +1,282 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}物流跟踪 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item active">物流跟踪</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">🚚 物流跟踪</h2>
+            <p class="text-muted mb-0">跟踪快递物流状态，实时掌握交付进度</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="info-card info-card-info">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">全部快递</div>
+                            <div class="info-value info-value-large">{{ total_count }}</div>
+                        </div>
+                        <div class="text-info" style="font-size: 2rem;">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-warning">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">运输中</div>
+                            <div class="info-value info-value-large">{{ in_transit_count }}</div>
+                        </div>
+                        <div class="text-warning" style="font-size: 2rem;">
+                            <i class="bi bi-truck"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-success">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">已送达</div>
+                            <div class="info-value info-value-large">{{ delivered_count }}</div>
+                        </div>
+                        <div class="text-success" style="font-size: 2rem;">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card info-card-danger">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">失败</div>
+                            <div class="info-value info-value-large">{{ failed_count }}</div>
+                        </div>
+                        <div class="text-danger" style="font-size: 2rem;">
+                            <i class="bi bi-x-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选栏 - 使用样式模板 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">筛选条件</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="get" id="filterForm" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">物流状态</label>
+                    <select name="logistics_status" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="all" {% if logistics_status == 'all' %}selected{% endif %}>全部状态</option>
+                        <option value="in_transit" {% if logistics_status == 'in_transit' %}selected{% endif %}>运输中</option>
+                        <option value="delivered" {% if logistics_status == 'delivered' %}selected{% endif %}>已送达</option>
+                        <option value="failed" {% if logistics_status == 'failed' %}selected{% endif %}>失败</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">搜索</label>
+                    <input type="text" name="search" class="form-control form-control-sm" 
+                           placeholder="交付单号、快递单号、标题、快递公司..." value="{{ search_query }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-search"></i> 搜索
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 物流跟踪列表 - 使用样式模板 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">
+                {% if logistics_status == 'in_transit' %}运输中列表
+                {% elif logistics_status == 'delivered' %}已送达列表
+                {% elif logistics_status == 'failed' %}失败列表
+                {% else %}全部物流跟踪列表
+                {% endif %}
+            </h5>
+            <div class="info-card-actions">
+                <span class="badge bg-primary">共 {{ logistics_deliveries.paginator.count }} 条</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            {% if logistics_deliveries %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>交付单号</th>
+                            <th>交付标题</th>
+                            <th>关联项目</th>
+                            <th>快递公司</th>
+                            <th>快递单号</th>
+                            <th>物流状态</th>
+                            <th>最新位置</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for delivery in logistics_deliveries %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" class="text-decoration-none">
+                                    <strong>{{ delivery.delivery_number }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ delivery.title }}">
+                                    {{ delivery.title }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if delivery.project %}
+                                <a href="#" class="text-decoration-none">
+                                    {{ delivery.project.project_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.express_company %}
+                                    {{ delivery.express_company }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.express_number %}
+                                    <code>{{ delivery.express_number }}</code>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.status == 'in_transit' %}
+                                    <span class="status-badge in_transit">运输中</span>
+                                {% elif delivery.status == 'delivered' %}
+                                    <span class="status-badge delivered">已送达</span>
+                                {% elif delivery.status == 'failed' %}
+                                    <span class="status-badge failed">失败</span>
+                                {% else %}
+                                    <span class="status-badge {{ delivery.status }}">{{ delivery.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with latest_tracking=delivery.tracking_records.last %}
+                                    {% if latest_tracking.location %}
+                                        {{ latest_tracking.location }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with latest_tracking=delivery.tracking_records.last %}
+                                    {% if latest_tracking %}
+                                        {{ latest_tracking.created_at|date:"Y-m-d H:i" }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'delivery_pages:delivery_logistics_detail' delivery.id %}" 
+                                       class="btn btn-outline-primary" title="查看物流详情">
+                                        <i class="bi bi-truck"></i>
+                                    </a>
+                                    <a href="{% url 'delivery_pages:delivery_detail' delivery.id %}" 
+                                       class="btn btn-outline-secondary" title="查看详情">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if logistics_deliveries.has_other_pages %}
+            <nav aria-label="物流跟踪分页">
+                <ul class="pagination justify-content-center">
+                    {% if logistics_deliveries.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?logistics_status={{ logistics_status }}&search={{ search_query }}&page=1">首页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?logistics_status={{ logistics_status }}&search={{ search_query }}&page={{ logistics_deliveries.previous_page_number }}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in logistics_deliveries.paginator.page_range %}
+                        {% if logistics_deliveries.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > logistics_deliveries.number|add:'-3' and num < logistics_deliveries.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?logistics_status={{ logistics_status }}&search={{ search_query }}&page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if logistics_deliveries.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?logistics_status={{ logistics_status }}&search={{ search_query }}&page={{ logistics_deliveries.next_page_number }}">下一页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?logistics_status={{ logistics_status }}&search={{ search_query }}&page={{ logistics_deliveries.paginator.num_pages }}">末页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">暂无物流跟踪记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

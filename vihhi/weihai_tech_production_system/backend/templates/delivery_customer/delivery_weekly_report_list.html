@@ -1,0 +1,229 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}每周快报 - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item active">每周快报</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📰 每周快报</h2>
+            <p class="text-muted mb-0">全过程设计咨询项目的每周快报收发管理</p>
+        </div>
+        <div>
+            <a href="{% url 'delivery_pages:delivery_weekly_report_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 创建每周快报
+            </a>
+            <a href="{% url 'delivery_pages:delivery_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="info-card info-card-info">
+                <div class="info-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="info-label">快报总数</div>
+                            <div class="info-value info-value-large">{{ total_count }}</div>
+                        </div>
+                        <div class="text-info" style="font-size: 2rem;">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选栏 - 使用样式模板 -->
+    <div class="info-card mb-4">
+        <div class="info-card-header">
+            <h5 class="info-card-title">筛选条件</h5>
+        </div>
+        <div class="info-card-body">
+            <form method="get" id="filterForm" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">关联项目</label>
+                    <select name="project_id" class="form-select form-select-sm">
+                        <option value="">全部项目</option>
+                        {% for project in full_process_projects %}
+                        <option value="{{ project.id }}" {% if project_id == project.id|stringformat:"s" %}selected{% endif %}>
+                            {{ project.project_number }} - {{ project.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">周期（第X周）</label>
+                    <input type="text" name="week_number" class="form-control form-control-sm" 
+                           placeholder="如：1、2、3..." value="{{ week_number }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-search"></i> 搜索
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 每周快报列表 - 使用样式模板 -->
+    <div class="info-card">
+        <div class="info-card-header">
+            <h5 class="info-card-title">每周快报列表</h5>
+            <div class="info-card-actions">
+                <span class="badge bg-primary">共 {{ weekly_reports.paginator.count }} 条</span>
+            </div>
+        </div>
+        <div class="info-card-body">
+            {% if weekly_reports %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>交付单号</th>
+                            <th>快报标题</th>
+                            <th>关联项目</th>
+                            <th>周期</th>
+                            <th>交付状态</th>
+                            <th>创建时间</th>
+                            <th>创建人</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in weekly_reports %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'delivery_pages:delivery_detail' report.id %}" class="text-decoration-none">
+                                    <strong>{{ report.delivery_number }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 300px;" title="{{ report.title }}">
+                                    {{ report.title }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if report.project %}
+                                <a href="#" class="text-decoration-none">
+                                    {{ report.project.project_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if '第' in report.title and '周' in report.title %}
+                                    {% with parts=report.title|split:"第" %}
+                                        {% if parts|length > 1 %}
+                                            {% with week_part=parts|last|split:"周" %}
+                                                <span class="badge bg-info">第{{ week_part.0 }}周</span>
+                                            {% endwith %}
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if report.status == 'draft' %}
+                                    <span class="status-badge draft">草稿</span>
+                                {% elif report.status == 'submitted' %}
+                                    <span class="status-badge submitted">已报送</span>
+                                {% elif report.status == 'approved' %}
+                                    <span class="status-badge approved">审核通过</span>
+                                {% elif report.status == 'sent' %}
+                                    <span class="status-badge sent">已发送</span>
+                                {% elif report.status == 'confirmed' %}
+                                    <span class="status-badge confirmed">已确认</span>
+                                {% else %}
+                                    <span class="status-badge {{ report.status }}">{{ report.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ report.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                {% if report.created_by %}
+                                    {{ report.created_by.get_full_name|default:report.created_by.username }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'delivery_pages:delivery_detail' report.id %}" 
+                                       class="btn btn-outline-primary" title="查看详情">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if weekly_reports.has_other_pages %}
+            <nav aria-label="每周快报分页">
+                <ul class="pagination justify-content-center">
+                    {% if weekly_reports.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?project_id={{ project_id }}&week_number={{ week_number }}&page=1">首页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?project_id={{ project_id }}&week_number={{ week_number }}&page={{ weekly_reports.previous_page_number }}">上一页</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in weekly_reports.paginator.page_range %}
+                        {% if weekly_reports.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > weekly_reports.number|add:'-3' and num < weekly_reports.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?project_id={{ project_id }}&week_number={{ week_number }}&page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if weekly_reports.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?project_id={{ project_id }}&week_number={{ week_number }}&page={{ weekly_reports.next_page_number }}">下一页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?project_id={{ project_id }}&week_number={{ week_number }}&page={{ weekly_reports.paginator.num_pages }}">末页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">暂无每周快报记录</p>
+                <a href="{% url 'delivery_pages:delivery_weekly_report_create' %}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle"></i> 创建每周快报
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+

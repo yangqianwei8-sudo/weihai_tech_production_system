@@ -1,0 +1,208 @@
+{% extends "delivery_customer/base.html" %}
+{% load static %}
+
+{% block title %}文件分类维护 - {{ stage_name }} - 维海科技信息化管理平台{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
+<li class="breadcrumb-item"><a href="#">文件分类维护</a></li>
+<li class="breadcrumb-item active">{{ stage_name }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/layouts/list-layout.css' %}">
+<style>
+.list-page-container {
+    padding: 12px !important;
+    gap: 8px !important;
+}
+
+.list-page-header {
+    margin-bottom: 8px !important;
+    padding: 6px 0 !important;
+}
+
+.list-page-filters {
+    margin-bottom: 8px !important;
+    padding: 6px 10px !important;
+}
+
+.table {
+    margin-bottom: 8px;
+}
+
+.table th,
+.table td {
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.status-active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="list-page-container">
+    <!-- 页面标题和操作按钮 -->
+    <div class="list-page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">📂 文件分类维护 - {{ stage_name }}</h4>
+            <small class="text-muted">管理{{ stage_name }}的文件分类</small>
+        </div>
+        {% if can_create %}
+        <div>
+            <a href="{% url 'delivery_pages:file_category_create' stage_code=stage_code %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> 新增分类
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 搜索和筛选栏 -->
+    <div class="list-page-filters mb-2">
+        <form method="get" class="d-flex gap-2 align-items-end">
+            <div class="flex-grow-1">
+                <label class="form-label small mb-1">搜索</label>
+                <input type="text" name="search" class="form-control form-control-sm" 
+                       placeholder="分类名称、代码、描述..." 
+                       value="{{ search_keyword }}">
+            </div>
+            <div style="width: 150px;">
+                <label class="form-label small mb-1">状态</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">全部</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>启用</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>禁用</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search"></i> 搜索
+                </button>
+                <a href="{% url 'delivery_pages:file_category_list' stage_code=stage_code %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle"></i> 重置
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="list-page-table">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 20%;">分类名称</th>
+                        <th style="width: 15%;">分类代码</th>
+                        <th style="width: 30%;">描述</th>
+                        <th style="width: 8%;">排序</th>
+                        <th style="width: 8%;">状态</th>
+                        <th style="width: 10%;">创建时间</th>
+                        <th style="width: 4%;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if categories %}
+                        {% for category in categories %}
+                        <tr>
+                            <td>{{ forloop.counter0|add:categories.start_index }}</td>
+                            <td>
+                                <strong>{{ category.name }}</strong>
+                            </td>
+                            <td>
+                                {% if category.code %}
+                                    <code>{{ category.code }}</code>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if category.description %}
+                                    <small>{{ category.description|truncatewords:10 }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ category.sort_order }}</td>
+                            <td>
+                                {% if category.is_active %}
+                                    <span class="status-badge status-active">启用</span>
+                                {% else %}
+                                    <span class="status-badge status-inactive">禁用</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ category.created_at|date:"Y-m-d H:i" }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" title="编辑" disabled>
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox"></i> 暂无数据
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    {% if categories.has_other_pages %}
+    <div class="d-flex justify-content-center">
+        <nav>
+            <ul class="pagination pagination-sm">
+                {% if categories.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ categories.previous_page_number }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">上一页</a>
+                    </li>
+                {% endif %}
+                
+                {% for num in categories.paginator.page_range %}
+                    {% if categories.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > categories.number|add:'-3' and num < categories.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if categories.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ categories.next_page_number }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">下一页</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

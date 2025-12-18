@@ -68,7 +68,7 @@ class ProjectWorkflowTaskTests(TestCase):
             title='改图上传',
             status='pending',
         )
-        url = reverse('project_pages:project_design_upload', args=[self.project.id])
+        url = reverse('production_pages:project_design_upload', args=[self.project.id])
         self.client.force_login(self.design_lead)
         upload_file = SimpleUploadedFile('rev.dwg', b'filecontent', content_type='application/octet-stream')
         response = self.client.post(url, {'note': '上传改图', 'files': upload_file})
@@ -88,7 +88,7 @@ class ProjectWorkflowTaskTests(TestCase):
             title='核图任务',
             status='pending',
         )
-        url = reverse('project_pages:project_internal_verify', args=[self.project.id])
+        url = reverse('production_pages:project_internal_verify', args=[self.project.id])
         self.client.force_login(self.project_manager)
         response = self.client.post(url, {'result': 'approved', 'note': '一致'})
         self.assertEqual(response.status_code, 302)
@@ -100,7 +100,7 @@ class ProjectWorkflowTaskTests(TestCase):
         )
 
     def test_internal_verify_requests_changes_returns_to_design(self):
-        url = reverse('project_pages:project_internal_verify', args=[self.project.id])
+        url = reverse('production_pages:project_internal_verify', args=[self.project.id])
         self.client.force_login(self.project_manager)
         response = self.client.post(url, {'result': 'changes', 'note': '需要补充'})
         self.assertEqual(response.status_code, 302)
@@ -115,7 +115,7 @@ class ProjectWorkflowTaskTests(TestCase):
             title='成果确认',
             status='pending',
         )
-        url = reverse('project_pages:project_client_confirm_outcome', args=[self.project.id])
+        url = reverse('production_pages:project_client_confirm_outcome', args=[self.project.id])
         self.client.force_login(self.client_leader)
         response = self.client.post(url, {'result': 'accepted', 'comment': '同意'})
         self.assertEqual(response.status_code, 302)
@@ -142,7 +142,7 @@ class ProjectWorkflowTaskTests(TestCase):
         )
 
         self.client.force_login(self.project_manager)
-        meeting_url = reverse('project_pages:project_meeting_log', args=[self.project.id])
+        meeting_url = reverse('production_pages:project_meeting_log', args=[self.project.id])
         response = self.client.post(
             meeting_url,
             {
@@ -170,7 +170,7 @@ class ProjectWorkflowTaskTests(TestCase):
         self.client.logout()
         self.client.force_login(self.design_lead)
         upload_file = SimpleUploadedFile('rev2.dwg', b'filecontent', content_type='application/octet-stream')
-        design_upload_url = reverse('project_pages:project_design_upload', args=[self.project.id])
+        design_upload_url = reverse('production_pages:project_design_upload', args=[self.project.id])
         response = self.client.post(design_upload_url, {'note': '会议后的改图', 'files': upload_file})
         self.assertEqual(response.status_code, 302)
         self.assertFalse(
@@ -183,7 +183,7 @@ class ProjectWorkflowTaskTests(TestCase):
         # 核图通过
         self.client.logout()
         self.client.force_login(self.project_manager)
-        internal_verify_url = reverse('project_pages:project_internal_verify', args=[self.project.id])
+        internal_verify_url = reverse('production_pages:project_internal_verify', args=[self.project.id])
         response = self.client.post(internal_verify_url, {'result': 'approved', 'note': '核图完成'})
         self.assertEqual(response.status_code, 302)
         self.assertFalse(
@@ -196,7 +196,7 @@ class ProjectWorkflowTaskTests(TestCase):
         # 甲方确认通过
         self.client.logout()
         self.client.force_login(self.client_leader)
-        client_confirm_url = reverse('project_pages:project_client_confirm_outcome', args=[self.project.id])
+        client_confirm_url = reverse('production_pages:project_client_confirm_outcome', args=[self.project.id])
         response = self.client.post(client_confirm_url, {'result': 'accepted', 'comment': '同意'})
         self.assertEqual(response.status_code, 302)
         self.assertFalse(
