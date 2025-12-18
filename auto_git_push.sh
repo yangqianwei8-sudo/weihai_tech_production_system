@@ -42,13 +42,32 @@ if [ $? -eq 0 ]; then
     # 推送到远程仓库
     echo -e "${YELLOW}正在推送到远程仓库...${NC}"
     BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    git push origin "$BRANCH"
+    
+    # 如果设置了GITHUB_TOKEN环境变量，使用token进行推送
+    if [ -n "$GITHUB_TOKEN" ]; then
+        REMOTE_URL=$(git remote get-url origin)
+        # 如果URL是HTTPS格式，临时替换为带token的URL
+        if [[ "$REMOTE_URL" == https://* ]]; then
+            REPO_PATH=$(echo "$REMOTE_URL" | sed 's|https://github.com/||')
+            git remote set-url origin "https://${GITHUB_TOKEN}@github.com/${REPO_PATH}"
+            git push origin "$BRANCH"
+            # 恢复原始URL（移除token）
+            git remote set-url origin "$REMOTE_URL"
+        else
+            git push origin "$BRANCH"
+        fi
+    else
+        git push origin "$BRANCH"
+    fi
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ 推送成功${NC}"
         echo -e "${GREEN}=========================================${NC}"
     else
-        echo -e "${RED}✗ 推送失败，请检查网络连接或远程仓库权限${NC}"
+        echo -e "${RED}✗ 推送失败${NC}"
+        echo -e "${YELLOW}提示: 如果使用HTTPS，可以设置GITHUB_TOKEN环境变量:${NC}"
+        echo -e "${YELLOW}  export GITHUB_TOKEN=your_personal_access_token${NC}"
+        echo -e "${YELLOW}或者使用SSH方式配置远程仓库${NC}"
         exit 1
     fi
 else
