@@ -5,7 +5,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:vehicle_booking_list' %}">用车申请</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:vehicle_booking_detail' booking.id %}">{{ booking.booking_number }}</a></li>
-<li class="breadcrumb-item active">车辆调度</li>
+<li class="breadcrumb-item active" aria-current="page">车辆调度</li>
 {% endblock %}
 
 {% block content %}

@@ -6,7 +6,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:incoming_document_list' %}">收文列表</a></li>
-<li class="breadcrumb-item active">{{ document.document_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ document.document_number }}</li>
 {% endblock %}
 
 {% block content %}

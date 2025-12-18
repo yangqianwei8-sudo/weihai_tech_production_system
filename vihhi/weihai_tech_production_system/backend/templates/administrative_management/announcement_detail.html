@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:announcement_management' %}">公告通知</a></li>
-<li class="breadcrumb-item active">{{ announcement.title|truncatewords:5 }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ announcement.title|truncatewords:5 }}</li>
 {% endblock %}
 
 {% block extra_css %}

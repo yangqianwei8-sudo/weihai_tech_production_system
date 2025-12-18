@@ -27,7 +27,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_list' %}">客户列表</a></li>
-<li class="breadcrumb-item active">{{ page_title }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
 
 {% block content %}

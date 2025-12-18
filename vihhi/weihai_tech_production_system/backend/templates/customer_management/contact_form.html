@@ -185,7 +185,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:contact_list' %}">创建联系人信息</a></li>
-<li class="breadcrumb-item active">{% if contact %}编辑{% else %}创建{% endif %}</li>
+<li class="breadcrumb-item active" aria-current="page">{% if contact %}编辑{% else %}创建{% endif %}</li>
 {% endblock %}
 
 {% block content %}

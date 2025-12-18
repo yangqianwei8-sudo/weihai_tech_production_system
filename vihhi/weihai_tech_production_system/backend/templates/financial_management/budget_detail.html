@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:budget_management' %}">预算管理</a></li>
-<li class="breadcrumb-item active">{{ budget.budget_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ budget.budget_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

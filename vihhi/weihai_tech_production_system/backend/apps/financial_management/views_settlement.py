@@ -11,7 +11,7 @@ from .models_settlement import (
     ProjectSettlement, SettlementItem, ServiceFeeRate, ContractSettlement,
     PaymentRecord
 )
-from backend.apps.production_quality.models import Opinion
+# from backend.apps.production_quality.models import Opinion  # 已删除生产质量模块
 from .forms_settlement import ProjectSettlementForm, ContractSettlementForm
 from .services_settlement import get_project_output_value_for_settlement, get_project_output_value_summary
 from backend.apps.production_management.models import Project

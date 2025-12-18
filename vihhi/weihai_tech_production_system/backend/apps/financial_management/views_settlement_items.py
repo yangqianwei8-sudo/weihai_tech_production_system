@@ -127,11 +127,12 @@ def generate_items_from_opinions(request, settlement_id):
     period_start = request.POST.get('period_start')
     period_end = request.POST.get('period_end')
     
-    from backend.apps.production_quality.models import Opinion
-    from .views_pages import _generate_settlement_items_from_opinions
+    # from backend.apps.production_quality.models import Opinion  # 已删除生产质量模块
+    # from .views_pages import _generate_settlement_items_from_opinions  # 已删除生产质量模块
     
-    # 生成明细项
-    count = _generate_settlement_items_from_opinions(settlement, request.user)
+    # 生成明细项（已禁用：生产质量模块已删除）
+    count = 0
+    # count = _generate_settlement_items_from_opinions(settlement, request.user)
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({

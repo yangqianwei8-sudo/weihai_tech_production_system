@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.conf import settings
 
-from backend.apps.production_quality.utils.notifications import (
+from backend.core.utils.notifications import (
     NotificationMessage,
     send_email_notification,
     send_wecom_notification

@@ -154,13 +154,14 @@ def _update_budget_from_fund_flow(fund_flow, is_create=True, old_amount=None):
 from backend.core.views import _build_full_top_nav
 
 
-def _context(page_title, page_icon, description, summary_cards=None, request=None, use_financial_nav=False):
+def _context(page_title, page_icon, description, summary_cards=None, sections=None, request=None, use_financial_nav=False):
     """构建页面上下文"""
     context = {
         "page_title": page_title,
         "page_icon": page_icon,
         "description": description,
         "summary_cards": summary_cards or [],
+        "sections": sections or [],
     }
     
     try:
@@ -496,7 +497,7 @@ def financial_home(request):
     this_month_start = today.replace(day=1)
     
     # 收集统计数据
-    stats_cards = []
+    summary_cards = []
     
     try:
         # 会计科目统计
@@ -505,7 +506,7 @@ def financial_home(request):
                 total_accounts = AccountSubject.objects.filter(is_active=True).count()
                 accounts_by_type = AccountSubject.objects.filter(is_active=True).values('subject_type').annotate(count=Count('id'))
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '会计科目',
                     'icon': '📊',
                     'value': f'{total_accounts}',
@@ -521,7 +522,7 @@ def financial_home(request):
                 pending_vouchers = Voucher.objects.filter(status='submitted').count()
                 this_month_vouchers = Voucher.objects.filter(voucher_date__gte=this_month_start).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '凭证管理',
                     'icon': '📝',
                     'value': f'{pending_vouchers}',
@@ -541,7 +542,7 @@ def financial_home(request):
                     period_month=current_month
                 ).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '账簿管理',
                     'icon': '📖',
                     'value': f'{ledger_entries}',
@@ -559,7 +560,7 @@ def financial_home(request):
                     total=Sum('budget_amount')
                 )['total'] or Decimal('0')
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '预算管理',
                     'icon': '💰',
                     'value': f'{executing_budgets}',
@@ -576,7 +577,7 @@ def financial_home(request):
                 unverified_invoices = Invoice.objects.filter(status='issued').count()
                 this_month_invoices = Invoice.objects.filter(invoice_date__gte=this_month_start).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '发票管理',
                     'icon': '🧾',
                     'value': f'{unverified_invoices}',
@@ -595,7 +596,7 @@ def financial_home(request):
                     flow_type='income'
                 ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '资金流水',
                     'icon': '💳',
                     'value': f'{this_month_flows}',
@@ -611,11 +612,85 @@ def financial_home(request):
         logger = logging.getLogger(__name__)
         logger.exception('获取统计数据失败: %s', str(e))
     
+    # 功能模块区域
+    sections = []
+    
+    # 快捷操作区域
+    quick_actions = []
+    
+    from django.urls import reverse, NoReverseMatch
+    
+    if _permission_granted('financial_management.account.create', permission_codes):
+        try:
+            quick_actions.append({
+                'label': '新增会计科目',
+                'icon': '➕',
+                'description': '添加新的会计科目',
+                'url': reverse('finance_pages:account_subject_create'),
+                'link_label': '新增科目 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if quick_actions:
+        sections.append({
+            'title': '快捷操作',
+            'description': '常用的快速操作入口',
+            'items': quick_actions
+        })
+    
+    # 功能模块区域
+    modules = []
+    
+    if _permission_granted('financial_management.account.view', permission_codes):
+        try:
+            modules.append({
+                'label': '会计科目',
+                'icon': '📊',
+                'description': '管理会计科目体系',
+                'url': reverse('finance_pages:account_subject_management'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if _permission_granted('financial_management.voucher.view', permission_codes):
+        try:
+            modules.append({
+                'label': '凭证管理',
+                'icon': '📝',
+                'description': '管理会计凭证',
+                'url': reverse('finance_pages:voucher_management'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if _permission_granted('financial_management.ledger.view', permission_codes):
+        try:
+            modules.append({
+                'label': '账簿管理',
+                'icon': '📖',
+                'description': '管理会计账簿',
+                'url': reverse('finance_pages:ledger_management'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if modules:
+        sections.append({
+            'title': '功能模块',
+            'description': '财务管理的各个功能模块入口',
+            'items': modules
+        })
+    
     context = _context(
         "财务管理",
         "💵",
         "企业财务管理平台",
-        summary_cards=stats_cards,
+        summary_cards=summary_cards,
+        sections=sections,
         request=request,
         use_financial_nav=True
     )

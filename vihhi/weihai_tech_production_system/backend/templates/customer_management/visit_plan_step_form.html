@@ -68,7 +68,7 @@
 {% if visit_plan %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:visit_plan_detail' visit_plan.id %}">拜访计划详情</a></li>
 {% endif %}
-<li class="breadcrumb-item active">{{ step_title }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ step_title }}</li>
 {% endblock %}
 
 {% block content %}

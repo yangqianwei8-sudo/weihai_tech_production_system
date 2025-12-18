@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:organization_management' %}">组织架构</a></li>
-<li class="breadcrumb-item active">{{ page_title }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
 
 {% block personnel_content %}

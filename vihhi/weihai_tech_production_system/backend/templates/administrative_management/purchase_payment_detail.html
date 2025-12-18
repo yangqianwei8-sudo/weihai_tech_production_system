@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:purchase_payment_list' %}">采购付款</a></li>
-<li class="breadcrumb-item active">{{ payment.payment_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ payment.payment_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

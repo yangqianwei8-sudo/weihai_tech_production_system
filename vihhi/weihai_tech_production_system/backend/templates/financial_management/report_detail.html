@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:report_management' %}">财务报表</a></li>
-<li class="breadcrumb-item active">{{ report.report_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ report.report_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

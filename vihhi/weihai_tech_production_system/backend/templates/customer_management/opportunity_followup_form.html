@@ -16,7 +16,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:opportunity_management' %}">商机管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'business_pages:opportunity_detail' opportunity.id %}">商机详情</a></li>
-<li class="breadcrumb-item active">{% if followup %}编辑跟进记录{% else %}创建跟进记录{% endif %}</li>
+<li class="breadcrumb-item active" aria-current="page">{% if followup %}编辑跟进记录{% else %}创建跟进记录{% endif %}</li>
 {% endblock %}
 
 {% block opportunity_content %}

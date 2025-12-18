@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:fund_flow_management' %}">资金流水</a></li>
-<li class="breadcrumb-item active">{{ fund_flow.flow_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ fund_flow.flow_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

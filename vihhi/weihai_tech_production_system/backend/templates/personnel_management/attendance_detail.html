@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:attendance_management' %}">考勤管理</a></li>
-<li class="breadcrumb-item active">{{ attendance.employee.name }} - {{ attendance.attendance_date }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ attendance.employee.name }} - {{ attendance.attendance_date }}</li>
 {% endblock %}
 
 {% block extra_css %}

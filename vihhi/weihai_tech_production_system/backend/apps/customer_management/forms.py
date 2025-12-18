@@ -1772,7 +1772,8 @@ class ContractNegotiationForm(forms.ModelForm):
             from backend.core.views import get_user_permission_codes, _permission_granted
             permission_set = get_user_permission_codes(user)
             if _permission_granted('production_management.view_all', permission_set):
-                self.fields['project'].queryset = Project.objects.filter(is_active=True).order_by('-created_time')[:100]
+                # Project模型没有is_active字段，直接查询所有项目
+                self.fields['project'].queryset = Project.objects.all().order_by('-created_time')[:100]
             else:
                 self.fields['project'].queryset = Project.objects.none()
         

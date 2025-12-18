@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:employee_movement_management' %}">员工异动管理</a></li>
-<li class="breadcrumb-item active">{{ movement.movement_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ movement.movement_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

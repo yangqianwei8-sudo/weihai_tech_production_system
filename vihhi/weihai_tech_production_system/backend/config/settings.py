@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'backend.apps.customer_management.apps.CustomerManagementConfig',  # 客户管理（从customer_success迁移）
     'backend.apps.resource_standard',
     'backend.apps.task_collaboration',
-    'backend.apps.production_quality.apps.ProductionQualityConfig',
     'backend.apps.delivery_customer',
     'backend.apps.settlement_management.apps.SettlementManagementConfig',  # 结算管理
     'backend.apps.settlement_center.apps.SettlementCenterConfig',  # 结算中心（仍被其他模块引用）

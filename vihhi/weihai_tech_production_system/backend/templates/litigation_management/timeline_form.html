@@ -7,7 +7,7 @@
 <li class="breadcrumb-item"><a href="{% url 'litigation_pages:litigation_home' %}">诉讼管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'litigation_pages:case_detail' case.id %}">案件详情</a></li>
 <li class="breadcrumb-item"><a href="{% url 'litigation_pages:timeline_list' case.id %}">时间节点</a></li>
-<li class="breadcrumb-item active">{% if timeline %}编辑时间节点{% else %}创建时间节点{% endif %}</li>
+<li class="breadcrumb-item active" aria-current="page">{% if timeline %}编辑时间节点{% else %}创建时间节点{% endif %}</li>
 {% endblock %}
 
 {% block content %}

@@ -5,7 +5,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'settlement_pages:project_settlement_list' %}">项目结算管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'settlement_pages:project_settlement_detail' settlement.id %}">{{ settlement.settlement_number }}</a></li>
-<li class="breadcrumb-item active">提交审核</li>
+<li class="breadcrumb-item active" aria-current="page">提交审核</li>
 {% endblock %}
 
 {% block extra_css %}

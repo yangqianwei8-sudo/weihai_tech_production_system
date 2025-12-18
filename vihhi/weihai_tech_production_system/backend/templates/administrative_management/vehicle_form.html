@@ -5,11 +5,11 @@
 {% block breadcrumb_items %}
 {% if is_create %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:vehicle_management' %}">车辆</a></li>
-<li class="breadcrumb-item active">新增</li>
+<li class="breadcrumb-item active" aria-current="page">新增</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:vehicle_management' %}">车辆</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:vehicle_detail' vehicle.id %}">{{ vehicle.plate_number }}</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endif %}
 {% endblock %}
 

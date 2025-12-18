@@ -5,7 +5,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supply_purchase_list' %}">采购管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supply_purchase_detail' purchase.id %}">{{ purchase.purchase_number }}</a></li>
-<li class="breadcrumb-item active">收货确认</li>
+<li class="breadcrumb-item active" aria-current="page">收货确认</li>
 {% endblock %}
 
 {% block extra_css %}

@@ -24,14 +24,6 @@ PERMISSION_DEFINITIONS = [
     {"code": "task_collaboration.view_all", "module": "任务协作", "action": "view_all", "name": "任务协作-查看全部", "description": "查看全局任务和协作动态"},
     {"code": "task_collaboration.comment", "module": "任务协作", "action": "comment", "name": "任务协作-留言沟通", "description": "在任务中留言、协作沟通"},
 
-    # 生产质量
-    {"code": "production_quality.submit_feedback", "module": "生产质量", "action": "submit_feedback", "name": "生产质量-意见填报", "description": "提交优化意见、质量问题、检查结果"},
-    {"code": "production_quality.professional_review", "module": "生产质量", "action": "professional_review", "name": "生产质量-专业审核", "description": "对专业意见与成果进行审核"},
-    {"code": "production_quality.project_review", "module": "生产质量", "action": "project_review", "name": "生产质量-项目审核", "description": "项目负责人对整体质量成果进行审核"},
-    {"code": "production_quality.generate_report", "module": "生产质量", "action": "generate_report", "name": "生产质量-生成报告", "description": "生成质量报告、优化成果"},
-    {"code": "production_quality.view_statistics", "module": "生产质量", "action": "view_statistics", "name": "生产质量-统计分析", "description": "查看质量统计、指标分析"},
-    {"code": "production_quality.manage_standard", "module": "生产质量", "action": "manage_standard", "name": "生产质量-质量设置", "description": "维护质量标准、检查清单"},
-
     # 交付客户
     {"code": "delivery_center.view", "module": "交付客户", "action": "view", "name": "交付管理-访问", "description": "查看交付管理导航与相关功能入口"},
     {"code": "delivery_center.view_all", "module": "交付客户", "action": "view_all", "name": "交付管理-查看全部", "description": "查看所有交付记录（不限创建人）"},

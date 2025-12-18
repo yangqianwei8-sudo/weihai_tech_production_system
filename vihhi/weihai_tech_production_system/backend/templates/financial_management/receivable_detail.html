@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:receivable_management' %}">应收账款</a></li>
-<li class="breadcrumb-item active">{{ receivable.account_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ receivable.account_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

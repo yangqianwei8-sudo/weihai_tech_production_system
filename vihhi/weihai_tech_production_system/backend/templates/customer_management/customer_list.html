@@ -219,7 +219,7 @@
 {% endblock %}
 
 {% block breadcrumb_items %}
-<li class="breadcrumb-item active">{{ page_title }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
 
 {% block content %}
@@ -922,82 +922,12 @@ const URLS = {
     customerEditBase: '{% url "business_pages:customer_edit" 999 %}'.replace('999', ''),
 };
 
-// 筛选条件展开/收起功能
-function setupFilterCollapse() {
-    const toggleBtn = document.getElementById('toggleFilterCollapse');
-    const basicFilters = document.getElementById('basicFilters');
-    const text = document.getElementById('filterCollapseText');
-    const icon = document.getElementById('filterCollapseIcon');
-    
-    if (!toggleBtn || !basicFilters || !text || !icon) {
-        return false;
-    }
-    
-    // 移除可能存在的旧监听器
-    const newToggleBtn = toggleBtn.cloneNode(true);
-    toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
-    
-    newToggleBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const basicFilters = document.getElementById('basicFilters');
-        const advancedFilters = document.getElementById('advancedFilters');
-        const text = document.getElementById('filterCollapseText');
-        const icon = document.getElementById('filterCollapseIcon');
-        
-        if (!basicFilters || !text || !icon) {
-            return;
-        }
-        
-        // 检查当前显示状态
-        const isHidden = basicFilters.style.display === 'none' || 
-                         window.getComputedStyle(basicFilters).display === 'none';
-        
-        if (isHidden) {
-            // 展开筛选条件
-            basicFilters.style.display = '';
-            if (advancedFilters && advancedFilters.dataset.wasVisible === 'true') {
-                advancedFilters.style.display = 'block';
-            }
-            text.textContent = '收起';
-            icon.textContent = '▲';
-        } else {
-            // 收起筛选条件
-            if (advancedFilters && advancedFilters.style.display !== 'none') {
-                advancedFilters.dataset.wasVisible = 'true';
-                advancedFilters.style.display = 'none';
-            }
-            basicFilters.style.display = 'none';
-            text.textContent = '展开';
-            icon.textContent = '▼';
-        }
-    });
-    
-    return true;
-}
 
-// 立即尝试设置（如果DOM已加载）
-if (!setupFilterCollapse()) {
-    // 如果失败，等待DOM加载完成
-    document.addEventListener('DOMContentLoaded', function() {
-        setupFilterCollapse();
-    });
-}
 
-// 全选/取消全选
-document.getElementById('selectAll')?.addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('.row-checkbox');
-    checkboxes.forEach(cb => cb.checked = this.checked);
-    updateSelectedCount();
-});
+document.addEventListener('DOMContentLoaded', function() {
+        
 
-// 行复选框变化
-document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-        updateSelectedCount();
-        updateSelectAllState();
-    });
+);
 });
 
 // 更新选中数量
@@ -2803,6 +2733,79 @@ document.getElementById('pageSizeSelect')?.addEventListener('change', function()
         }
     });
 
+
+// 筛选条件折叠/展开
+(function() {
+    console.log('开始初始化筛选展开功能');
+    const toggleBtn = document.getElementById('toggleFilterCollapse');
+    const filters = document.getElementById('basicFilters');
+    const text = document.getElementById('filterCollapseText');
+    const icon = document.getElementById('filterCollapseIcon');
+    
+    console.log('元素检查:', { toggleBtn, filters, text, icon });
+    
+    if (toggleBtn && filters && text && icon) {
+        toggleBtn.addEventListener('click', function(e) {
+            console.log('筛选展开按钮被点击');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const filters = document.getElementById('basicFilters');
+            const text = document.getElementById('filterCollapseText');
+            const icon = document.getElementById('filterCollapseIcon');
+            
+            if (filters && text && icon) {
+                const isHidden = filters.style.display === 'none' || window.getComputedStyle(filters).display === 'none';
+                console.log('当前状态 - 隐藏:', isHidden);
+                
+                if (isHidden) {
+                    filters.style.display = '';
+                    text.textContent = '收起';
+                    icon.textContent = '▲';
+                    console.log('已展开筛选条件');
+                } else {
+                    filters.style.display = 'none';
+                    text.textContent = '展开';
+                    icon.textContent = '▼';
+                    console.log('已收起筛选条件');
+                }
+            }
+        });
+        console.log('筛选展开事件监听器已绑定');
+    } else {
+        console.warn('筛选展开元素未找到，将在DOMContentLoaded后重试');
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('toggleFilterCollapse');
+            const filters = document.getElementById('basicFilters');
+            const text = document.getElementById('filterCollapseText');
+            const icon = document.getElementById('filterCollapseIcon');
+            
+            if (toggleBtn && filters && text && icon) {
+                toggleBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const isHidden = filters.style.display === 'none' || window.getComputedStyle(filters).display === 'none';
+                    if (isHidden) {
+                        filters.style.display = '';
+                        text.textContent = '收起';
+                        icon.textContent = '▲';
+                    } else {
+                        filters.style.display = 'none';
+                        text.textContent = '展开';
+                        icon.textContent = '▼';
+                    }
+                });
+            }
+        });
+    }
+})();
+
+
+
+
+
+
+
+
 </script>
 
 <!-- 自定义显示列模态框 -->
@@ -2816,7 +2819,11 @@ document.getElementById('pageSizeSelect')?.addEventListener('change', function()
             <div class="modal-body">
                 <!-- 标签页 -->
                 <ul class="nav nav-tabs mb-3" role="tablist">
-                    <li class="nav-item" role="presentation">
+                    <li cla
+
+});
+
+ss="nav-item" role="presentation">
                         <button class="nav-link active" id="field-settings-tab" data-bs-toggle="tab" data-bs-target="#field-settings" type="button" role="tab" aria-controls="field-settings" aria-selected="true">
                             字段设置
                         </button>

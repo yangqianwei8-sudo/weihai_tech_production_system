@@ -9,10 +9,10 @@
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:purchase_payment_list' %}">采购付款</a></li>
 {% endif %}
-<li class="breadcrumb-item active">创建</li>
+<li class="breadcrumb-item active" aria-current="page">创建</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:purchase_payment_list' %}">采购付款</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endif %}
 {% endblock %}
 

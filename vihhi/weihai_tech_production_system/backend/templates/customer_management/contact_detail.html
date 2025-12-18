@@ -9,7 +9,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:contact_list' %}">创建联系人信息</a></li>
-<li class="breadcrumb-item active">{{ contact.name }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ contact.name }}</li>
 {% endblock %}
 
 {% block content %}

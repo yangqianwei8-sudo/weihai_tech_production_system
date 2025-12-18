@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:employee_management' %}">员工档案</a></li>
-<li class="breadcrumb-item active">{% if employee %}{{ employee.name }}{% else %}员工详情{% endif %}</li>
+<li class="breadcrumb-item active" aria-current="page">{% if employee %}{{ employee.name }}{% else %}员工详情{% endif %}</li>
 {% endblock %}
 
 {% block extra_css %}

@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:performance_management' %}">绩效考核</a></li>
-<li class="breadcrumb-item active">{{ performance.performance_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ performance.performance_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

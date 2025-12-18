@@ -43,7 +43,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:opportunity_management' %}">商机管理</a></li>
-<li class="breadcrumb-item active">{% if opportunity %}编辑商机{% else %}创建商机{% endif %}</li>
+<li class="breadcrumb-item active" aria-current="page">{% if opportunity %}编辑商机{% else %}创建商机{% endif %}</li>
 {% endblock %}
 
 {% block opportunity_content %}

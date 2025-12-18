@@ -6,7 +6,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:delivery_list' %}">交付记录</a></li>
-<li class="breadcrumb-item active">{{ delivery.delivery_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ delivery.delivery_number }}</li>
 {% endblock %}
 
 {% block content %}

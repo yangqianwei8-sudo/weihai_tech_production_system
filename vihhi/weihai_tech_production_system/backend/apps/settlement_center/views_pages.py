@@ -13,7 +13,7 @@ from backend.apps.settlement_center.models import (
 from backend.apps.settlement_management.models import (
     ProjectSettlement, SettlementItem, ServiceFeeRate, ContractSettlement
 )
-from backend.apps.production_quality.models import Opinion
+# from backend.apps.production_quality.models import Opinion  # 已删除生产质量模块
 from .forms import ProjectSettlementForm, ContractSettlementForm
 from .services import get_project_output_value_for_settlement, get_project_output_value_summary
 from backend.apps.project_center.models import Project
@@ -540,64 +540,13 @@ def output_value_statistics(request):
 # ==================== 结算管理辅助函数 ====================
 
 def _generate_settlement_items_from_opinions(settlement, user):
-    """从项目的Opinion生成结算明细项"""
-    # 获取项目下所有有节省金额的Opinion
-    opinions = Opinion.objects.filter(
-        project=settlement.project,
-        saving_amount__gt=0  # 只选择有节省金额的意见
-    ).select_related('professional_category')
-    
-    # 排除已经在其他结算单中使用过的Opinion（可选，如果需要避免重复结算）
-    existing_opinion_ids = SettlementItem.objects.filter(
-        settlement__project=settlement.project,
-        settlement__status__in=['submitted', 'client_review', 'client_feedback', 'reconciliation', 'confirmed']
-    ).values_list('opinion_id', flat=True)
-    
-    opinions = opinions.exclude(id__in=existing_opinion_ids)
-    
-    # 按创建时间排序
-    opinions = opinions.order_by('created_at')
-    
-    # 获取当前结算单已存在的明细项数量（用于排序）
-    existing_count = settlement.items.count()
-    
-    # 为每个Opinion创建结算明细项
-    created_count = 0
-    for idx, opinion in enumerate(opinions):
-        # 检查是否已存在（避免重复创建）
-        if SettlementItem.objects.filter(settlement=settlement, opinion=opinion).exists():
-            continue
-        
-        # 获取专业分类名称
-        professional_category_name = opinion.professional_category.name if opinion.professional_category else ''
-        
-        # 获取意见标题（使用推荐建议或问题描述作为标题）
-        if opinion.recommendation:
-            opinion_title = opinion.recommendation[:200]
-        elif opinion.issue_description:
-            opinion_title = opinion.issue_description[:200]
-        else:
-            opinion_title = f"意见 {opinion.opinion_number}"
-        
-        SettlementItem.objects.create(
-            settlement=settlement,
-            opinion=opinion,
-            opinion_number=opinion.opinion_number,
-            opinion_title=opinion_title,
-            professional_category=professional_category_name,
-            location_name=opinion.location_name or '',
-            original_saving_amount=opinion.saving_amount or Decimal('0'),
-            review_status='pending',
-            order=existing_count + idx + 1,
-            created_by=user,
-        )
-        created_count += 1
-    
-    # 保存结算单以触发自动计算节省金额汇总
-    if created_count > 0:
-        settlement.save()
-    
-    return created_count
+    """从项目的Opinion生成结算明细项（已禁用：生产质量模块已删除）"""
+    # 生产质量模块已删除，此功能已禁用
+    # 保留函数定义以避免调用错误，但返回0表示未生成任何明细项
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning('尝试从Opinion生成结算明细项，但生产质量模块已删除')
+    return 0
 
 
 # ==================== 结算管理视图函数 ====================

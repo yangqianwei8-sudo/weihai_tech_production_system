@@ -71,7 +71,6 @@ urlpatterns = [
     path('production/', include(('backend.apps.production_management.urls', 'production'), namespace='production_pages')),  # 生产管理页面
     # path('project/', include(('backend.apps.project_center.urls', 'project'), namespace='project_pages')),  # 已删除：迁移到production_management
     path('resource/', include(('backend.apps.resource_standard.urls', 'resource_standard'), namespace='resource_standard_pages')),
-    path('production/', include(('backend.apps.production_quality.urls', 'production_quality'), namespace='production_quality_pages')),
     path('delivery/', include(('backend.apps.delivery_customer.urls', 'delivery'), namespace='delivery_pages')),
     path('business/', include(('backend.apps.customer_management.urls_pages', 'business'), namespace='business_pages')),  # 客户管理页面
     path('collaboration/', include(('backend.apps.task_collaboration.urls', 'task_collaboration'), namespace='collaboration_pages')),

@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:purchase_contract_list' %}">采购合同</a></li>
-<li class="breadcrumb-item active">{{ contract.contract_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ contract.contract_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

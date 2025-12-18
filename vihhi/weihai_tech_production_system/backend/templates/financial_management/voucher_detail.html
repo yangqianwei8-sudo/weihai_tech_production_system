@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:voucher_management' %}">凭证管理</a></li>
-<li class="breadcrumb-item active">{{ voucher.voucher_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ voucher.voucher_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

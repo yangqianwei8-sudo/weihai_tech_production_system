@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'settlement_pages:output_value_record_list' %}">产值记录</a></li>
-<li class="breadcrumb-item active">{{ project.project_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ project.project_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

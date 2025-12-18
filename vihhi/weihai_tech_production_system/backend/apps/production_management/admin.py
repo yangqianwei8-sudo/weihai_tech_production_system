@@ -381,9 +381,11 @@ class BusinessContractAdmin(AuditAdminMixin, BaseModelAdmin):
             else:
                 badge = 'secondary'
             
+            # 先格式化数值，因为 format_html 不支持格式化代码
+            value_str = f"{value:.2f}"
             return format_html(
-                '<span class="badge badge-{}" style="font-size: 14px; padding: 5px 10px;">{:.2f}</span>',
-                badge, value
+                '<span class="badge badge-{}" style="font-size: 14px; padding: 5px 10px;">{}</span>',
+                badge, value_str
             )
         return format_html('<span class="text-muted">未计算</span>')
     coefficient_display.short_description = '综合调整系数'
@@ -507,6 +509,8 @@ class ComprehensiveAdjustmentCoefficientAdmin(BusinessContractAdmin):
             coefficient_stats['average'] = 0
         
         # 添加统计信息到页面顶部
+        # 先格式化平均系数，因为 format_html 不支持格式化代码
+        avg_coefficient_str = f"{coefficient_stats['average']:.2f}"
         stats_html = format_html(
             '<div style="background: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #007bff;">'
             '<h4 style="margin-top: 0;">综合调整系数统计</h4>'
@@ -514,7 +518,7 @@ class ComprehensiveAdjustmentCoefficientAdmin(BusinessContractAdmin):
             '<div><strong>总合同数：</strong>{}</div>'
             '<div><strong>已计算：</strong><span style="color: #28a745;">{}</span></div>'
             '<div><strong>未计算：</strong><span style="color: #6c757d;">{}</span></div>'
-            '<div><strong>平均系数：</strong><span style="color: #007bff; font-size: 18px; font-weight: bold;">{:.2f}</span></div>'
+            '<div><strong>平均系数：</strong><span style="color: #007bff; font-size: 18px; font-weight: bold;">{}</span></div>'
             '<div><strong>达到上限(2.0)：</strong><span style="color: #dc3545;">{}</span></div>'
             '<div><strong>较高(1.5-2.0)：</strong><span style="color: #ffc107;">{}</span></div>'
             '<div><strong>正常(1.0-1.5)：</strong><span style="color: #28a745;">{}</span></div>'
@@ -524,7 +528,7 @@ class ComprehensiveAdjustmentCoefficientAdmin(BusinessContractAdmin):
             coefficient_stats['total'],
             coefficient_stats['calculated'],
             coefficient_stats['not_calculated'],
-            coefficient_stats['average'],
+            avg_coefficient_str,
             coefficient_stats['max_reached'],
             coefficient_stats['high_range'],
             coefficient_stats['normal_range'],
@@ -554,9 +558,11 @@ class ComprehensiveAdjustmentCoefficientAdmin(BusinessContractAdmin):
                 color = '#6c757d'  # 灰色 - 较低
                 badge = 'secondary'
             
+            # 先格式化数值，因为 format_html 不支持格式化代码
+            value_str = f"{value:.2f}"
             return format_html(
-                '<span class="badge badge-{}" style="font-size: 14px; padding: 5px 10px;">{:.2f}</span>',
-                badge, value
+                '<span class="badge badge-{}" style="font-size: 14px; padding: 5px 10px;">{}</span>',
+                badge, value_str
             )
         return format_html('<span class="text-muted">未计算</span>')
     coefficient_display.short_description = '综合调整系数'

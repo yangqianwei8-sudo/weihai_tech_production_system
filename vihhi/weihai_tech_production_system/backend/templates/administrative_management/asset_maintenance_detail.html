@@ -5,7 +5,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:asset_detail' asset_id=maintenance.asset.id %}">资产详情</a></li>
-<li class="breadcrumb-item active">维护详情</li>
+<li class="breadcrumb-item active" aria-current="page">维护详情</li>
 {% endblock %}
 
 {% block extra_css %}

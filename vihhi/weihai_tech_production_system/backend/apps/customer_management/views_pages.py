@@ -253,8 +253,8 @@ CONTRACT_MANAGEMENT_MENU = [
 # ==================== 商机管理模块左侧菜单结构 =====================
 OPPORTUNITY_MANAGEMENT_MENU = [
     {
-        'id': 'opportunity_filing',
-        'label': '商机备案',
+        'id': 'opportunity_info',
+        'label': '商机信息管理',
         'icon': '📋',
         'permission': 'customer_management.opportunity.view',
         'children': [
@@ -313,6 +313,13 @@ OPPORTUNITY_MANAGEMENT_MENU = [
                 'id': 'bidding_quotation_application',
                 'label': '投标报价申请',
                 'icon': '📋',
+                'url_name': 'business_pages:opportunity_bidding_quotation_application',
+                'permission': 'customer_management.opportunity.view',
+            },
+            {
+                'id': 'bidding_quotation',
+                'label': '投标报价管理',
+                'icon': '📊',
                 'url_name': 'business_pages:opportunity_bidding_quotation',
                 'permission': 'customer_management.opportunity.view',
             },
@@ -422,7 +429,8 @@ def _build_opportunity_management_menu(permission_set, active_id=None):
         children = []
         for child in menu_group.get('children', []):
             # 检查子菜单权限
-            if not _permission_granted(child.get('permission'), permission_set):
+            child_permission = child.get('permission')
+            if child_permission and not _permission_granted(child_permission, permission_set):
                 continue
             
             # 获取URL
@@ -457,7 +465,7 @@ def _build_opportunity_management_menu(permission_set, active_id=None):
             'label': menu_group.get('label'),
             'icon': menu_group.get('icon'),
             'active': group_active,
-            'expanded': group_active,  # 如果有激活项，默认展开（与计划管理格式一致）
+            'expanded': group_active,  # 如果有激活项，默认展开（与客户管理格式一致）
             'children': children,
         })
     
@@ -525,10 +533,22 @@ def _build_contract_management_menu(permission_set, active_id=None):
         # 判断父菜单是否激活（任意子菜单激活则父菜单激活）
         group_active = any(child.get('id') == active_id for child in menu_group.get('children', []))
         
+        # 获取父菜单URL（如果有url_name，则使用第一个子菜单的URL作为父菜单URL）
+        parent_url = '#'
+        if menu_group.get('url_name'):
+            try:
+                parent_url = reverse(menu_group.get('url_name'))
+            except NoReverseMatch:
+                parent_url = '#'
+        elif children:
+            # 如果没有设置url_name，使用第一个子菜单的URL
+            parent_url = children[0].get('url', '#')
+        
         menu.append({
             'id': menu_group.get('id'),
             'label': menu_group.get('label'),
             'icon': menu_group.get('icon'),
+            'url': parent_url,
             'active': group_active,
             'expanded': group_active,  # 如果有激活项，默认展开（与计划管理格式一致）
             'children': children,
@@ -701,10 +721,22 @@ def _build_customer_management_menu(permission_set, active_id=None):
         # 判断父菜单是否激活（任意子菜单激活则父菜单激活）
         group_active = any(child.get('id') == active_id for child in menu_group.get('children', []))
         
+        # 获取父菜单URL（如果有url_name，则使用第一个子菜单的URL作为父菜单URL）
+        parent_url = '#'
+        if menu_group.get('url_name'):
+            try:
+                parent_url = reverse(menu_group.get('url_name'))
+            except NoReverseMatch:
+                parent_url = '#'
+        elif children:
+            # 如果没有设置url_name，使用第一个子菜单的URL
+            parent_url = children[0].get('url', '#')
+        
         menu.append({
             'id': menu_group.get('id'),
             'label': menu_group.get('label'),
             'icon': menu_group.get('icon'),
+            'url': parent_url,
             'active': group_active,
             'expanded': group_active,  # 如果有激活项，默认展开（与计划管理格式一致）
             'children': children,
@@ -732,6 +764,38 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
         
         # 如果是商机管理相关页面，自动生成左侧菜单
         if request.path and '/business/opportunities' in request.path:
+            # 根据路径确定激活的菜单项
+            active_menu_id = None
+            if '/opportunities/evaluation-application' in request.path:
+                active_menu_id = 'evaluation_application'
+            elif '/opportunities/drawing-evaluation' in request.path:
+                active_menu_id = 'drawing_evaluation'
+            elif '/opportunities/tech-meeting' in request.path:
+                active_menu_id = 'tech_meeting'
+            elif '/opportunities/warehouse-list' in request.path or '/opportunities/warehouse-application' in request.path:
+                active_menu_id = 'warehouse_list'
+            elif '/opportunities/bidding-quotation-application' in request.path:
+                active_menu_id = 'bidding_quotation_application'
+            elif '/opportunities/bidding-quotation' in request.path:
+                active_menu_id = 'bidding_quotation'
+            elif '/opportunities/bidding-document-preparation' in request.path:
+                active_menu_id = 'bidding_document_preparation'
+            elif '/opportunities/bidding-document-submission' in request.path:
+                active_menu_id = 'bidding_document_submission'
+            elif '/opportunities/business-negotiation' in request.path:
+                active_menu_id = 'business_negotiation'
+            elif '/opportunities/forecast' in request.path:
+                active_menu_id = 'sales_forecast'
+            elif '/opportunities/win-loss' in request.path:
+                active_menu_id = 'win_loss'
+            elif '/opportunities/bid-bond-payment' in request.path:
+                active_menu_id = 'bid_bond_payment'
+            elif '/opportunities/tender-fee-payment' in request.path:
+                active_menu_id = 'tender_fee_payment'
+            elif '/opportunities/agency-fee-payment' in request.path:
+                active_menu_id = 'tender_agent_fee_payment'
+            elif '/opportunities/' in request.path and '/opportunities/create' not in request.path:
+                active_menu_id = 'opportunity_list'
             context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id=active_menu_id)
         # 如果是业务委托书或合同管理相关页面，生成合同管理菜单
         elif request.path and ('/business/authorization-letters' in request.path or '/business/authorization-letter-templates' in request.path or '/business/contracts' in request.path):
@@ -777,17 +841,371 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
 @login_required
 def customer_management_home(request):
     """客户管理首页"""
-    permission_set = get_user_permission_codes(request.user)
+    import logging
+    logger = logging.getLogger(__name__)
     
-    # 构建上下文
-    context = _context(
-        "客户管理",
-        "👥",
-        "客户管理首页，管理客户信息、联系人、商机等业务数据。",
-        request=request,
-    )
+    try:
+        permission_set = get_user_permission_codes(request.user)
+        user = request.user
+        
+        # 检查是否是系统管理员（超级用户或staff）
+        is_admin = getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False)
+        
+        # 统计数据（需要权限检查）
+        summary_cards = []
+        
+        try:
+            from datetime import datetime, timedelta
+            today = timezone.now().date()
+            yesterday = today - timedelta(days=1)
+            last_week = today - timedelta(days=7)
+            this_month_start = today.replace(day=1)
+            last_30_days_start = today - timedelta(days=30)
+            
+            # 1. 客户总数（管理员或有权限的用户）
+            if is_admin or _permission_granted('customer_management.client.view', permission_set):
+                total_clients = Client.objects.count()
+                
+                # 计算昨日和上周的客户数（用于对比）
+                clients_yesterday = Client.objects.filter(created_time__date__lte=yesterday).count()
+                clients_last_week = Client.objects.filter(created_time__date__lte=last_week).count()
+                
+                # 计算变化趋势
+                change_vs_yesterday = total_clients - clients_yesterday
+                change_vs_last_week = total_clients - clients_last_week
+                
+                hint_parts = []
+                if change_vs_yesterday != 0:
+                    arrow = '↑' if change_vs_yesterday > 0 else '↓'
+                    hint_parts.append(f'较昨日{arrow}{abs(change_vs_yesterday)}')
+                if change_vs_last_week != 0:
+                    arrow = '↑' if change_vs_last_week > 0 else '↓'
+                    hint_parts.append(f'较上周{arrow}{abs(change_vs_last_week)}')
+                hint_text = ' · '.join(hint_parts) if hint_parts else '所有客户数量'
+                
+                try:
+                    summary_cards.append({
+                        'label': '客户总数',
+                        'value': total_clients,
+                        'hint': hint_text,
+                        'url': reverse('business_pages:customer_list'),
+                        'change_vs_yesterday': change_vs_yesterday,
+                        'change_vs_last_week': change_vs_last_week,
+                    })
+                except NoReverseMatch:
+                    summary_cards.append({
+                        'label': '客户总数',
+                        'value': total_clients,
+                        'hint': hint_text,
+                        'change_vs_yesterday': change_vs_yesterday,
+                        'change_vs_last_week': change_vs_last_week,
+                    })
+            
+            # 2. 新增客户数（今日/本月）
+            if is_admin or _permission_granted('customer_management.client.view', permission_set):
+                new_clients_today = Client.objects.filter(created_time__date=today).count()
+                new_clients_month = Client.objects.filter(created_time__gte=this_month_start).count()
+                
+                try:
+                    summary_cards.append({
+                        'label': '新增客户数',
+                        'value': new_clients_month,
+                        'hint': f'今日新增 {new_clients_today} 个',
+                        'url': reverse('business_pages:customer_list'),
+                    })
+                except NoReverseMatch:
+                    summary_cards.append({
+                        'label': '新增客户数',
+                        'value': new_clients_month,
+                        'hint': f'今日新增 {new_clients_today} 个',
+                    })
+            
+            # 3. 联系人总数（最近30天有交互或事务记录的客户数量）
+            if is_admin or _permission_granted('customer_management.client.view', permission_set):
+                # 获取最近30天有交互的客户（通过CustomerRelationship、VisitPlan等）
+                from django.db.models import Q
+                active_client_ids = set()
+                
+                # 通过客户关系记录
+                try:
+                    recent_relationships = CustomerRelationship.objects.filter(
+                        created_time__gte=last_30_days_start
+                    ).values_list('client_id', flat=True).distinct()
+                    active_client_ids.update(recent_relationships)
+                except:
+                    pass
+                
+                # 通过拜访计划
+                try:
+                    recent_visits = VisitPlan.objects.filter(
+                        created_time__gte=last_30_days_start
+                    ).values_list('client_id', flat=True).distinct()
+                    active_client_ids.update(recent_visits)
+                except:
+                    pass
+                
+                # 通过商机
+                try:
+                    recent_opportunities = BusinessOpportunity.objects.filter(
+                        created_time__gte=last_30_days_start
+                    ).values_list('client_id', flat=True).distinct()
+                    active_client_ids.update(recent_opportunities)
+                except:
+                    pass
+                
+                active_clients_count = len(active_client_ids)
+                total_contacts = ClientContact.objects.count()
+                
+                try:
+                    summary_cards.append({
+                        'label': '联系人总数',
+                        'value': active_clients_count,
+                        'hint': f'最近30天有交互记录的客户数量',
+                        'url': reverse('business_pages:customer_list'),
+                    })
+                except NoReverseMatch:
+                    summary_cards.append({
+                        'label': '联系人总数',
+                        'value': active_clients_count,
+                        'hint': f'最近30天有交互记录的客户数量',
+                    })
+            
+            # 4. 新增联系人数（今日/本月）
+            if is_admin or _permission_granted('customer_management.client.view', permission_set):
+                new_contacts_today = ClientContact.objects.filter(created_time__date=today).count()
+                new_contacts_month = ClientContact.objects.filter(created_time__gte=this_month_start).count()
+                
+                try:
+                    summary_cards.append({
+                        'label': '新增联系人数',
+                        'value': new_contacts_month,
+                        'hint': f'今日新增 {new_contacts_today} 个',
+                        'url': reverse('business_pages:contact_list'),
+                    })
+                except NoReverseMatch:
+                    summary_cards.append({
+                        'label': '新增联系人数',
+                        'value': new_contacts_month,
+                        'hint': f'今日新增 {new_contacts_today} 个',
+                    })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception('获取统计数据失败: %s', str(e))
     
-    return render(request, "customer_management/home.html", context)
+        # 功能模块区域
+        sections = []
+        
+        # 快捷操作区域
+        quick_actions = []
+        
+        if is_admin or _permission_granted('customer_management.client.create', permission_set):
+            try:
+                quick_actions.append({
+                    'label': '创建新客户',
+                    'icon': '➕',
+                    'description': '添加新客户信息',
+                    'url': reverse('business_pages:customer_create'),
+                    'link_label': '创建客户 →'
+                })
+            except NoReverseMatch:
+                pass
+        
+        if is_admin or _permission_granted('customer_management.client.create', permission_set):
+            try:
+                quick_actions.append({
+                    'label': '创建联系人',
+                    'icon': '👤',
+                    'description': '添加客户联系人',
+                    'url': reverse('business_pages:contact_create'),
+                    'link_label': '创建联系人 →'
+                })
+            except NoReverseMatch:
+                pass
+        
+        # 新建联系人拜访
+        if is_admin or _permission_granted('customer_management.relationship.create', permission_set):
+            try:
+                quick_actions.append({
+                    'label': '新建联系人拜访',
+                    'icon': '📅',
+                    'description': '创建新的拜访记录',
+                    'url': reverse('business_pages:visit_plan_create'),
+                    'link_label': '创建拜访 →'
+                })
+            except NoReverseMatch:
+                pass
+        
+        # 新建人员关系升级
+        if is_admin or _permission_granted('customer_management.relationship.upgrade', permission_set):
+            try:
+                quick_actions.append({
+                    'label': '新建人员关系升级',
+                    'icon': '⬆️',
+                    'description': '记录人员关系升级',
+                    'url': reverse('business_pages:customer_relationship_upgrade_create'),
+                    'link_label': '创建升级 →'
+                })
+            except NoReverseMatch:
+                pass
+        
+        if quick_actions:
+            sections.append({
+                'title': '快速操作',
+                'description': '常用的快速操作入口',
+                'items': quick_actions
+            })
+        
+        # 功能模块区域
+        modules = []
+        
+        if is_admin or _permission_granted('customer_management.client.view', permission_set):
+            try:
+                modules.append({
+                    'label': '客户信息管理',
+                    'icon': '👥',
+                    'description': '管理客户基本信息，查看客户列表和详情',
+                    'url': reverse('business_pages:customer_list'),
+                    'link_label': '进入模块 →'
+                })
+            except NoReverseMatch:
+                pass
+        
+        if is_admin or _permission_granted('customer_management.client.view', permission_set):
+            try:
+                modules.append({
+                    'label': '人员关系管理',
+                    'icon': '👤',
+                    'description': '管理客户联系人信息，维护人员关系',
+                    'url': reverse('business_pages:contact_list'),
+                    'link_label': '进入模块 →'
+                })
+            except NoReverseMatch:
+                pass
+        
+        if is_admin or _permission_granted('customer_success.opportunity.view', permission_set):
+            try:
+                modules.append({
+                    'label': '商机管理',
+                    'icon': '💼',
+                    'description': '管理商机信息，跟踪商机进展',
+                    'url': reverse('business_pages:opportunity_management'),
+                    'link_label': '进入模块 →'
+                })
+            except NoReverseMatch:
+                pass
+        
+        if is_admin or _permission_granted('customer_management.contract.view', permission_set):
+            try:
+                modules.append({
+                    'label': '合同管理',
+                    'icon': '📄',
+                    'description': '管理合同信息，跟踪合同状态',
+                    'url': reverse('business_pages:contract_management_list'),
+                    'link_label': '进入模块 →'
+                })
+            except NoReverseMatch:
+                pass
+        
+        if modules:
+            sections.append({
+                'title': '功能模块',
+                'description': '客户管理的各个功能模块入口',
+                'items': modules
+            })
+        
+        # 最近动态/提醒
+        recent_notices = []
+        
+        try:
+            from datetime import datetime, timedelta
+            today = timezone.now().date()
+            
+            # 逾期拜访提醒
+            if is_admin or _permission_granted('customer_management.relationship.view', permission_set):
+                try:
+                    # VisitPlan使用plan_date字段，status字段可能有不同的值
+                    overdue_visits = VisitPlan.objects.filter(
+                        plan_date__date__lt=today,
+                        status__in=['planned', 'in_progress']
+                    ).select_related('client').order_by('plan_date')[:5]
+                    
+                    for visit in overdue_visits:
+                        days_overdue = (today - visit.plan_date.date()).days
+                        client_name = visit.client.name if visit.client else "未知客户"
+                        plan_title = visit.plan_title or "拜访计划"
+                        recent_notices.append({
+                            'type': 'warning',
+                            'icon': '⚠️',
+                            'title': f'逾期拜访提醒',
+                            'content': f'{client_name} - {plan_title}，已逾期 {days_overdue} 天',
+                            'date': visit.plan_date.date() if hasattr(visit.plan_date, 'date') else visit.plan_date,
+                        })
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f'获取逾期拜访提醒失败: {str(e)}')
+            
+            # 最新反馈内容摘要（通过CustomerRelationship获取）
+            if is_admin or _permission_granted('customer_management.relationship.view', permission_set):
+                try:
+                    recent_feedbacks = CustomerRelationship.objects.filter(
+                        content__isnull=False
+                    ).exclude(content='').select_related('client', 'created_by', 'followup_person').order_by('-followup_time')[:5]
+                    
+                    for feedback in recent_feedbacks:
+                        feedback_preview = feedback.content[:50] + '...' if len(feedback.content) > 50 else feedback.content
+                        recent_notices.append({
+                            'type': 'info',
+                            'icon': '💬',
+                            'title': f'最新反馈 - {feedback.client.name if feedback.client else "未知客户"}',
+                            'content': feedback_preview,
+                            'date': feedback.followup_time.date() if hasattr(feedback.followup_time, "date") else feedback.followup_time,
+                            'author': feedback.created_by.username if feedback.created_by else '',
+                        })
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f'获取最新反馈失败: {str(e)}')
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception('获取最近动态失败: %s', str(e))
+        
+        # 构建上下文
+        context = _context(
+            "客户管理",
+            "👥",
+            "客户管理首页，管理客户信息、联系人、商机等业务数据。",
+            summary_cards=summary_cards,
+            sections=sections,
+            request=request,
+        )
+        
+        # 添加最近动态
+        context['recent_notices'] = recent_notices[:10]  # 最多显示10条
+        
+        return render(request, "customer_management/home.html", context)
+    except Exception as e:
+        logger.exception('customer_management_home 视图函数执行失败: %s', str(e))
+        # 返回一个简单的错误页面，而不是让Django返回500/503错误
+        messages.error(request, f'页面加载失败: {str(e)}')
+        try:
+            # 尝试返回一个基本的上下文
+            context = _context(
+                "客户管理",
+                "👥",
+                "客户管理首页",
+                summary_cards=[],
+                sections=[],
+                request=request,
+            )
+            return render(request, "customer_management/home.html", context)
+        except Exception as inner_e:
+            logger.exception('渲染错误页面也失败: %s', str(inner_e))
+            # 如果连错误页面都渲染不了，重定向到首页
+            from django.shortcuts import redirect
+            return redirect('home')
 
 
 def _get_opportunities_safely(queryset, permission_set, user):

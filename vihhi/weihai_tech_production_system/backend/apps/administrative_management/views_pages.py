@@ -459,15 +459,130 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
 
 
 @login_required
+@login_required
 def administrative_home(request):
-    """行政管理主页（行政事务列表）"""
+    """行政管理主页"""
+    permission_codes = get_user_permission_codes(request.user)
+    
+    # 统计数据
+    summary_cards = []
+    
     try:
-        # 重定向到行政事务列表
-        return redirect('admin_pages:affair_list')
+        from django.db.models import Count, Q
+        from .models import AdministrativeAffair, OfficeSupply, MeetingRoom, Vehicle
+        
+        # 行政事务统计
+        if _permission_granted('administrative_management.affair.view', permission_codes):
+            total_affairs = AdministrativeAffair.objects.count()
+            pending_affairs = AdministrativeAffair.objects.filter(status='pending').count()
+            summary_cards.append({
+                'label': '行政事务',
+                'value': total_affairs,
+                'hint': f'待处理 {pending_affairs} 项'
+            })
+        
+        # 办公用品统计
+        if _permission_granted('administrative_management.supplies.view', permission_codes):
+            total_supplies = OfficeSupply.objects.filter(is_active=True).count()
+            summary_cards.append({
+                'label': '办公用品',
+                'value': total_supplies,
+                'hint': '在用物品数量'
+            })
+        
+        # 会议室统计
+        if _permission_granted('administrative_management.meeting_room.view', permission_codes):
+            total_rooms = MeetingRoom.objects.filter(is_active=True).count()
+            summary_cards.append({
+                'label': '会议室',
+                'value': total_rooms,
+                'hint': '可用会议室'
+            })
+        
+        # 车辆统计
+        if _permission_granted('administrative_management.vehicle.view', permission_codes):
+            total_vehicles = Vehicle.objects.filter(is_active=True).count()
+            summary_cards.append({
+                'label': '车辆',
+                'value': total_vehicles,
+                'hint': '在用车辆'
+            })
     except Exception as e:
-        logger.exception('行政管理主页重定向失败: %s', str(e))
-        # 如果重定向失败，直接调用 affair_list 视图
-        return affair_list(request)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('获取统计数据失败: %s', str(e))
+    
+    # 功能模块区域
+    sections = []
+    
+    # 快捷操作区域
+    quick_actions = []
+    
+    from django.urls import reverse, NoReverseMatch
+    
+    if _permission_granted('administrative_management.affair.create', permission_codes):
+        try:
+            quick_actions.append({
+                'label': '创建事务',
+                'icon': '➕',
+                'description': '创建新的行政事务',
+                'url': reverse('admin_pages:affair_create'),
+                'link_label': '创建事务 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if quick_actions:
+        sections.append({
+            'title': '快捷操作',
+            'description': '常用的快速操作入口',
+            'items': quick_actions
+        })
+    
+    # 功能模块区域
+    modules = []
+    
+    if _permission_granted('administrative_management.affair.view', permission_codes):
+        try:
+            modules.append({
+                'label': '行政事务',
+                'icon': '📋',
+                'description': '管理日常行政事务',
+                'url': reverse('admin_pages:affair_list'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if _permission_granted('administrative_management.supplies.view', permission_codes):
+        try:
+            modules.append({
+                'label': '办公用品',
+                'icon': '📦',
+                'description': '管理办公用品库存',
+                'url': reverse('admin_pages:supplies_management'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if modules:
+        sections.append({
+            'title': '功能模块',
+            'description': '行政管理的各个功能模块入口',
+            'items': modules
+        })
+    
+    context = _context(
+        "行政管理",
+        "📋",
+        "管理日常行政事务，包括事务创建、分配、处理、跟踪等全流程管理",
+        summary_cards=summary_cards,
+        sections=sections,
+        request=request,
+    )
+    
+    return render(request, "administrative_management/home.html", context)
 
 
 @login_required

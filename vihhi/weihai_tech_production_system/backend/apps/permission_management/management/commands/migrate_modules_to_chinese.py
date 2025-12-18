@@ -12,7 +12,7 @@ class Command(BaseCommand):
         # 结算中心
         'settlement_center': '结算中心',
         # 生产质量
-        'production_quality': '生产质量',
+        # 'production_quality': '生产质量',  # 已删除生产质量模块
         # 客户成功
         'customer_success': '客户成功',
         # 人事管理

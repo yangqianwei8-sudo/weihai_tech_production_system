@@ -7,212 +7,24 @@
 <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
 
-{% block content %}
-<div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
-    <div class="center-hero mb-4">
-        <h1 class="hero-title">{{ page_title }}</h1>
-        <p class="hero-subtitle">{{ description }}</p>
-    </div>
-
-    {% if not summary_cards %}
-    <div class="alert alert-info">
-        <i class="bi bi-info-circle me-2"></i>
-        您当前没有访问任何诉讼管理模块的权限，请联系管理员。
-    </div>
-    {% endif %}
-
-    <!-- 最近案件 -->
-    {% if recent_cases %}
-    <div class="info-card info-card-slide-up mb-4" data-card-id="recent-cases">
-        <div class="info-card-header">
-            <h5 class="info-card-title">📋 最近案件</h5>
-            <div class="info-card-actions">
-                <a href="{% url 'litigation_pages:case_list' %}" class="btn btn-sm btn-outline-primary">
-                    查看全部
-                </a>
-            </div>
-        </div>
-        <div class="info-card-body">
-            {% for case in recent_cases %}
-            <div class="info-card info-card-flat mb-3">
-                <div class="info-card-header">
-                    <h6 class="info-card-title mb-0">
-                        <a href="{% url 'litigation_pages:case_detail' case_id=case.id %}" class="text-decoration-none">
-                            {{ case.case_number }} - {{ case.case_name }}
-                        </a>
-                    </h6>
-                    <span class="status-badge {{ case.priority }}">
-                        {{ case.get_priority_display }}
-                    </span>
-                </div>
-                <div class="info-card-body">
-                    <div class="info-grid info-grid-4 info-grid-responsive">
-                        <div class="info-item">
-                            <span class="info-label">案件类型</span>
-                            <span class="info-value">{{ case.get_case_type_display }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">案件性质</span>
-                            <span class="info-value">{{ case.get_case_nature_display }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">状态</span>
-                            <span class="info-value">
-                                <span class="status-badge {{ case.status }}">
-                                    {{ case.get_status_display }}
-                                </span>
-                            </span>
-                        </div>
-                        {% if case.registration_date %}
-                        <div class="info-item">
-                            <span class="info-label">登记日期</span>
-                            <span class="info-value">{{ case.registration_date|date:"Y-m-d" }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- 即将到期的时间节点 -->
-    {% if upcoming_timelines %}
-    <div class="info-card info-card-slide-up info-card-warning mb-4" data-card-id="upcoming-timelines">
-        <div class="info-card-header">
-            <h5 class="info-card-title">⚠️ 即将到期的时间节点</h5>
-            <div class="info-card-actions">
-                <a href="{% url 'litigation_pages:timeline_calendar' %}" class="btn btn-sm btn-outline-primary">
-                    查看日历
-                </a>
-            </div>
-        </div>
-        <div class="info-card-body">
-            {% for timeline in upcoming_timelines %}
-            <div class="info-card info-card-flat mb-3">
-                <div class="info-card-header">
-                    <h6 class="info-card-title mb-0">
-                        <a href="{% url 'litigation_pages:case_detail' case_id=timeline.case.id %}" class="text-decoration-none">
-                            {{ timeline.timeline_name }}
-                        </a>
-                    </h6>
-                    <span class="status-badge danger">
-                        {% if timeline.timeline_date %}
-                            {% if timeline.timeline_date == today %}今天{% else %}{{ timeline.timeline_date|timesince }}后{% endif %}
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="info-card-body">
-                    <div class="info-grid info-grid-4 info-grid-responsive">
-                        <div class="info-item">
-                            <span class="info-label">案件</span>
-                            <span class="info-value">{{ timeline.case.case_number }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">类型</span>
-                            <span class="info-value">{{ timeline.get_timeline_type_display }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">日期</span>
-                            <span class="info-value">{{ timeline.timeline_date|date:"Y-m-d" }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">状态</span>
-                            <span class="info-value">
-                                <span class="status-badge {{ timeline.status }}">
-                                    {{ timeline.get_status_display }}
-                                </span>
-                            </span>
-                        </div>
-                    </div>
-                    {% if timeline.description %}
-                    <div class="mt-2">
-                        <span class="info-hint">{{ timeline.description|truncatewords:20 }}</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- 即将到期的保全续封 -->
-    {% if upcoming_seals %}
-    <div class="info-card info-card-slide-up info-card-danger mb-4" data-card-id="upcoming-seals">
-        <div class="info-card-header">
-            <h5 class="info-card-title">🔒 即将到期的保全续封</h5>
-            <div class="info-card-actions">
-                <a href="{% url 'litigation_pages:case_list' %}?preservation_expiring=1" class="btn btn-sm btn-outline-primary">
-                    查看全部
-                </a>
-            </div>
-        </div>
-        <div class="info-card-body">
-            {% for seal in upcoming_seals %}
-            <div class="info-card info-card-flat mb-3">
-                <div class="info-card-header">
-                    <h6 class="info-card-title mb-0">
-                        <a href="{% url 'litigation_pages:case_detail' case_id=seal.case.id %}" class="text-decoration-none">
-                            {{ seal.get_seal_type_display }} - {{ seal.case.case_number }}
-                        </a>
-                    </h6>
-                    <span class="status-badge danger">
-                        {% if seal.end_date %}
-                            {% if seal.end_date == today %}今天到期{% else %}{{ seal.end_date|timesince }}后到期{% endif %}
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="info-card-body">
-                    <div class="info-grid info-grid-4 info-grid-responsive">
-                        <div class="info-item">
-                            <span class="info-label">案件</span>
-                            <span class="info-value">{{ seal.case.case_number }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">保全类型</span>
-                            <span class="info-value">{{ seal.get_seal_type_display }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">开始日期</span>
-                            <span class="info-value">{{ seal.start_date|date:"Y-m-d" }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">结束日期</span>
-                            <span class="info-value">{{ seal.end_date|date:"Y-m-d" }}</span>
-                        </div>
-                        {% if seal.seal_amount %}
-                        <div class="info-item">
-                            <span class="info-label">保全金额</span>
-                            <span class="info-value">¥{{ seal.seal_amount|floatformat:2 }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% if seal.notes %}
-                    <div class="mt-2">
-                        <span class="info-hint">{{ seal.notes|truncatewords:20 }}</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-</div>
-
+{% block extra_css %}
+{% load static %}
 <style>
-    /* center-hero样式 - 使用统一样式 */
+    :root {
+        --brand-primary: #142F5B;
+        --brand-accent: #1F3E7C;
+        --brand-soft: #F3F6FB;
+        --brand-light: #E7EEF8;
+    }
     .center-hero {
         background: linear-gradient(135deg, rgba(20,47,91,0.95), rgba(31,62,124,0.92));
-        border-radius: var(--radius-xl);
-        padding: var(--spacing-xl);
+        border-radius: 24px;
+        padding: 32px 36px;
         color: #fff;
-        box-shadow: var(--shadow-lg);
+        box-shadow: 0 24px 60px rgba(20, 47, 91, 0.18);
         position: relative;
         overflow: hidden;
+        margin-bottom: 24px;
     }
     .center-hero::after {
         content: "";
@@ -221,27 +33,178 @@
         background: radial-gradient(circle at top right, rgba(255,255,255,0.25), transparent 60%);
         pointer-events: none;
     }
-    .hero-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: var(--radius-md);
-        background: rgba(255,255,255,0.18);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        margin-bottom: var(--spacing-sm);
-    }
-    .hero-title {
-        font-size: var(--font-size-2xl);
+    .center-hero h1 {
+        font-size: 28px;
         font-weight: 700;
-        margin-bottom: var(--spacing-sm);
+        margin-bottom: 8px;
         color: #fff;
     }
-    .hero-subtitle {
-        font-size: var(--font-size-base);
-        color: rgba(255,255,255,0.8);
+    .center-hero p {
+        color: rgba(255,255,255,0.9);
+        margin: 0;
+        font-size: 15px;
+    }
+    .summary-card {
+        border-radius: 18px;
+        background: var(--vh-card-bg);
+        padding: 20px 22px;
+        border: 1px solid rgba(20, 47, 91, 0.08);
+        height: 100%;
+        box-shadow: 0 12px 32px rgba(20, 47, 91, 0.08);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 40px rgba(20, 47, 91, 0.12);
+    }
+    .summary-card h3 {
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        color: rgba(20, 47, 91, 0.6);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+    .summary-card .value {
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--brand-primary);
+        margin-bottom: 6px;
+        line-height: 1.2;
+    }
+    .summary-card .hint {
+        font-size: 12px;
+        color: rgba(20, 47, 91, 0.55);
         margin: 0;
     }
+    .section-block {
+        background: var(--vh-card-bg);
+        border-radius: 20px;
+        padding: 24px 26px;
+        border: 1px solid rgba(20, 47, 91, 0.08);
+        box-shadow: 0 16px 40px rgba(20, 47, 91, 0.08);
+        margin-bottom: 24px;
+    }
+    .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--brand-primary);
+        margin-bottom: 6px;
+    }
+    .section-desc {
+        font-size: 13px;
+        color: rgba(20, 47, 91, 0.55);
+        margin-bottom: 18px;
+    }
+    .section-item {
+        background: var(--brand-soft);
+        border-radius: 16px;
+        padding: 16px 18px;
+        height: 100%;
+        border: 1px solid rgba(20,47,91,0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .section-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(20, 47, 91, 0.1);
+    }
+    .section-item h4 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--brand-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .section-item p {
+        font-size: 13px;
+        color: rgba(20, 47, 91, 0.6);
+        flex: 1;
+        margin: 0;
+    }
+    .section-item a {
+        align-self: flex-start;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--brand-accent);
+        text-decoration: none;
+    }
+    .section-item a:hover {
+        text-decoration: underline;
+    }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- 页面标题区域 -->
+    <div class="center-hero">
+        <h1>{{ page_title }}</h1>
+        <p>{{ description|default:"" }}</p>
+    </div>
+
+    <!-- 统计卡片区域 -->
+    {% if summary_cards %}
+    <div class="row g-3 mb-4">
+        {% for card in summary_cards %}
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="summary-card">
+                <h3>{{ card.label }}</h3>
+                <div class="value">{{ card.value }}</div>
+                {% if card.hint %}
+                <div class="hint">{{ card.hint }}</div>
+                {% elif card.subvalue %}
+                <div class="hint">{{ card.subvalue }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 功能模块区域 -->
+    {% for section in sections %}
+    <div class="section-block">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <div class="section-title">{{ section.title }}</div>
+                {% if section.description %}
+                <div class="section-desc">{{ section.description }}</div>
+                {% endif %}
+            </div>
+            {% if section.action %}
+            <a class="btn btn-sm btn-outline-primary" href="{{ section.action.url }}">{{ section.action.label }}</a>
+            {% endif %}
+        </div>
+        <div class="row g-3">
+            {% for item in section.items %}
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="section-item h-100">
+                    <h4>
+                        {% if item.icon %}{{ item.icon }} {% endif %}{{ item.label }}
+                    </h4>
+                    {% if item.description %}
+                    <p>{{ item.description }}</p>
+                    {% endif %}
+                    {% if item.url %}
+                    <a href="{{ item.url }}">{{ item.link_label|default:"进入模块 →" }}</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% if not summary_cards and not sections %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        您当前没有访问任何诉讼管理模块的权限，请联系管理员。
+    </div>
+    {% endif %}
+</div>
 {% endblock %}

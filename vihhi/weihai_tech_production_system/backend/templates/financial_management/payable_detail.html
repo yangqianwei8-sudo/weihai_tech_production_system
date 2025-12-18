@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:payable_management' %}">应付账款</a></li>
-<li class="breadcrumb-item active">{{ payable.account_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ payable.account_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

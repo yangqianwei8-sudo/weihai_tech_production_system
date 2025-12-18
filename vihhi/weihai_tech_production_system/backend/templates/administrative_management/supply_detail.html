@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supplies_management' %}">办公用品管理</a></li>
-<li class="breadcrumb-item active">{{ supply.name }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ supply.name }}</li>
 {% endblock %}
 
 {% block extra_css %}

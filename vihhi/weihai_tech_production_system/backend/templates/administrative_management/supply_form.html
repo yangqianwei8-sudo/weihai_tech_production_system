@@ -5,11 +5,11 @@
 {% block breadcrumb_items %}
 {% if is_create %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supplies_management' %}">办公用品</a></li>
-<li class="breadcrumb-item active">新增</li>
+<li class="breadcrumb-item active" aria-current="page">新增</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supplies_management' %}">办公用品</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supply_detail' supply.id %}">{{ supply.code }}</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endif %}
 {% endblock %}
 

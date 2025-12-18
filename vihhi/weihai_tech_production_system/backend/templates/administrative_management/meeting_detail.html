@@ -5,7 +5,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:meeting_list' %}">会议管理</a></li>
-<li class="breadcrumb-item active">{{ meeting.meeting_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ meeting.meeting_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

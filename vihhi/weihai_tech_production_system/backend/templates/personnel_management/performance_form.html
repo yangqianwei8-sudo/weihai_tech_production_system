@@ -5,11 +5,11 @@
 {% block breadcrumb_items %}
 {% if is_create %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:performance_management' %}">绩效考核</a></li>
-<li class="breadcrumb-item active">新增</li>
+<li class="breadcrumb-item active" aria-current="page">新增</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:performance_management' %}">绩效考核</a></li>
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:performance_detail' performance.id %}">{{ performance.performance_number }}</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endif %}
 {% endblock %}
 

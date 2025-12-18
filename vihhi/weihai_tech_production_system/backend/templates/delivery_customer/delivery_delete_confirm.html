@@ -7,7 +7,7 @@
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:delivery_list' %}">交付记录</a></li>
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:delivery_detail' delivery.id %}">{{ delivery.delivery_number }}</a></li>
-<li class="breadcrumb-item active">删除</li>
+<li class="breadcrumb-item active" aria-current="page">删除</li>
 {% endblock %}
 
 {% block content %}

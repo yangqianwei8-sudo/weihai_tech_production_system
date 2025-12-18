@@ -140,27 +140,74 @@
         {% endif %}
 
         {% block breadcrumb %}
-        <nav aria-label="breadcrumb">
+        <nav aria-label="breadcrumb" class="breadcrumb-nav">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'home' %}">首页</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'finance_pages:financial_home' %}">财务管理</a></li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'home' %}">首页</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'finance_pages:financial_home' %}">财务管理</a>
+                </li>
                 {% block breadcrumb_items %}{% endblock %}
             </ol>
         </nav>
+        {% endblock %}
         {% endblock %}
 
         {% comment %}财务管理模块左侧菜单布局 - 使用计划管理格式{% endcomment %}
         <div class="plan-management-layout">
             <div class="plan-sidebar">
                 <div class="plan-nav-links">
-                    {% if financial_menu %}
-                        {% for group in financial_menu %}
-                            <div class="plan-nav-group">
-                                <div class="plan-nav-group-header" onclick="toggleGroup(this)">
-                                    <span class="nav-label">{{ group.label }}</span>
-                                    <i class="bi bi-chevron-down ms-auto" style="font-size: 12px;"></i>
+                            {% if financial_menu %}
+        {# 财务管理布局 - 使用统一样式模板，带左侧菜单 #}
+        <div class="workspace workspace-two-column financial-management-layout">
+            <!-- 左侧导航菜单 -->
+            <aside class="workspace-nav">
+                <nav class="sidenav">
+                    <div class="sidenav-section">
+                        <div class="sidenav-links">
+                            {% for menu_group in financial_menu %}
+                            <div class="sidenav-item {% if menu_group.active or menu_group.expanded %}expanded{% endif %}">
+                                <a class="sidenav-link" 
+                                   href="{% if menu_group.url %}{{ menu_group.url }}{% else %}#{% endif %}" 
+                                   {% if menu_group.active %}data-active="true"{% endif %}>
+                                    {% if menu_group.icon %}<span>{{ menu_group.icon }}</span>{% endif %}
+                                    <span>{{ menu_group.label }}</span>
+                                    {% if menu_group.children %}<span class="menu-arrow">▶</span>{% endif %}
+                                </a>
+                                {% if menu_group.children %}
+                                <div class="submenu">
+                                    {% for child in menu_group.children %}
+                                    <a class="sidenav-link sidenav-sub-link" 
+                                       href="{{ child.url }}" 
+                                       {% if child.active %}data-active="true"{% endif %}>
+                                        {% if child.icon %}<span>{{ child.icon }}</span>{% endif %}
+                                        <span>{{ child.label }}</span>
+                                    </a>
+                                    {% endfor %}
                                 </div>
-                                <div class="plan-nav-group-items {% if not group.expanded %}collapsed{% endif %}">
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </nav>
+            </aside>
+            
+            <!-- 主内容区域 -->
+            <main class="workspace-main financial-content">
+        {% else %}
+        <div class="workspace-content">
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+        
+        {% if financial_menu %}
+            </main>
+        </div>
+        {% else %}
+        </div>
+        {% endif %}">
                                     {% for item in group.children %}
                                         <a href="{{ item.url }}" class="plan-nav-link {% if item.active %}active{% endif %}">
                                             <span class="nav-label">{{ item.label }}</span>
@@ -200,6 +247,7 @@
             }
         }
     </script>
+    <script src="{% static 'js/sidebar.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

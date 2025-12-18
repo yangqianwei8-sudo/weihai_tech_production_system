@@ -5,7 +5,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'production_pages:project_detail' project.id %}">{{ project.name }}</a></li>
-<li class="breadcrumb-item active">项目归档</li>
+<li class="breadcrumb-item active" aria-current="page">项目归档</li>
 {% endblock %}
 
 {% block content %}

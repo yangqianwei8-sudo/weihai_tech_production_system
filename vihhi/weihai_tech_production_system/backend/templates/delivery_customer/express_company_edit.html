@@ -7,7 +7,7 @@
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:report_delivery' %}">收发管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:express_company_list' %}">快递公司列表</a></li>
 <li class="breadcrumb-item"><a href="{% url 'delivery_pages:express_company_detail' company.id %}">{{ company.name }}</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endblock %}
 
 {% block content %}

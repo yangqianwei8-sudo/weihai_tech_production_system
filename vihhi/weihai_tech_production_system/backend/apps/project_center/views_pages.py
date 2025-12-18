@@ -49,12 +49,6 @@ from backend.apps.system_management.models import User, Department
 from backend.apps.system_management.services import get_user_permission_codes
 # calculate_output_value 改为延迟导入，避免在数据库表不存在时导致模块加载失败
 
-# 延迟导入 production_quality 模块，避免循环依赖
-try:
-    from backend.apps.production_quality.models import Opinion, OpinionStatus
-except ImportError:
-    Opinion = None
-    OpinionStatus = None
 
 logger = logging.getLogger(__name__)
 ROLE_LABELS = dict(ProjectTeam.ROLE_CHOICES)
@@ -1352,12 +1346,12 @@ def build_project_dashboard_payload(user, permission_set, query_params):
     detail_url = reverse('production_pages:project_detail', args=[primary_project_id]) if primary_project_id else '#'
     team_url = reverse('production_pages:project_team', args=[primary_project_id]) if primary_project_id else '#'
     notifications = [
-        {
-            'type': 'task',
-            'title': '存在未处理的质量意见',
-            'time': '2小时前',
-            'url': reverse('production_quality_pages:opinion_review'),
-        },
+        # {
+        #     'type': 'task',
+        #     'title': '存在未处理的质量意见',
+        #     'time': '2小时前',
+        #     'url': reverse('production_quality_pages:opinion_review'),  # 已删除生产质量模块
+        # },
         {
             'type': 'risk',
             'title': '项目风险等级提升',

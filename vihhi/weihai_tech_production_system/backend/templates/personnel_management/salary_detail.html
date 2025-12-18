@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:salary_management' %}">薪资管理</a></li>
-<li class="breadcrumb-item active">{{ salary.employee.name }} - {{ salary.salary_month|date:"Y年m月" }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ salary.employee.name }} - {{ salary.salary_month|date:"Y年m月" }}</li>
 {% endblock %}
 
 {% block extra_css %}

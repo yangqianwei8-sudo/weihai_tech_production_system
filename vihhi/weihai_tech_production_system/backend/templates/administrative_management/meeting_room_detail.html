@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:meeting_room_management' %}">会议室管理</a></li>
-<li class="breadcrumb-item active">{{ room.name }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ room.name }}</li>
 {% endblock %}
 
 {% block extra_css %}

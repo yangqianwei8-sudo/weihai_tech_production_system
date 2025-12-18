@@ -5,10 +5,10 @@
 {% block breadcrumb_items %}
 {% if salary %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:salary_management' %}">薪资管理</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:salary_management' %}">薪资管理</a></li>
-<li class="breadcrumb-item active">新增</li>
+<li class="breadcrumb-item active" aria-current="page">新增</li>
 {% endif %}
 {% endblock %}
 

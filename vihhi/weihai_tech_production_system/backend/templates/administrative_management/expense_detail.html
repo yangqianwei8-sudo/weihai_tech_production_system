@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:expense_management' %}">报销管理</a></li>
-<li class="breadcrumb-item active">{{ expense.reimbursement_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ expense.reimbursement_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

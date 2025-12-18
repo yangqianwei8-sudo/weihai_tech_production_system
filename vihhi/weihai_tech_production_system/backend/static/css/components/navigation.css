@@ -177,6 +177,34 @@
     font-size: var(--font-size-sm);
 }
 
+/* 面包屑导航容器 - 统一间距控制 */
+.breadcrumb-nav {
+    margin-bottom: var(--spacing-md);
+}
+
+/* 面包屑分隔符 - 使用伪元素自动生成 */
+.breadcrumb-item:not(:last-child)::after {
+    content: '/';
+    margin-left: var(--spacing-sm);
+    margin-right: var(--spacing-sm);
+    color: var(--vh-text-light);
+    font-size: var(--font-size-sm);
+}
+
+/* 响应式优化 - 移动端 */
+@media (max-width: 576px) {
+    .breadcrumb {
+        font-size: var(--font-size-sm);
+    }
+    
+    .breadcrumb-item {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+    }
+}
+
 /* ============================================
    下拉菜单样式
    ============================================ */

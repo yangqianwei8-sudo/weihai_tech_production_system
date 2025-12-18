@@ -5,7 +5,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:affair_list' %}">行政事务</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:affair_detail' affair.id %}">{{ affair.affair_number }}</a></li>
-<li class="breadcrumb-item active">取消</li>
+<li class="breadcrumb-item active" aria-current="page">取消</li>
 {% endblock %}
 
 {% block extra_css %}

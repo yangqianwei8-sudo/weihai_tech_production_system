@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:seal_management' %}">印章管理</a></li>
-<li class="breadcrumb-item active">{{ seal.seal_name }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ seal.seal_name }}</li>
 {% endblock %}
 
 {% block extra_css %}

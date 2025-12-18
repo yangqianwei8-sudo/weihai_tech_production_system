@@ -6,7 +6,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'litigation_pages:case_list' %}">诉讼管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'litigation_pages:case_list' %}">案件列表</a></li>
-<li class="breadcrumb-item active">{% if case %}编辑案件{% else %}创建案件{% endif %}</li>
+<li class="breadcrumb-item active" aria-current="page">{% if case %}编辑案件{% else %}创建案件{% endif %}</li>
 {% endblock %}
 
 {% block content %}

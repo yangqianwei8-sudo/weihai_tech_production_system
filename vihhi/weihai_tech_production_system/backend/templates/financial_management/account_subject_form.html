@@ -5,11 +5,11 @@
 {% block breadcrumb_items %}
 {% if is_create %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:account_subject_management' %}">会计科目</a></li>
-<li class="breadcrumb-item active">新增</li>
+<li class="breadcrumb-item active" aria-current="page">新增</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:account_subject_management' %}">会计科目</a></li>
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:account_subject_detail' account_subject.id %}">{{ account_subject.code }}</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endif %}
 {% endblock %}
 

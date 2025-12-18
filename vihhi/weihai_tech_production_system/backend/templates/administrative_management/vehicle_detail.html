@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:vehicle_management' %}">用车管理</a></li>
-<li class="breadcrumb-item active">{{ vehicle.plate_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ vehicle.plate_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

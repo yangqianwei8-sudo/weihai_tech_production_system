@@ -153,24 +153,27 @@
         {% endif %}
 
         {% block breadcrumb %}
-        <nav aria-label="breadcrumb" class="mb-3">
+        <nav aria-label="breadcrumb" class="breadcrumb-nav">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'home' %}">首页</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'production_pages:project_list' %}">生产管理</a></li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'home' %}">首页</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'production_pages:project_list' %}">生产管理</a>
+                </li>
                 {% block breadcrumb_items %}{% endblock %}
             </ol>
         </nav>
         {% endblock %}
         
-        {# 生产管理布局 - 使用与客户管理一致的格式 #}
+        {# 生产管理布局 - 使用统一样式模板，带左侧菜单 #}
         <div class="workspace workspace-two-column production-management-layout">
             <!-- 左侧导航菜单 -->
-                                    <aside class="workspace-nav">
+            <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
                         <div class="sidenav-links">
-                        {% if production_sidebar_nav %}
-                            {% for menu_group in production_sidebar_nav %}
+                            {% for menu_group in production_management_menu %}
                             <div class="sidenav-item {% if menu_group.active or menu_group.expanded %}expanded{% endif %}">
                                 <a class="sidenav-link" 
                                    href="{% if menu_group.url %}{{ menu_group.url }}{% else %}#{% endif %}" 
@@ -193,7 +196,6 @@
                                 {% endif %}
                             </div>
                             {% endfor %}
-                        {% endif %}
                         </div>
                     </div>
                 </nav>

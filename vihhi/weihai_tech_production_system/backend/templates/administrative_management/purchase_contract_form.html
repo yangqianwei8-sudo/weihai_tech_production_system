@@ -5,11 +5,11 @@
 {% block breadcrumb_items %}
 {% if is_create %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:purchase_contract_list' %}">采购合同</a></li>
-<li class="breadcrumb-item active">创建</li>
+<li class="breadcrumb-item active" aria-current="page">创建</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:purchase_contract_list' %}">采购合同</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:purchase_contract_detail' contract.id %}">{{ contract.contract_number }}</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endif %}
 {% endblock %}
 

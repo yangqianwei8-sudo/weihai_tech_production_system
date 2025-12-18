@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:inventory_check_list' %}">库存盘点</a></li>
-<li class="breadcrumb-item active">{{ check.check_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ check.check_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

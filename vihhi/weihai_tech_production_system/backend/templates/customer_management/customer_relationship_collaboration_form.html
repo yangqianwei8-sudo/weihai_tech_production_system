@@ -11,9 +11,9 @@
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_relationship_collaboration' %}">人员关系协作申请</a></li>
 {% if collaboration %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_relationship_collaboration_detail' collaboration.id %}">申请详情</a></li>
-<li class="breadcrumb-item active">编辑申请</li>
+<li class="breadcrumb-item active" aria-current="page">编辑申请</li>
 {% else %}
-<li class="breadcrumb-item active">创建人员关系协作申请</li>
+<li class="breadcrumb-item active" aria-current="page">创建人员关系协作申请</li>
 {% endif %}
 {% endblock %}
 

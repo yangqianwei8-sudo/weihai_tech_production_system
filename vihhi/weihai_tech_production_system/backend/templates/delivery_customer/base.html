@@ -166,9 +166,11 @@
 
         <!-- 主内容区域 -->
         {% block breadcrumb %}
-        <nav aria-label="breadcrumb" class="mb-3">
+        <nav aria-label="breadcrumb" class="breadcrumb-nav">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'home' %}">首页</a></li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'home' %}">首页</a>
+                </li>
                 {% block breadcrumb_items %}{% endblock %}
             </ol>
         </nav>

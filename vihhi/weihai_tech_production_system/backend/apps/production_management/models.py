@@ -949,7 +949,7 @@ class ProjectDesignReply(models.Model):
     ]
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='design_replies', verbose_name='项目')
-    opinion = models.ForeignKey('production_quality.Opinion', on_delete=models.CASCADE, related_name='design_replies', verbose_name='关联意见', null=True, blank=True)
+    opinion = models.ForeignKey('production_quality.Opinion', on_delete=models.SET_NULL, null=True, blank=True, related_name='design_replies', verbose_name='关联意见', help_text='已删除生产质量模块，此字段保留用于历史数据')
     issue_title = models.CharField(max_length=200, verbose_name='事项 / 问题')
     status = models.CharField(max_length=20, choices=REPLY_STATUS_CHOICES, default='agree', verbose_name='回复结果')
     response_detail = models.TextField(blank=True, verbose_name='回复说明')
@@ -1000,7 +1000,7 @@ class ProjectMeetingDecision(models.Model):
     ]
 
     meeting = models.ForeignKey(ProjectMeetingRecord, on_delete=models.CASCADE, related_name='decisions', verbose_name='会议记录')
-    opinion = models.ForeignKey('production_quality.Opinion', on_delete=models.CASCADE, related_name='meeting_decisions', verbose_name='关联意见')
+    opinion = models.ForeignKey('production_quality.Opinion', on_delete=models.SET_NULL, null=True, blank=True, related_name='meeting_decisions', verbose_name='关联意见', help_text='已删除生产质量模块，此字段保留用于历史数据')
     decision = models.CharField(max_length=20, choices=DECISION_CHOICES, default='pending', verbose_name='会议结论')
     client_comment = models.TextField(blank=True, verbose_name='甲方意见')
     design_comment = models.TextField(blank=True, verbose_name='设计方意见')

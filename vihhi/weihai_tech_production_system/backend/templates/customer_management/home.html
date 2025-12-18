@@ -1,284 +1,639 @@
 {% extends "customer_management/base.html" %}
 {% load static %}
 
-{% block title %}客户管理 - 维海科技信息化管理平台{% endblock %}
+{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
 
 {% block breadcrumb_items %}
-<li class="breadcrumb-item active">客户管理</li>
+<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
 
-{% block content %}
-<div class="customer-home-content">
-    <div class="page-header mb-4">
-        <h1 class="page-title">
-            <i class="bi bi-people-fill me-2"></i>
-            客户管理
-        </h1>
-        <p class="text-muted">管理客户信息、联系人、商机等业务数据</p>
-    </div>
-
-    <!-- 统计卡片区域 -->
-    <div class="stats-grid mb-4">
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="bi bi-people"></i>
-            </div>
-            <div class="stat-label">客户总数</div>
-            <div class="stat-value">-</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="bi bi-person-check"></i>
-            </div>
-            <div class="stat-label">联系人总数</div>
-            <div class="stat-value">-</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="bi bi-briefcase"></i>
-            </div>
-            <div class="stat-label">商机总数</div>
-            <div class="stat-value">-</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="bi bi-file-text"></i>
-            </div>
-            <div class="stat-label">合同总数</div>
-            <div class="stat-value">-</div>
-        </div>
-    </div>
-
-    <!-- 快捷操作区域 -->
-    <div class="quick-actions-section mb-4">
-        <h2 class="section-title">快捷操作</h2>
-        <div class="quick-actions-buttons">
-            <a href="{% url 'business_pages:customer_create' %}" class="quick-action-btn blue">
-                <i class="bi bi-plus-circle me-2"></i>
-                创建客户
-            </a>
-            <a href="{% url 'business_pages:contact_create' %}" class="quick-action-btn green">
-                <i class="bi bi-person-plus me-2"></i>
-                创建联系人
-            </a>
-            <a href="{% url 'business_pages:opportunity_create' %}" class="quick-action-btn orange">
-                <i class="bi bi-briefcase me-2"></i>
-                创建商机
-            </a>
-            <a href="{% url 'business_pages:customer_list' %}" class="quick-action-btn blue">
-                <i class="bi bi-list-ul me-2"></i>
-                客户列表
-            </a>
-        </div>
-    </div>
-
-    <!-- 功能模块区域 -->
-    <div class="modules-section">
-        <h2 class="section-title">功能模块</h2>
-        <div class="modules-grid">
-            <a href="{% url 'business_pages:customer_list' %}" class="module-card">
-                <div class="module-icon">
-                    <i class="bi bi-people-fill"></i>
-                </div>
-                <div class="module-name">客户信息管理</div>
-                <div class="module-desc">管理客户基本信息</div>
-            </a>
-            <a href="{% url 'business_pages:contact_list' %}" class="module-card">
-                <div class="module-icon">
-                    <i class="bi bi-person-lines-fill"></i>
-                </div>
-                <div class="module-name">人员关系管理</div>
-                <div class="module-desc">管理客户联系人信息</div>
-            </a>
-            <a href="{% url 'business_pages:opportunity_management' %}" class="module-card">
-                <div class="module-icon">
-                    <i class="bi bi-briefcase-fill"></i>
-                </div>
-                <div class="module-name">商机管理</div>
-                <div class="module-desc">管理商机信息</div>
-            </a>
-            <a href="{% url 'business_pages:contract_management_list' %}" class="module-card">
-                <div class="module-icon">
-                    <i class="bi bi-file-text-fill"></i>
-                </div>
-                <div class="module-name">合同管理</div>
-                <div class="module-desc">管理合同信息</div>
-            </a>
-        </div>
-    </div>
-</div>
-
+{% block extra_css %}
+{% load static %}
 <style>
-.customer-home-content {
-    padding: 24px;
-}
-
-.page-header {
-    margin-bottom: 32px;
-}
-
-.page-title {
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--vh-text);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 32px;
-}
-
-.stat-card {
-    background: var(--vh-card-bg);
-    border-radius: 12px;
-    padding: 24px;
-    border: 1px solid var(--vh-border);
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-}
-
-.stat-icon {
-    font-size: 36px;
-    margin-bottom: 12px;
-    color: var(--vh-primary);
-}
-
-.stat-label {
-    font-size: 14px;
-    color: var(--vh-text-light);
-    margin-bottom: 8px;
-}
-
-.stat-value {
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--vh-text);
-}
-
-.section-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--vh-text);
-    margin-bottom: 16px;
-}
-
-.quick-actions-buttons {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.quick-action-btn {
-    padding: 12px 24px;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    transition: all 0.2s ease;
-}
-
-.quick-action-btn:hover {
-    opacity: 0.9;
-    color: white;
-    text-decoration: none;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.quick-action-btn.blue {
-    background: #2563eb;
-}
-
-.quick-action-btn.green {
-    background: #10b981;
-}
-
-.quick-action-btn.orange {
-    background: #f97316;
-}
-
-.modules-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-}
-
-.module-card {
-    background: var(--vh-card-bg);
-    border-radius: 12px;
-    padding: 24px;
-    border: 1px solid var(--vh-border);
-    text-align: center;
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.module-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transform: translateY(-4px);
-    color: inherit;
-    text-decoration: none;
-    border-color: var(--vh-primary);
-}
-
-.module-icon {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 16px;
-    background: linear-gradient(135deg, rgba(31, 42, 87, 0.1), rgba(31, 42, 87, 0.05));
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    color: var(--vh-primary);
-}
-
-.module-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--vh-text);
-    margin-bottom: 8px;
-}
-
-.module-desc {
-    font-size: 13px;
-    color: var(--vh-text-light);
-}
-
-@media (max-width: 1200px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+    /* 主题色变量定义（如果common.css未加载，使用这些值） */
+    :root {
+        --vh-primary: #1F2A57;
+        --vh-primary-dark: #0F1E3A;
+        --vh-primary-light: #1F4A85;
+        --vh-primary-muted: #6C7BA8;
+        --vh-accent: #D62828;
+        --vh-accent-dark: #b61f1f;
+        --vh-success: #16A34A;
+        --vh-warning: #D97706;
+        --vh-error: #E23D3D;
+        --vh-info: #2563EB;
+        --vh-card-bg: #ffffff;
+        --vh-text: #1F2937;
+        --vh-text-muted: #6B7280;
+        --vh-border: #E4E8F4;
+        --brand-soft: #F3F6FB;
     }
-}
 
-@media (max-width: 768px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
+    /* ============================================
+       精简标题区域（紧凑型布局）
+       ============================================ */
+    .page-header-compact {
+        background: var(--vh-card-bg);
+        border-radius: 16px;
+        padding: 20px 24px;
+        border: 1px solid var(--vh-border);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
     }
-    
-    .modules-grid {
-        grid-template-columns: repeat(2, 1fr);
+
+    .page-header-icon {
+        font-size: 32px;
+        flex-shrink: 0;
     }
-}
+
+    .page-header-content {
+        flex: 1;
+    }
+
+    .page-header-content h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--vh-primary);
+        margin: 0 0 0 0;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--vh-border);
+    }
+
+    .page-header-content p {
+        font-size: 14px;
+        color: var(--vh-text-muted);
+        margin: 0;
+    }
+
+    /* ============================================
+       增强版统计卡片（紧凑型布局）
+       ============================================ */
+    .summary-card-enhanced {
+        background: var(--vh-card-bg);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--vh-border);
+        border-left: 4px solid var(--vh-primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        height: 100%;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .summary-card-enhanced:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .summary-card-enhanced.clickable {
+        cursor: pointer;
+    }
+
+    .summary-card-enhanced.clickable:hover {
+        border-left-color: var(--vh-accent);
+    }
+
+    .summary-card-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .summary-card-link:hover {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .card-label {
+        font-size: 12px;
+        color: var(--vh-text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-value-wrapper {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .card-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--vh-primary);
+        line-height: 1.2;
+    }
+
+    .card-trend {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    .trend-indicator {
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .trend-indicator.positive {
+        color: var(--vh-success);
+        background: rgba(22, 163, 74, 0.1);
+    }
+
+    .trend-indicator.negative {
+        color: var(--vh-error);
+        background: rgba(226, 61, 61, 0.1);
+    }
+
+    .trend-indicator.neutral {
+        color: var(--vh-text-muted);
+        background: rgba(107, 114, 128, 0.1);
+    }
+
+    .card-hint {
+        font-size: 12px;
+        color: var(--vh-text-muted);
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    /* 不同颜色的左侧边框 */
+    .summary-card-enhanced.card-primary {
+        border-left-color: var(--vh-primary);
+    }
+
+    .summary-card-enhanced.card-success {
+        border-left-color: var(--vh-success);
+    }
+
+    .summary-card-enhanced.card-info {
+        border-left-color: var(--vh-info);
+    }
+
+    .summary-card-enhanced.card-warning {
+        border-left-color: var(--vh-warning);
+    }
+
+    /* ============================================
+       快捷操作卡片（紧凑型布局）
+       ============================================ */
+    .quick-action-card {
+        background: var(--vh-card-bg);
+        border-radius: 12px;
+        padding: 20px;
+        border: 2px solid var(--vh-border);
+        text-align: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        height: 100%;
+    }
+
+    .quick-action-card:hover {
+        border-color: var(--vh-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .quick-action-icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+        display: block;
+    }
+
+    .quick-action-label {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--vh-primary);
+        margin-bottom: 0;
+    }
+
+    .quick-action-desc {
+        font-size: 12px;
+        color: var(--vh-text-muted);
+        line-height: 1.4;
+    }
+
+    /* ============================================
+       功能模块区域（保持现有样式，优化间距）
+       ============================================ */
+    .section-block {
+        background: var(--vh-card-bg);
+        border-radius: 16px;
+        padding: 20px 24px;
+        border: 1px solid var(--vh-border);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--vh-primary);
+        margin-bottom: 16px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--vh-border);
+    }
+
+    .section-desc {
+        font-size: 13px;
+        color: var(--vh-text-muted);
+        margin-bottom: 16px;
+    }
+
+    .section-item {
+        background: var(--brand-soft);
+        border-radius: 12px;
+        padding: 16px 18px;
+        height: 100%;
+        border: 1px solid var(--vh-border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .section-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-item h4 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--vh-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .section-item p {
+        font-size: 13px;
+        color: var(--vh-text-muted);
+        flex: 1;
+        margin: 0;
+    }
+
+    .section-item a {
+        align-self: flex-start;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--vh-accent);
+        text-decoration: none;
+    }
+
+    .section-item a:hover {
+        text-decoration: underline;
+        color: var(--vh-primary);
+    }
+
+    /* ============================================
+       最近动态/提醒（侧边栏样式）
+       ============================================ */
+    .notice-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .notice-item {
+        display: flex;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 12px;
+        border-left: 4px solid;
+        background: var(--vh-card-bg);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .notice-item:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .notice-item.notice-warning {
+        border-left-color: var(--vh-warning);
+        background: rgba(217, 119, 6, 0.05);
+    }
+
+    .notice-item.notice-info {
+        border-left-color: var(--vh-info);
+        background: rgba(37, 99, 235, 0.05);
+    }
+
+    .notice-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .notice-content {
+        flex: 1;
+    }
+
+    .notice-title {
+        font-weight: 600;
+        color: var(--vh-primary);
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+    .notice-text {
+        color: var(--vh-text-muted);
+        margin-bottom: 4px;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .notice-meta {
+        font-size: 12px;
+        color: var(--vh-text-muted);
+    }
+
+    .notice-date {
+        margin-right: 8px;
+    }
+
+    /* ============================================
+       两栏布局（主内容 + 侧边栏）
+       ============================================ */
+    .home-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .home-main-content {
+        min-width: 0; /* 防止grid溢出 */
+    }
+
+    .home-sidebar {
+        position: sticky;
+        top: 100px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+    }
+
+    /* ============================================
+       响应式布局
+       ============================================ */
+    @media (max-width: 1199px) {
+        .home-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .home-sidebar {
+            position: static;
+            max-height: none;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-header-compact {
+            padding: 16px 20px;
+        }
+
+        .page-header-content h1 {
+            font-size: 20px;
+        }
+
+        .card-value {
+            font-size: 28px;
+        }
+
+        .summary-card-enhanced {
+            padding: 16px;
+        }
+
+        .section-block {
+            padding: 16px 20px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .page-header-compact {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .card-value {
+            font-size: 24px;
+        }
+    }
 </style>
 {% endblock %}
 
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- 精简标题区域 -->
+    <div class="page-header-compact">
+        <div class="page-header-icon">{{ page_icon|default:"👥" }}</div>
+        <div class="page-header-content">
+            <h1>{{ page_title }}</h1>
+            {% if description %}
+            <p>{{ description }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 统计卡片区域（增强版） -->
+    {% if summary_cards %}
+    <div class="row g-3 mb-4">
+        {% for card in summary_cards %}
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            {% if card.url %}
+            <a href="{{ card.url }}" class="summary-card-link">
+                <div class="summary-card-enhanced clickable card-primary">
+                    <div class="card-header">
+                        <span class="card-label">{{ card.label }}</span>
+                    </div>
+                    <div class="card-value-wrapper">
+                        <div class="card-value">{{ card.value }}</div>
+                        {% if card.change_vs_yesterday or card.change_vs_last_week %}
+                            {% if card.change_vs_last_week %}
+                                {% if card.change_vs_last_week > 0 %}
+                                    <span class="trend-indicator positive">↑ {{ card.change_vs_last_week }}</span>
+                                {% elif card.change_vs_last_week < 0 %}
+                                    <span class="trend-indicator negative">↓ -{{ card.change_vs_last_week }}</span>
+                                {% else %}
+                                    <span class="trend-indicator neutral">→</span>
+                                {% endif %}
+                            {% elif card.change_vs_yesterday %}
+                                {% if card.change_vs_yesterday > 0 %}
+                                    <span class="trend-indicator positive">↑ {{ card.change_vs_yesterday }}</span>
+                                {% elif card.change_vs_yesterday < 0 %}
+                                    <span class="trend-indicator negative">↓ -{{ card.change_vs_yesterday }}</span>
+                                {% else %}
+                                    <span class="trend-indicator neutral">→</span>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    {% if card.hint %}
+                    <div class="card-hint">{{ card.hint }}</div>
+                    {% endif %}
+                </div>
+            </a>
+            {% else %}
+            <div class="summary-card-enhanced card-primary">
+                <div class="card-header">
+                    <span class="card-label">{{ card.label }}</span>
+                </div>
+                <div class="card-value-wrapper">
+                    <div class="card-value">{{ card.value }}</div>
+                    {% if card.change_vs_yesterday or card.change_vs_last_week %}
+                        {% if card.change_vs_last_week %}
+                            {% if card.change_vs_last_week > 0 %}
+                                    <span class="trend-indicator positive">↑ {{ card.change_vs_last_week }}</span>
+                            {% elif card.change_vs_last_week < 0 %}
+                                    <span class="trend-indicator negative">↓ -{{ card.change_vs_last_week }}</span>
+                            {% else %}
+                                <span class="trend-indicator neutral">→</span>
+                            {% endif %}
+                        {% elif card.change_vs_yesterday %}
+                            {% if card.change_vs_yesterday > 0 %}
+                                    <span class="trend-indicator positive">↑ {{ card.change_vs_yesterday }}</span>
+                            {% elif card.change_vs_yesterday < 0 %}
+                                    <span class="trend-indicator negative">↓ -{{ card.change_vs_yesterday }}</span>
+                            {% else %}
+                                <span class="trend-indicator neutral">→</span>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% if card.hint %}
+                <div class="card-hint">{{ card.hint }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 快捷操作区域（置顶显示） -->
+    {% for section in sections %}
+        {% if section.title == "快速操作" %}
+        <div class="section-block mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                <div>
+                    <div class="section-title">{{ section.title }}</div>
+                    {% if section.description %}
+                    <div class="section-desc">{{ section.description }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row g-3">
+                {% for item in section.items %}
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a href="{{ item.url|default:'#' }}" class="quick-action-card">
+                        <div class="quick-action-icon">{{ item.icon|default:"⚡" }}</div>
+                        <div class="quick-action-label">{{ item.label }}</div>
+                        {% if item.description %}
+                        <div class="quick-action-desc">{{ item.description }}</div>
+                        {% endif %}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+    <!-- 两栏布局：主内容区 + 侧边栏 -->
+    <div class="home-layout">
+        <div class="home-main-content">
+            <!-- 功能模块区域 -->
+            {% for section in sections %}
+                {% if section.title != "快速操作" %}
+                <div class="section-block">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <div class="section-title">{{ section.title }}</div>
+                            {% if section.description %}
+                            <div class="section-desc">{{ section.description }}</div>
+                            {% endif %}
+                        </div>
+                        {% if section.action %}
+                        <a class="btn btn-sm btn-outline-primary" href="{{ section.action.url }}">{{ section.action.label }}</a>
+                        {% endif %}
+                    </div>
+                    <div class="row g-3">
+                        {% for item in section.items %}
+                        <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="section-item h-100">
+                                <h4>
+                                    {% if item.icon %}{{ item.icon }} {% endif %}{{ item.label }}
+                                </h4>
+                                {% if item.description %}
+                                <p>{{ item.description }}</p>
+                                {% endif %}
+                                {% if item.url %}
+                                <a href="{{ item.url }}">{{ item.link_label|default:"进入模块 →" }}</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- 侧边栏：最近动态/提醒 -->
+        {% if recent_notices %}
+        <div class="home-sidebar">
+            <div class="section-block">
+                <div class="section-title mb-3">📢 最近动态</div>
+                <div class="notice-list">
+                    {% for notice in recent_notices %}
+                    <div class="notice-item notice-{{ notice.type }}">
+                        <div class="notice-icon">{{ notice.icon }}</div>
+                        <div class="notice-content">
+                            <div class="notice-title">{{ notice.title }}</div>
+                            <div class="notice-text">{{ notice.content }}</div>
+                            <div class="notice-meta">
+                                <span class="notice-date">{{ notice.date|date:"Y-m-d" }}</span>
+                                {% if notice.author %}<span class="notice-author"> - {{ notice.author }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 空状态提示 -->
+    {% if not summary_cards and not sections %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        您当前没有访问任何客户管理模块的权限，请联系管理员。
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

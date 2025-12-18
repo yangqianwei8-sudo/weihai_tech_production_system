@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'personnel_pages:training_management' %}">培训管理</a></li>
-<li class="breadcrumb-item active">{{ training.training_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ training.training_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

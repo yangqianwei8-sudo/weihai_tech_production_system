@@ -6,7 +6,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'archive_management:project_archive_list' %}">项目归档</a></li>
 <li class="breadcrumb-item"><a href="{% url 'archive_management:project_archive_detail' archive.pk %}">归档详情</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endblock %}
 
 {% block content %}

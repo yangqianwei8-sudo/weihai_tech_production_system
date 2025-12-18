@@ -10,7 +10,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_list' %}">客户列表</a></li>
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_detail' client.id %}">{{ client.name }}</a></li>
-<li class="breadcrumb-item active">提交审批</li>
+<li class="breadcrumb-item active" aria-current="page">提交审批</li>
 {% endblock %}
 
 {% block content %}

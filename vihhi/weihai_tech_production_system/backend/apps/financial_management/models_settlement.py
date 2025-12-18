@@ -218,10 +218,10 @@ class SettlementItem(models.Model):
     # 关联信息
     settlement = models.ForeignKey('ProjectSettlement', on_delete=models.CASCADE, related_name='items',
                                   verbose_name='关联结算单')
-    opinion = models.ForeignKey('production_quality.Opinion', on_delete=models.PROTECT,
-                               related_name='settlement_items', null=True, blank=True,
+    opinion = models.ForeignKey('production_quality.Opinion', on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='settlement_items',
                                verbose_name='关联意见',
-                               help_text='从生产管理模块的意见生成')
+                               help_text='从生产管理模块的意见生成（已删除生产质量模块，此字段保留用于历史数据）')
     
     # 基本信息（从Opinion自动带出）
     opinion_number = models.CharField(max_length=50, blank=True, verbose_name='意见编号',

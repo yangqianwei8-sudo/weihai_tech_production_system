@@ -5,11 +5,11 @@
 {% block breadcrumb_items %}
 {% if is_create %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:travel_list' %}">差旅管理</a></li>
-<li class="breadcrumb-item active">创建</li>
+<li class="breadcrumb-item active" aria-current="page">创建</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:travel_list' %}">差旅管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:travel_detail' travel.id %}">{{ travel.application_number }}</a></li>
-<li class="breadcrumb-item active">编辑</li>
+<li class="breadcrumb-item active" aria-current="page">编辑</li>
 {% endif %}
 {% endblock %}
 

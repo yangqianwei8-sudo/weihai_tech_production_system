@@ -11,7 +11,7 @@
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_list' %}">客户管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_list' %}">客户线索</a></li>
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_lead_detail' lead.id %}">{{ lead.contact_name }}</a></li>
-<li class="breadcrumb-item active">{{ page_title }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
 
 {% block content %}

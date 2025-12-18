@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'finance_pages:invoice_management' %}">发票管理</a></li>
-<li class="breadcrumb-item active">{{ invoice.invoice_number }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ invoice.invoice_number }}</li>
 {% endblock %}
 
 {% block extra_css %}

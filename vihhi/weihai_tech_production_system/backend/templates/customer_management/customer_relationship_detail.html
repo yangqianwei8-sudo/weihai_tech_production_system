@@ -6,7 +6,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_list' %}">客户管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_relationship' %}">客户关系</a></li>
-<li class="breadcrumb-item active">{{ relationship.title }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ relationship.title }}</li>
 {% endblock %}
 
 {% block content %}

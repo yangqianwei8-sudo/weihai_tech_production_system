@@ -5,10 +5,10 @@
 {% block breadcrumb_items %}
 {% if maintenance %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:asset_detail' asset.id %}">资产详情</a></li>
-<li class="breadcrumb-item active">编辑维护</li>
+<li class="breadcrumb-item active" aria-current="page">编辑维护</li>
 {% else %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:asset_detail' asset.id %}">资产详情</a></li>
-<li class="breadcrumb-item active">创建维护</li>
+<li class="breadcrumb-item active" aria-current="page">创建维护</li>
 {% endif %}
 {% endblock %}
 

@@ -442,6 +442,34 @@ def litigation_home(request):
     # 统计卡片
     summary_cards = []
     
+    if _permission_granted('litigation_management.case.view', permission_codes):
+        summary_cards.append({
+            'label': '案件总数',
+            'value': total_cases,
+            'hint': '所有案件数量'
+        })
+    
+    if _permission_granted('litigation_management.case.view', permission_codes):
+        summary_cards.append({
+            'label': '待立案',
+            'value': pending_filing,
+            'hint': '待立案案件'
+        })
+    
+    if _permission_granted('litigation_management.case.view', permission_codes):
+        summary_cards.append({
+            'label': '审理中',
+            'value': trial,
+            'hint': '正在审理的案件'
+        })
+    
+    if _permission_granted('litigation_management.case.view', permission_codes):
+        summary_cards.append({
+            'label': '紧急事项',
+            'value': urgent_count,
+            'hint': '即将到期的时间节点和保全续封'
+        })
+    
     # 最近案件
     recent_cases = cases.order_by('-created_at')[:5]
     
@@ -464,11 +492,59 @@ def litigation_home(request):
         end_date__gte=today
     ).select_related('case').order_by('end_date')[:5]
     
+    # 功能模块区域
+    sections = []
+    
+    # 快捷操作区域
+    quick_actions = []
+    
+    if _permission_granted('litigation_management.case.create', permission_codes):
+        try:
+            quick_actions.append({
+                'label': '登记案件',
+                'icon': '➕',
+                'description': '登记新的诉讼案件',
+                'url': reverse('litigation_pages:case_create'),
+                'link_label': '登记案件 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if quick_actions:
+        sections.append({
+            'title': '快捷操作',
+            'description': '常用的快速操作入口',
+            'items': quick_actions
+        })
+    
+    # 功能模块区域
+    modules = []
+    
+    if _permission_granted('litigation_management.case.view', permission_codes):
+        try:
+            modules.append({
+                'label': '案件管理',
+                'icon': '⚖️',
+                'description': '管理诉讼案件信息',
+                'url': reverse('litigation_pages:case_list'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if modules:
+        sections.append({
+            'title': '功能模块',
+            'description': '诉讼管理的各个功能模块入口',
+            'items': modules
+        })
+    
     context = _context(
         "诉讼管理",
         "⚖️",
         "全面管理企业的诉讼案件，包括案件登记、诉讼流程跟踪、诉讼文档管理、诉讼费用管理等",
         summary_cards=summary_cards,
+        sections=sections,
         request=request
     )
     

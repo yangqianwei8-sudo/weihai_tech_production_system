@@ -43,7 +43,7 @@ def _permission_granted(required_code, user_permissions: set) -> bool:
 from backend.core.views import _build_full_top_nav
 
 
-def _context(page_title, page_icon, description, summary_cards=None, request=None, use_personnel_nav=False):
+def _context(page_title, page_icon, description, summary_cards=None, sections=None, request=None, use_personnel_nav=False):
     """构建页面上下文
     
     Args:
@@ -54,6 +54,7 @@ def _context(page_title, page_icon, description, summary_cards=None, request=Non
         "page_icon": page_icon or "",
         "description": description or "",
         "summary_cards": summary_cards or [],
+        "sections": sections or [],
     }
     
     # 添加顶部导航菜单（与客户管理模块保持一致）
@@ -532,7 +533,7 @@ def personnel_home(request):
     this_month_start = today.replace(day=1)
     
     # 收集统计数据
-    stats_cards = []
+    summary_cards = []
     
     try:
         # 员工档案统计
@@ -543,7 +544,7 @@ def personnel_home(request):
                     entry_date__gte=this_month_start
                 ).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '员工档案',
                     'icon': '👤',
                     'value': f'{total_employees}',
@@ -559,7 +560,7 @@ def personnel_home(request):
                 today_attendance = Attendance.objects.filter(attendance_date=today).count()
                 today_late = Attendance.objects.filter(attendance_date=today, is_late=True).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '考勤管理',
                     'icon': '⏰',
                     'value': f'{today_attendance}',
@@ -575,7 +576,7 @@ def personnel_home(request):
                 pending_leaves = Leave.objects.filter(status='pending').count()
                 this_month_leaves = Leave.objects.filter(start_date__gte=this_month_start).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '请假管理',
                     'icon': '📅',
                     'value': f'{pending_leaves}',
@@ -591,7 +592,7 @@ def personnel_home(request):
                 ongoing_trainings = Training.objects.filter(status='ongoing').count()
                 this_month_trainings = Training.objects.filter(training_date__gte=this_month_start).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '培训管理',
                     'icon': '📚',
                     'value': f'{ongoing_trainings}',
@@ -610,7 +611,7 @@ def personnel_home(request):
                     status__in=['draft', 'self_assessment', 'manager_review']
                 ).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '绩效考核',
                     'icon': '📊',
                     'value': f'{pending_performances}',
@@ -628,7 +629,7 @@ def personnel_home(request):
                     salary_month__month=today.month
                 ).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '薪资管理',
                     'icon': '💰',
                     'value': f'{this_month_salaries}',
@@ -648,7 +649,7 @@ def personnel_home(request):
                     end_date__lte=today + timedelta(days=90)
                 ).count()
                 
-                stats_cards.append({
+                summary_cards.append({
                     'label': '劳动合同',
                     'icon': '📄',
                     'value': f'{active_contracts}',
@@ -663,11 +664,95 @@ def personnel_home(request):
         logger = logging.getLogger(__name__)
         logger.exception('获取统计数据失败: %s', str(e))
     
+    # 功能模块区域
+    sections = []
+    
+    # 快捷操作区域
+    quick_actions = []
+    
+    if _permission_granted('personnel_management.employee.create', permission_codes):
+        try:
+            quick_actions.append({
+                'label': '添加员工',
+                'icon': '➕',
+                'description': '添加新员工档案',
+                'url': reverse('personnel_pages:employee_create'),
+                'link_label': '添加员工 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if quick_actions:
+        sections.append({
+            'title': '快捷操作',
+            'description': '常用的快速操作入口',
+            'items': quick_actions
+        })
+    
+    # 功能模块区域
+    modules = []
+    
+    if _permission_granted('personnel_management.employee.view', permission_codes):
+        try:
+            modules.append({
+                'label': '员工档案管理',
+                'icon': '👤',
+                'description': '管理员工基本信息、档案和合同',
+                'url': reverse('personnel_pages:employee_management'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if _permission_granted('personnel_management.attendance.view', permission_codes):
+        try:
+            modules.append({
+                'label': '考勤管理',
+                'icon': '⏰',
+                'description': '管理员工考勤记录和统计',
+                'url': reverse('personnel_pages:attendance_management'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if _permission_granted('personnel_management.leave.view', permission_codes):
+        try:
+            modules.append({
+                'label': '请假管理',
+                'icon': '📅',
+                'description': '管理员工请假申请和审批',
+                'url': reverse('personnel_pages:leave_management'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if _permission_granted('personnel_management.organization.view', permission_codes):
+        try:
+            modules.append({
+                'label': '组织架构',
+                'icon': '🏢',
+                'description': '管理组织架构、部门和职位',
+                'url': reverse('personnel_pages:organization_management'),
+                'link_label': '进入模块 →'
+            })
+        except NoReverseMatch:
+            pass
+    
+    if modules:
+        sections.append({
+            'title': '功能模块',
+            'description': '人事管理的各个功能模块入口',
+            'items': modules
+        })
+    
     context = _context(
         "人事管理",
         "👥",
         "企业人事管理平台",
-        summary_cards=[],
+        summary_cards=summary_cards,
+        sections=sections,
         request=request,
         use_personnel_nav=True
     )

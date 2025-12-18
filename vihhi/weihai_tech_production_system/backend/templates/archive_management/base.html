@@ -264,13 +264,18 @@
         {% endif %}
 
         {% block breadcrumb %}
-        <nav aria-label="breadcrumb">
+        <nav aria-label="breadcrumb" class="breadcrumb-nav">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'home' %}">首页</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'archive_management:project_archive_list' %}">档案管理</a></li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'home' %}">首页</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'archive_management:archive_list' %}">档案管理</a>
+                </li>
                 {% block breadcrumb_items %}{% endblock %}
             </ol>
         </nav>
+        {% endblock %}
         {% endblock %}
 
         <div class="archive-management-layout">
@@ -286,12 +291,56 @@
                         </a>
                         
                         <!-- 动态菜单项 -->
-                        {% if archive_sidebar_nav %}
-                        {% for nav_item in archive_sidebar_nav %}
-                            {% if nav_item.items %}
-                            <!-- 菜单分组 -->
-                            <div class="archive-nav-group">
-                                <div class="archive-nav-group-header {% if not nav_item.collapsed %}expanded{% endif %}" onclick="toggleArchiveNavGroup(this)">
+                                {% if archive_sidebar_nav %}
+        {# 档案管理布局 - 使用统一样式模板，带左侧菜单 #}
+        <div class="workspace workspace-two-column archive-management-layout">
+            <!-- 左侧导航菜单 -->
+            <aside class="workspace-nav">
+                <nav class="sidenav">
+                    <div class="sidenav-section">
+                        <div class="sidenav-links">
+                            {% for menu_group in archive_sidebar_nav %}
+                            <div class="sidenav-item {% if menu_group.active or menu_group.expanded or not menu_group.collapsed %}expanded{% endif %}">
+                                <a class="sidenav-link" 
+                                   href="{% if menu_group.url %}{{ menu_group.url }}{% else %}#{% endif %}" 
+                                   {% if menu_group.active %}data-active="true"{% endif %}>
+                                    {% if menu_group.icon %}<span>{{ menu_group.icon }}</span>{% endif %}
+                                    <span>{{ menu_group.label }}</span>
+                                    {% if menu_group.items %}<span class="menu-arrow">▶</span>{% endif %}
+                                </a>
+                                {% if menu_group.items %}
+                                <div class="submenu">
+                                    {% for child in menu_group.items %}
+                                    <a class="sidenav-link sidenav-sub-link" 
+                                       href="{{ child.url }}" 
+                                       {% if child.active %}data-active="true"{% endif %}>
+                                        {% if child.icon %}<span>{{ child.icon }}</span>{% endif %}
+                                        <span>{{ child.label }}</span>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </nav>
+            </aside>
+            
+            <!-- 主内容区域 -->
+            <main class="workspace-main archive-content">
+        {% else %}
+        <div class="workspace-content">
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+        
+        {% if archive_sidebar_nav %}
+            </main>
+        </div>
+        {% else %}
+        </div>
+        {% endif %}" onclick="toggleArchiveNavGroup(this)">
                                     <span class="nav-label">{{ nav_item.label }}</span>
                                     <span class="nav-toggle">{% if nav_item.collapsed %}▶{% else %}▼{% endif %}</span>
                                 </div>
@@ -364,6 +413,8 @@
         });
     </script>
     {% block extra_js %}{% endblock %}
+
+    <script src="{% static 'js/sidebar.js' %}"></script>
 </body>
 </html>
 

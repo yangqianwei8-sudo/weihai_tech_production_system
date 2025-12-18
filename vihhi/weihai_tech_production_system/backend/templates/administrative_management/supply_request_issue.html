@@ -5,7 +5,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supply_request_list' %}">领用管理</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supply_request_detail' request_obj.id %}">{{ request_obj.request_number }}</a></li>
-<li class="breadcrumb-item active">发放确认</li>
+<li class="breadcrumb-item active" aria-current="page">发放确认</li>
 {% endblock %}
 
 {% block extra_css %}

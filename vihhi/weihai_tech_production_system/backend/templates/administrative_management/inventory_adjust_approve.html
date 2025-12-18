@@ -5,7 +5,7 @@
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:inventory_adjust_list' %}">库存调整</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:inventory_adjust_detail' adjust.id %}">{{ adjust.adjust_number }}</a></li>
-<li class="breadcrumb-item active">审批</li>
+<li class="breadcrumb-item active" aria-current="page">审批</li>
 {% endblock %}
 
 {% block content %}

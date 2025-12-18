@@ -68,7 +68,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'business_pages:customer_visit' %}">创建联系人拜访</a></li>
-<li class="breadcrumb-item active">{{ visit_plan.plan_title }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ visit_plan.plan_title }}</li>
 {% endblock %}
 
 {% block content %}

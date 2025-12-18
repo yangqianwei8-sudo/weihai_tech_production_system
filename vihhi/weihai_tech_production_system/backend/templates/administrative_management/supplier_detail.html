@@ -4,7 +4,7 @@
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item"><a href="{% url 'admin_pages:supplier_list' %}">供应商</a></li>
-<li class="breadcrumb-item active">{{ supplier.name }}</li>
+<li class="breadcrumb-item active" aria-current="page">{{ supplier.name }}</li>
 {% endblock %}
 
 {% block extra_css %}
