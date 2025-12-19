@@ -218,10 +218,9 @@ class SettlementItem(models.Model):
     # 关联信息
     settlement = models.ForeignKey('ProjectSettlement', on_delete=models.CASCADE, related_name='items',
                                   verbose_name='关联结算单')
-    opinion = models.ForeignKey('production_quality.Opinion', on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name='settlement_items_management',
-                               verbose_name='关联意见',
-                               help_text='从生产管理模块的意见生成（已删除生产质量模块，此字段保留用于历史数据）')
+    opinion_id = models.IntegerField(null=True, blank=True,
+                                   verbose_name='关联意见ID',
+                                   help_text='从生产管理模块的意见生成（已删除生产质量模块，此字段保留用于历史数据）')
     
     # 基本信息（从Opinion自动带出）
     opinion_number = models.CharField(max_length=50, blank=True, verbose_name='意见编号',
@@ -263,10 +262,10 @@ class SettlementItem(models.Model):
         ordering = ['settlement', 'order', 'created_time']
         indexes = [
             models.Index(fields=['settlement', 'order']),
-            models.Index(fields=['opinion']),
+            models.Index(fields=['opinion_id']),
             models.Index(fields=['review_status']),
         ]
-        unique_together = [['settlement', 'opinion']]  # 同一结算单中每个意见只能出现一次
+        unique_together = [['settlement', 'opinion_id']]  # 同一结算单中每个意见只能出现一次
     
     def __str__(self):
         return f"{self.settlement.settlement_number} - {self.opinion_number} - {self.opinion_title}"

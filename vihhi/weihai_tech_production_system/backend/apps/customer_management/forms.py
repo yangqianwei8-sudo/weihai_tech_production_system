@@ -7,7 +7,6 @@ from .models import (
     ContactCareer,
     ContactColleague,
     ContactEducation,
-    ContactInfoChange,
     School,
     CustomerRelationship,
     CustomerRelationshipUpgrade,
@@ -22,6 +21,11 @@ from .models import (
     AuthorizationLetter,
     AuthorizationLetterTemplate
 )
+# 尝试导入 ContactInfoChange（如果模型存在）
+try:
+    from .models import ContactInfoChange
+except ImportError:
+    ContactInfoChange = None
 from backend.apps.production_management.models import BusinessContract, Project
 
 
@@ -1634,62 +1638,6 @@ class BusinessExpenseApplicationForm(forms.ModelForm):
         return cleaned_data
 
 
-class ContactInfoChangeForm(forms.ModelForm):
-    """人员信息变更申请表单"""
-    
-    class Meta:
-        model = ContactInfoChange
-        fields = [
-            'contact', 'change_type', 'change_reason', 'change_content'
-        ]
-        widgets = {
-            'contact': forms.Select(attrs={'class': 'form-select', 'required': True}),
-            'change_type': forms.Select(attrs={'class': 'form-select', 'required': True}),
-            'change_reason': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
-                'required': True,
-                'placeholder': '请详细说明变更的原因和依据'
-            }),
-            'change_content': forms.HiddenInput(),  # 通过JavaScript动态填充
-        }
-        labels = {
-            'contact': '关联联系人',
-            'change_type': '变更类型',
-            'change_reason': '变更原因',
-            'change_content': '变更内容',
-        }
-        help_texts = {
-            'change_reason': '请详细说明变更的原因和依据，以便审批人了解变更的必要性',
-        }
-    
-    def __init__(self, *args, **kwargs):
-        self.is_draft = kwargs.pop('is_draft', False)
-        super().__init__(*args, **kwargs)
-        
-        # 设置联系人选择
-        self.fields['contact'].queryset = ClientContact.objects.all().select_related('client').order_by('client__name', 'name')
-        self.fields['contact'].empty_label = '-- 选择联系人 --'
-        
-        # 如果是草稿，所有字段都不是必填
-        if self.is_draft:
-            for field_name in self.fields:
-                self.fields[field_name].required = False
-        else:
-            # 提交时，确保必填字段
-            self.fields['contact'].required = True
-            self.fields['change_type'].required = True
-            self.fields['change_reason'].required = True
-    
-    def clean_change_content(self):
-        """验证变更内容"""
-        change_content = self.cleaned_data.get('change_content')
-        if not change_content or not isinstance(change_content, dict):
-            if not self.is_draft:
-                raise forms.ValidationError('请至少选择一个字段进行变更')
-        return change_content
-
-
 class ContractNegotiationForm(forms.ModelForm):
     """合同洽谈记录表单"""
     
@@ -1794,5 +1742,103 @@ class ContractNegotiationForm(forms.ModelForm):
         # 如果关联了合同，自动填充客户
         if contract and contract.client:
             cleaned_data['client'] = contract.client
+        
+        return cleaned_data
+
+
+# 尝试导入 ContactInfoChange（如果模型存在）
+try:
+    from .models import ContactInfoChange
+except ImportError:
+    ContactInfoChange = None
+
+
+class ContactInfoChangeForm(forms.ModelForm):
+    """人员信息变更申请表单"""
+    
+    class Meta:
+        # 注意：如果 ContactInfoChange 模型已被删除，此表单将无法使用
+        if ContactInfoChange is None:
+            # 如果模型不存在，创建一个虚拟的 Meta 类
+            model = None
+            fields = []
+        else:
+            model = ContactInfoChange
+            fields = [
+                'contact',
+                'change_type',
+                'change_reason',
+                'change_content',
+                'approval_status',
+            ]
+            widgets = {
+                'contact': forms.Select(attrs={'class': 'form-select'}),
+                'change_type': forms.Select(attrs={'class': 'form-select'}),
+                'change_reason': forms.Textarea(attrs={
+                    'class': 'form-control',
+                    'rows': 4,
+                    'placeholder': '请说明变更的原因和依据'
+                }),
+                'change_content': forms.Textarea(attrs={
+                    'class': 'form-control',
+                    'rows': 6,
+                    'placeholder': 'JSON格式：存储变更的字段和对应的旧值、新值'
+                }),
+                'approval_status': forms.Select(attrs={'class': 'form-select'}),
+            }
+            labels = {
+                'contact': '关联联系人',
+                'change_type': '变更类型',
+                'change_reason': '变更原因',
+                'change_content': '变更内容',
+                'approval_status': '审批状态',
+            }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if ContactInfoChange is None:
+            return
+        
+        # 设置联系人查询集
+        from .models import ClientContact
+        self.fields['contact'].queryset = ClientContact.objects.all().order_by('name')
+        self.fields['contact'].empty_label = '-- 选择联系人 --'
+        
+        # 如果是创建模式，设置默认创建人
+        if user and (not self.instance or not self.instance.pk):
+            # created_by 字段通常不在表单中，由视图函数设置
+            pass
+    
+    def clean(self):
+        if ContactInfoChange is None:
+            raise forms.ValidationError('ContactInfoChange 模型不存在，无法使用此表单')
+        
+        cleaned_data = super().clean()
+        change_type = cleaned_data.get('change_type')
+        change_reason = cleaned_data.get('change_reason')
+        change_content = cleaned_data.get('change_content')
+        
+        # 验证必填字段
+        if not change_type:
+            raise forms.ValidationError({'change_type': '请选择变更类型'})
+        if not change_reason:
+            raise forms.ValidationError({'change_reason': '请输入变更原因'})
+        
+        # 验证 change_content 是否为有效的 JSON
+        if change_content:
+            try:
+                import json
+                if isinstance(change_content, str):
+                    json.loads(change_content)
+                elif not isinstance(change_content, dict):
+                    raise forms.ValidationError({
+                        'change_content': '变更内容必须是有效的 JSON 格式'
+                    })
+            except json.JSONDecodeError:
+                raise forms.ValidationError({
+                    'change_content': '变更内容必须是有效的 JSON 格式'
+                })
         
         return cleaned_data

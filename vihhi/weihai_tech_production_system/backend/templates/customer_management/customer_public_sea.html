@@ -137,17 +137,20 @@
 
         <!-- 筛选栏 -->
         <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
-            <div class="list-page-filters-header">
-                <h6 class="list-page-filters-title">筛选条件</h6>
-                <div class="list-page-filters-actions">
-                    <button type="button" class="list-page-filters-toggle" id="toggleFilterCollapse">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0 small fw-semibold">筛选条件</h6>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="settingsFilterFieldsBtn">
+                        ⚙️ 设置筛选字段
+                    </button>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="toggleFilterCollapse" style="display: none;">
                         <span id="filterCollapseText">展开</span>
                         <span id="filterCollapseIcon">▼</span>
                     </button>
                 </div>
             </div>
             <form method="get" id="filterForm">
-                <div id="basicFilters" style="display: none;">
+                <div id="basicFilters">
                     <!-- 搜索 -->
                     <div class="filter-row mb-3" data-filter-key="search">
                         <label class="filter-label">搜索:</label>
@@ -219,41 +222,6 @@
                 </div>
             </form>
         </div>
-
-        <!-- 操作栏 -->
-        <div class="list-page-action-bar mb-1 d-flex justify-content-between align-items-center" style="margin-bottom: 8px !important;">
-            <!-- 左侧：选中信息 -->
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted small">已选 <strong id="selectedCount" style="color: #ff6b35;">0</strong> 个</span>
-                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="clearSelection" style="display: none;">
-                    清除所选
-                </button>
-            </div>
-            
-            <!-- 右侧：搜索控件 -->
-            <div class="d-flex align-items-center gap-2">
-                <div class="input-group input-group-sm" style="width: auto;">
-                    <input type="text" class="form-control form-control-sm" id="quickSearchInput" 
-                           placeholder="快速搜索客户名称、统一信用代码" value="{{ search }}" 
-                           style="width: 250px; font-size: 12px;"data-keypress="handle_onkeypress_0"Enter') document.getElementById('quickSearchForm').submit();">
-                    <button class="btn btn-outline-secondary btn-sm" type="submit" form="quickSearchForm" style="font-size: 12px;">
-                        <i class="bi bi-search"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm" type="button"data-click="handle_onclick_1" style="font-size: 12px;">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 隐藏的快速搜索表单 -->
-        <form method="get" id="quickSearchForm" style="display: none;">
-            <input type="hidden" name="search" id="quickSearchHidden">
-            {% if public_sea_reason %}<input type="hidden" name="public_sea_reason" value="{{ public_sea_reason }}">{% endif %}
-            {% if client_level %}<input type="hidden" name="client_level" value="{{ client_level }}">{% endif %}
-            {% if region %}<input type="hidden" name="region" value="{{ region }}">{% endif %}
-            {% if industry %}<input type="hidden" name="industry" value="{{ industry }}">{% endif %}
-        </form>
 
         <!-- 数据表格 -->
         <div class="list-page-table-container">
@@ -430,155 +398,27 @@ document.getElementById('clearSelection')?.addEventListener('click', function() 
 });
 
 // 快速搜索表单提交
-document.getElementById('quickSearchInput')?.addEventListener('input', function() {
-    const hiddenInput = document.getElementById('quickSearchHidden');
-    if (hiddenInput) {
-        hiddenInput.value = this.value;
-    }
-});
-
-// 筛选条件折叠/展开
-document.addEventListener('DOMContentLoaded', function() {
-    const toggleBtn = document.getElementById('toggleFilterCollapse');
-    const filters = document.getElementById('basicFilters');
-    const text = document.getElementById('filterCollapseText');
-    const icon = document.getElementById('filterCollapseIcon');
-    
-    // 检查是否有筛选参数，如果有则自动展开
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = urlParams.get('search') || urlParams.get('public_sea_reason') || 
-                       urlParams.get('client_level') || urlParams.get('region') || 
-                       urlParams.get('industry');
-    
-    if (toggleBtn && filters) {
-        // 如果有筛选参数，默认展开
-        if (hasFilters) {
-            filters.style.display = 'block';
-            if (text) text.textContent = '收起';
-            if (icon) icon.textContent = '▲';
-        }
-        
-        toggleBtn.addEventListener('click', function() {
-            if (filters.style.display === 'none') {
-                filters.style.display = 'block';
-                if (text) text.textContent = '收起';
-                if (icon) icon.textContent = '▲';
-            } else {
-                filters.style.display = 'none';
-                if (text) text.textContent = '展开';
-                if (icon) icon.textContent = '▼';
-            }
-        });
-    }
-    
-    // 筛选按钮点击事件
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const filterName = this.dataset.filter;
-            const filterValue = this.dataset.value;
-            const hiddenInput = document.getElementById('filter_' + filterName);
-            
-            // 移除同组其他按钮的active状态
-            const group = this.closest('.filter-buttons');
-            group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            
-            // 设置当前按钮为active
-            this.classList.add('active');
-            
-            // 更新隐藏输入框的值
-            if (hiddenInput) {
-                hiddenInput.value = filterValue;
-            }
-            
-            // 特殊处理：地区、行业输入框
-            if (filterName === 'region' || filterName === 'industry') {
-                const input = group.querySelector('input[type="text"]');
-                if (input && filterValue === '') {
-                    input.value = '';
-                }
-            }
-            
-            // 自动提交表单
-            document.getElementById('filterForm').submit();
-        });
-    });
-    
-    // 搜索输入框回车提交
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                document.getElementById('filterForm').submit();
-            }
-        });
-    }
-    
-    // 地区、行业输入框回车提交
-    const regionInput = document.getElementById('regionInput');
-    const industryInput = document.getElementById('industryInput');
-    
-    [regionInput, industryInput].forEach(input => {
-        if (input) {
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    // 更新对应的全部按钮状态
-                    const group = this.closest('.filter-buttons');
-                    const allBtn = group.querySelector('.filter-btn[data-value=""]');
-                    if (allBtn && this.value.trim() === '') {
-                        group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                        allBtn.classList.add('active');
-                    } else if (allBtn && this.value.trim() !== '') {
-                        allBtn.classList.remove('active');
-                    }
-                    document.getElementById('filterForm').submit();
-                }
-            });
-            
-            // 输入框变化时更新全部按钮状态
-            input.addEventListener('input', function() {
-                const group = this.closest('.filter-buttons');
-                const allBtn = group.querySelector('.filter-btn[data-value=""]');
-                if (this.value.trim() === '') {
-                    if (allBtn) {
-                        group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                        allBtn.classList.add('active');
-                    }
-                } else {
-                    if (allBtn) {
-                        allBtn.classList.remove('active');
-                    }
-                }
-            });
-        }
-    });
-    
-    // 初始化选中计数
-    updateSelectedCount();
-    updateSelectAllState();
-});
-
-    // 事件处理器: handle_onkeypress_0
-    document.addEventListener('DOMContentLoaded', function() {
-        const element = document.querySelector('#quickSearchInput');
-        if (element) {
-            element.addEventListener('keypress', function(e) {
-                if(event.key===
-            });
-        }
-    });
-
-
-    // 事件处理器: handle_onclick_1
-    document.addEventListener('DOMContentLoaded', function() {
-        const element = document.querySelector('.btn');
-        if (element) {
-            element.addEventListener('click', function(e) {
-                location.reload()
-            });
-        }
-    });
-
 </script>
+        <!-- 引入筛选字段设置功能模块 -->
+    
+        {% include "customer_management/includes/filter_fields_settings_modal.html" %}
+    
+    <!-- 引入筛选字段设置功能模块 -->
+    <script src="{% static 'js/filter-fields-settings.js' %}"></script>
+    <!-- 配置筛选字段设置功能（必须在 list-filters.js 之前） -->
+    <script>
+    window.listFiltersConfig = {
+        enableFieldsSettings: true,
+        fieldsSettingsStorageKey: 'customer_public_sea_filter_fields',
+        fieldsSettingsContainerId: 'basicFilters',
+        fieldsSettingsModalId: 'filterFieldsSettingsModal',
+        fieldsSettingsListId: 'filterFieldsList',
+        fieldsSettingsBtnId: 'settingsFilterFieldsBtn',
+        fieldsSettingsSaveBtnId: 'saveFilterFieldsSettings',
+        fieldsSettingsResetBtnId: 'resetFilterFieldsSettings',
+        maxEnabledFields: 10,
+        defaultEnabledFields: ['public_sea_reason', 'client_level', 'region']
+    };
+    </script>
+    <script src="{% static 'js/list-filters.js' %}"></script>
 {% endblock %}

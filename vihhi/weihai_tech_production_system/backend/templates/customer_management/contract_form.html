@@ -61,7 +61,7 @@
 </style>
 {% endblock %}
 
-{% block contract_content %}
+{% block content %}
 <div class="container-fluid py-4">
     <div class="center-hero mb-4">
         <div style="position: relative; z-index: 1;">
@@ -2309,7 +2309,303 @@ cachedElements.serviceContentsContainer = document.getElementById('service-conte
         
         
         // 页面加载时计算一次
-});
+
+        // ========== 绑定所有缺失的添加行按钮 ==========
+        // 辅助函数：更新行序号
+        function updateRowNumbers(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const rows = container.querySelectorAll('tr');
+            rows.forEach(function(row, index) {
+                const numCell = row.querySelector('td:first-child strong');
+                if (numCell) {
+                    numCell.textContent = index + 1;
+                }
+            });
+        }
+
+        // 绑定总价包干添加按钮
+        const addFixedTotalBtn = document.getElementById('add-fixed-total-btn');
+        if (addFixedTotalBtn) {
+            addFixedTotalBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const container = document.getElementById('fixed-total-container');
+                if (!container) return;
+                const rows = container.querySelectorAll('tr');
+                const index = rows.length;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="text-align: center; vertical-align: middle;"><strong>${index + 1}</strong></td>
+                    <td>
+                        <select name="fixed_total_items[${index}][service_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="fixed_total_items[${index}][area_scale]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td><input type="number" name="fixed_total_items[${index}][service_fee]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn btn-sm btn-danger remove-row-btn"><i class="bi bi-trash"></i> 删除</button>
+                    </td>
+                `;
+                container.appendChild(row);
+                    // 填充服务类型选项
+                    const serviceTypeSelect = row.querySelector('select[name*="[service_type]"]');
+                    if (serviceTypeSelect && typeof serviceTypeOptions !== 'undefined') {
+                        serviceTypeOptions.forEach(function(opt) {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.label;
+                            serviceTypeSelect.appendChild(option);
+                        });
+                    }
+                const removeBtn = row.querySelector('.remove-row-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        row.remove();
+                        updateRowNumbers('fixed-total-container');
+                        calculateFixedTotalSubtotal();
+                    });
+                }
+                const serviceFeeInput = row.querySelector('input[name*="[service_fee]"]');
+                if (serviceFeeInput) {
+                    serviceFeeInput.addEventListener('input', calculateFixedTotalSubtotal);
+                }
+                updateRowNumbers('fixed-total-container');
+                calculateFixedTotalSubtotal();
+            });
+        }
+
+        // 绑定包干单价添加按钮
+        const addFixedUnitBtn = document.getElementById('add-fixed-unit-btn');
+        if (addFixedUnitBtn) {
+            addFixedUnitBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const container = document.getElementById('fixed-unit-container');
+                if (!container) return;
+                const rows = container.querySelectorAll('tr');
+                const index = rows.length;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="text-align: center; vertical-align: middle;"><strong>${index + 1}</strong></td>
+                    <td>
+                        <select name="fixed_unit_items[${index}][service_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="fixed_unit_items[${index}][area_size]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td>
+                        <select name="fixed_unit_items[${index}][area_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="fixed_unit_items[${index}][unit_price]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td><input type="number" name="fixed_unit_items[${index}][service_fee]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn btn-sm btn-danger remove-row-btn"><i class="bi bi-trash"></i> 删除</button>
+                    </td>
+                `;
+                container.appendChild(row);
+                    // 填充服务类型选项
+                    const serviceTypeSelect = row.querySelector('select[name*="[service_type]"]');
+                    if (serviceTypeSelect && typeof serviceTypeOptions !== 'undefined') {
+                        serviceTypeOptions.forEach(function(opt) {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.label;
+                            serviceTypeSelect.appendChild(option);
+                        });
+                    }
+                const removeBtn = row.querySelector('.remove-row-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        row.remove();
+                        updateRowNumbers('fixed-unit-container');
+                        calculateFixedUnitSubtotal();
+                    });
+                }
+                const inputs = row.querySelectorAll('input[name*="[area_size]"], input[name*="[unit_price]"], input[name*="[service_fee]"]');
+                inputs.forEach(function(input) {
+                    input.addEventListener('input', function() {
+                        const areaInput = row.querySelector('input[name*="[area_size]"]');
+                        const unitPriceInput = row.querySelector('input[name*="[unit_price]"]');
+                        const serviceFeeInput = row.querySelector('input[name*="[service_fee]"]');
+                        if (areaInput && unitPriceInput && serviceFeeInput) {
+                            const area = parseFloat(areaInput.value) || 0;
+                            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+                            serviceFeeInput.value = (area * unitPrice).toFixed(2);
+                        }
+                        calculateFixedUnitSubtotal();
+                    });
+                });
+                updateRowNumbers('fixed-unit-container');
+                calculateFixedUnitSubtotal();
+
+        }
+
+        // 绑定累计提成添加按钮
+        const addCumulativeCommissionBtn = document.getElementById('add-cumulative-commission-btn');
+        if (addCumulativeCommissionBtn) {
+            addCumulativeCommissionBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const container = document.getElementById('cumulative-commission-container');
+                if (!container) return;
+                const rows = container.querySelectorAll('tr');
+                const index = rows.length;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="text-align: center; vertical-align: middle;"><strong>${index + 1}</strong></td>
+                    <td>
+                        <select name="cumulative_commission_items[${index}][service_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="cumulative_commission_items[${index}][area_scale]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td>
+                        <select name="cumulative_commission_items[${index}][area_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="cumulative_commission_items[${index}][commission_rate]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td><input type="number" name="cumulative_commission_items[${index}][adjustment_rate]" class="form-control form-control-sm" step="0.01" placeholder="0.00"></td>
+                    <td><input type="number" name="cumulative_commission_items[${index}][service_fee]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn btn-sm btn-danger remove-row-btn"><i class="bi bi-trash"></i> 删除</button>
+                    </td>
+                `;
+                container.appendChild(row);
+                    // 填充服务类型选项
+                    const serviceTypeSelect = row.querySelector('select[name*="[service_type]"]');
+                    if (serviceTypeSelect && typeof serviceTypeOptions !== 'undefined') {
+                        serviceTypeOptions.forEach(function(opt) {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.label;
+                            serviceTypeSelect.appendChild(option);
+                        });
+                    }
+                const removeBtn = row.querySelector('.remove-row-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        row.remove();
+                        updateRowNumbers('cumulative-commission-container');
+                    });
+                }
+                updateRowNumbers('cumulative-commission-container');
+            });
+        }
+
+        // 绑定分段提成添加按钮
+        const addSegmentedCommissionBtn = document.getElementById('add-segmented-commission-btn');
+        if (addSegmentedCommissionBtn) {
+            addSegmentedCommissionBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const container = document.getElementById('segmented-commission-container');
+                if (!container) return;
+                const rows = container.querySelectorAll('tr');
+                const index = rows.length;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="text-align: center; vertical-align: middle;"><strong>${index + 1}</strong></td>
+                    <td>
+                        <select name="segmented_commission_items[${index}][service_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="segmented_commission_items[${index}][area_scale]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td>
+                        <select name="segmented_commission_items[${index}][area_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="segmented_commission_items[${index}][amount_range]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td><input type="number" name="segmented_commission_items[${index}][commission_rate]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td><input type="number" name="segmented_commission_items[${index}][adjustment_rate]" class="form-control form-control-sm" step="0.01" placeholder="0.00"></td>
+                    <td><input type="number" name="segmented_commission_items[${index}][service_fee]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn btn-sm btn-danger remove-row-btn"><i class="bi bi-trash"></i> 删除</button>
+                    </td>
+                `;
+                container.appendChild(row);
+                    // 填充服务类型选项
+                    const serviceTypeSelect = row.querySelector('select[name*="[service_type]"]');
+                    if (serviceTypeSelect && typeof serviceTypeOptions !== 'undefined') {
+                        serviceTypeOptions.forEach(function(opt) {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.label;
+                            serviceTypeSelect.appendChild(option);
+                        });
+                    }
+                const removeBtn = row.querySelector('.remove-row-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        row.remove();
+                        updateRowNumbers('segmented-commission-container');
+                    });
+                }
+                updateRowNumbers('segmented-commission-container');
+            });
+        }
+
+        // 绑定跳点提成添加按钮
+        const addJumpPointCommissionBtn = document.getElementById('add-jump-point-commission-btn');
+        if (addJumpPointCommissionBtn) {
+            addJumpPointCommissionBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const container = document.getElementById('jump-point-commission-container');
+                if (!container) return;
+                const rows = container.querySelectorAll('tr');
+                const index = rows.length;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="text-align: center; vertical-align: middle;"><strong>${index + 1}</strong></td>
+                    <td>
+                        <select name="jump_point_commission_items[${index}][service_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="jump_point_commission_items[${index}][area_scale]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td>
+                        <select name="jump_point_commission_items[${index}][area_type]" class="form-select form-select-sm" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="jump_point_commission_items[${index}][jump_point_amount]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td><input type="number" name="jump_point_commission_items[${index}][commission_rate]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td><input type="number" name="jump_point_commission_items[${index}][adjustment_rate]" class="form-control form-control-sm" step="0.01" placeholder="0.00"></td>
+                    <td><input type="number" name="jump_point_commission_items[${index}][service_fee]" class="form-control form-control-sm" step="0.01" placeholder="0.00" required></td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn btn-sm btn-danger remove-row-btn"><i class="bi bi-trash"></i> 删除</button>
+                    </td>
+                `;
+                container.appendChild(row);
+                    // 填充服务类型选项
+                    const serviceTypeSelect = row.querySelector('select[name*="[service_type]"]');
+                    if (serviceTypeSelect && typeof serviceTypeOptions !== 'undefined') {
+                        serviceTypeOptions.forEach(function(opt) {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.label;
+                            serviceTypeSelect.appendChild(option);
+                        });
+                    }
+                const removeBtn = row.querySelector('.remove-row-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        row.remove();
+                        updateRowNumbers('jump-point-commission-container');
+                    });
+                }
+                updateRowNumbers('jump-point-commission-container');
+            });
+        }
+            });
+        }
 
         // 绑定添加服务内容按钮事件
         const addServiceContentBtn = document.getElementById('add-service-content-btn');
@@ -2331,7 +2627,7 @@ cachedElements.serviceContentsContainer = document.getElementById('service-conte
 
         // 初始化我方签约主体选项
         (function() {
-            const ourUnits = {{ our_units|safe }};
+            const ourUnits = {{ our_units|safe|default:"[]" }};
             const select = document.getElementById('our_signing_party');
             if (select && Array.isArray(ourUnits)) {
                 ourUnits.forEach(function(unit) {
@@ -2342,5 +2638,7 @@ cachedElements.serviceContentsContainer = document.getElementById('service-conte
                 });
             }
         })();
+
+
 </script>
 {% endblock %}

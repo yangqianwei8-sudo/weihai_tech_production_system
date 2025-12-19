@@ -8,7 +8,7 @@ urlpatterns = [
     # 收发管理首页
     path("", views_pages.report_delivery, name="report_delivery"),
     
-    # 交付记录管理页面
+    # 交付记录管理页面（收发管理模块）
     path("list/", views_pages.delivery_list, name="delivery_list"),
     path("create/", views_pages.delivery_create, name="delivery_create"),
     path("<int:delivery_id>/", views_pages.delivery_detail, name="delivery_detail"),
@@ -18,7 +18,7 @@ urlpatterns = [
     path("statistics/", views_pages.delivery_statistics, name="delivery_statistics"),
     path("warnings/", views_pages.delivery_warnings, name="delivery_warnings"),
     
-    # 交付审核页面
+    # 交付审核页面（收发管理模块）
     path("approval/", views_pages.delivery_approval_list, name="delivery_approval_list"),
     path("approval/<int:delivery_id>/", views_pages.delivery_approval_detail, name="delivery_approval_detail"),
     path("approval/<int:delivery_id>/action/", views_pages.delivery_approval_action, name="delivery_approval_action"),

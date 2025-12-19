@@ -337,8 +337,8 @@
         const clientSelect = document.getElementById('id_client');
         const locationInput = document.getElementById('id_location');
         const opportunitySelect = document.getElementById('id_related_opportunity');
-        const clientsWithAddress = {{ clients_with_address_json|safe }};
-        const clientsOpportunities = {{ clients_opportunities_json|safe }};
+        const clientsWithAddress = {{ clients_with_address_json|safe|default:"{}" }};
+        const clientsOpportunities = {{ clients_opportunities_json|safe|default:"{}" }};
         
         function updateLocation() {
             if (clientSelect && locationInput) {

@@ -10,7 +10,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('production_quality', '0004_opinion_closed_at_opinion_cycle_time_hours_and_more'),
+        # ('production_quality', '0004_opinion_closed_at_opinion_cycle_time_hours_and_more'),  # 已删除production_quality模块
         ('production_management', '0001_initial'),
         ('project_center', '0018_add_project_tasks'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

@@ -180,7 +180,7 @@ class Migration(migrations.Migration):
                 ),
                 migrations.RemoveField(
                     model_name='projectdesignreply',
-                    name='opinion',
+                    name='opinion_id',
                 ),
                 migrations.RemoveField(
                     model_name='projectdesignreply',
@@ -303,7 +303,7 @@ class Migration(migrations.Migration):
                 ),
                 migrations.RemoveField(
                     model_name='projectmeetingdecision',
-                    name='opinion',
+                    name='opinion_id',
                 ),
                 migrations.RemoveField(
                     model_name='projectmeetingrecord',

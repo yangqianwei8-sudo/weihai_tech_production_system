@@ -39,6 +39,12 @@
     --vh-border: #E4E8F4;
     --vh-border-light: #F1F5F9;
     
+    /* 下划线与列表线统一颜色 - 主题色深蓝色 */
+    --vh-underline-color: var(--vh-primary-dark); /* #0F1E3A */
+    
+    /* 列表行高统一变量 */
+    --table-line-height: 1.0; /* 所有列表行统一行高 */
+    
     /* 兼容性变量（保持向后兼容） */
     --brand-primary: var(--vh-primary);
     --brand-primary-600: var(--vh-primary-dark);

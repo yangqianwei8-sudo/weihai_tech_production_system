@@ -18,7 +18,6 @@ urlpatterns = [
     path("customers/<int:client_id>/delete/", views_pages.customer_delete, name="customer_delete"),
     path("customers/<int:client_id>/submit-approval/", views_pages.customer_submit_approval, name="customer_submit_approval"),
     path("customers/<int:client_id>/execution-records/export/", views_pages.execution_records_export, name="execution_records_export"),
-    path("customers/batch-transfer/", views_pages.customer_batch_transfer, name="customer_batch_transfer"),
     path("customers/batch-delete/", views_pages.customer_batch_delete, name="customer_batch_delete"),
     path("customers/export/", views_pages.customer_export, name="customer_export"),
     path("customers/public-sea/", views_pages.customer_public_sea, name="customer_public_sea"),
@@ -27,15 +26,12 @@ urlpatterns = [
     # 人员关系管理
     path("contacts/", views_pages.contact_list, name="contact_list"),
     path("contacts/create/", views_pages.contact_create, name="contact_create"),
-    path("contacts/info-change/create/", views_pages.contact_info_change_create, name="contact_info_change_create"),
     path("contacts/<int:contact_id>/", views_pages.contact_detail, name="contact_detail"),
     path("contacts/<int:contact_id>/edit/", views_pages.contact_edit, name="contact_edit"),
     path("contacts/<int:contact_id>/delete/", views_pages.contact_delete, name="contact_delete"),
     path("contacts/relationship-mining/", views_pages.contact_relationship_mining, name="contact_relationship_mining"),
     path("contacts/tracking-reminders/", views_pages.contact_tracking_reminders, name="contact_tracking_reminders"),
     path("contacts/info-change/create/", views_pages.contact_info_change_create, name="contact_info_change_create"),
-    path("contacts/info-change/", views_pages.contact_info_change_list, name="contact_info_change_list"),
-    path("contacts/info-change/<int:change_id>/", views_pages.contact_info_change_detail, name="contact_info_change_detail"),
     
     # 跟进与拜访管理（放在客户管理模块下）
     path("customers/visits/", views_pages.customer_visit, name="customer_visit"),

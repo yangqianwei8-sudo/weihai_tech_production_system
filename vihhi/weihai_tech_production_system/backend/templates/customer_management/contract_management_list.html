@@ -133,7 +133,7 @@
 </style>
 {% endblock %}
 
-{% block contract_content %}
+{% block content %}
 <div class="container-fluid py-4">
     <!-- 页面标题区域 -->
     <div class="list-page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding: 6px 0;">
@@ -147,7 +147,10 @@
             <a href="{% url 'business_pages:contract_create' %}" class="btn btn-primary">
                 + 新增合同
             </a>
-            {% endif %}
+            {% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}
         </div>
     </div>
 
@@ -164,7 +167,10 @@
                         <select name="status" class="form-select">
                             <option value="">全部状态</option>
                             {% for value, label in status_choices %}
-                            <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                            <option value="{{ value }}" {% if status == value %}selected{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -172,7 +178,10 @@
                         <select name="contract_type" class="form-select">
                             <option value="">全部类型</option>
                             {% for value, label in type_choices %}
-                            <option value="{{ value }}" {% if contract_type == value %}selected{% endif %}>{{ label }}</option>
+                            <option value="{{ value }}" {% if contract_type == value %}selected{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -180,7 +189,10 @@
                         <select name="client_id" class="form-select">
                             <option value="">全部客户</option>
                             {% for client in clients %}
-                            <option value="{{ client.id }}" {% if client_id == client.id|stringformat:"s" %}selected{% endif %}>{{ client.name }}</option>
+                            <option value="{{ client.id }}" {% if client_id == client.id|stringformat:"s" %}selected{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}>{{ client.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -225,21 +237,26 @@
             <tbody>
                 {% for contract in page_obj %}
                 <tr>
-                    <td><strong>{{ contract.contract_number|default:"未编号" }}</strong></td>
+                    <td><strong>{{ contract.project_number|default:contract.contract_number|default:"未编号" }}</strong></td>
                     <td>{{ contract.contract_name|default:contract.contract_number }}</td>
                     <td>{{ contract.client.name|default:"未指定" }}</td>
                     <td>{% if contract.project %}{{ contract.project.project_number|default:contract.project.name }}{% else %}未关联{% endif %}</td>
                     <td>{{ contract.get_contract_type_display }}</td>
                     <td><span class="status-badge {{ contract.status }}">{{ contract.get_status_display }}</span></td>
-                    <td>{% if contract.contract_amount %}¥{{ contract.contract_amount|floatformat:2 }}{% else %}--{% endif %}</td>
+                    <td>{% if contract.contract_amount %}¥{{ contract.contract_amount|floatformat:2 }}{% else %}--
+                        {% endif %}</td>
                     <td>{% if contract.payment_amount %}¥{{ contract.payment_amount|floatformat:2 }}{% else %}¥0.00{% endif %}</td>
-                    <td>{% if contract.unpaid_amount %}¥{{ contract.unpaid_amount|floatformat:2 }}{% else %}--{% endif %}</td>
+                    <td>{% if contract.unpaid_amount %}¥{{ contract.unpaid_amount|floatformat:2 }}{% else %}--
+                        {% endif %}</td>
                     <td>{{ contract.contract_date|date:"Y-m-d"|default:"未设置" }}</td>
                     <td>{{ contract.created_by.username|default:"未知" }}</td>
                     <td>
                         <a href="{% url 'business_pages:contract_detail' contract.id %}" class="btn btn-sm btn-outline-primary">查看</a>
                         {% if contract.can_edit %}
                         <a href="{% url 'business_pages:contract_edit' contract.id %}" class="btn btn-sm btn-outline-secondary">编辑</a>
+                        {% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
                         {% endif %}
                     </td>
                 </tr>
@@ -252,27 +269,150 @@
         <div class="pagination p-3">
             <span class="step-links">
                 {% if page_obj.has_previous %}
-                    <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if contract_type %}&contract_type={{ contract_type }}{% endif %}{% if client_id %}&client_id={{ client_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">&laquo; 首页</a>
-                    <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if contract_type %}&contract_type={{ contract_type }}{% endif %}{% if client_id %}&client_id={{ client_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">上一页</a>
-                {% endif %}
+                    <a href="?page=1{% if search %}&search={{ search }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if status %}&status={{ status }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if contract_type %}&contract_type={{ contract_type }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if client_id %}&client_id={{ client_id }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if date_from %}&date_from={{ date_from }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if date_to %}&date_to={{ date_to }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}">&laquo; 首页</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if status %}&status={{ status }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if contract_type %}&contract_type={{ contract_type }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if client_id %}&client_id={{ client_id }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if date_from %}&date_from={{ date_from }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if date_to %}&date_to={{ date_to }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}">上一页</a>
+                {% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}
 
                 <span class="current">
                     第 {{ page_obj.number }} 页，共 {{ page_obj.paginator.num_pages }} 页
                 </span>
 
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if contract_type %}&contract_type={{ contract_type }}{% endif %}{% if client_id %}&client_id={{ client_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">下一页</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if contract_type %}&contract_type={{ contract_type }}{% endif %}{% if client_id %}&client_id={{ client_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">末页 &raquo;</a>
-                {% endif %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if status %}&status={{ status }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if contract_type %}&contract_type={{ contract_type }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if client_id %}&client_id={{ client_id }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if date_from %}&date_from={{ date_from }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if date_to %}&date_to={{ date_to }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}">下一页</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if status %}&status={{ status }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if contract_type %}&contract_type={{ contract_type }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if client_id %}&client_id={{ client_id }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if date_from %}&date_from={{ date_from }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}{% if date_to %}&date_to={{ date_to }}{% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}">末页 &raquo;</a>
+                {% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}
             </span>
         </div>
-        {% endif %}
+        {% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}
         {% else %}
         <div class="p-5 text-center text-muted">
             <p>暂无合同数据</p>
         </div>
-        {% endif %}
+        {% if contract.can_delete %}
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="{{ contract.id }}">删除</button>
+                        {% endif %}
+                        {% endif %}
     </div>
 </div>
 {% endblock %}
 
+
+<!-- 添加删除确认对话框 -->
+<div class="modal fade" id="deleteContractModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除此合同吗？此操作不可恢复。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form id="deleteContractForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 删除确认
+    const deleteButtons = document.querySelectorAll('.btn-delete-contract');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const contractId = this.dataset.contractId;
+            const form = document.getElementById('deleteContractForm');
+            form.action = '/business/contracts/' + contractId + '/delete/';
+            const modal = new bootstrap.Modal(document.getElementById('deleteContractModal'));
+            modal.show();
+        });
+    });
+});
+</script>

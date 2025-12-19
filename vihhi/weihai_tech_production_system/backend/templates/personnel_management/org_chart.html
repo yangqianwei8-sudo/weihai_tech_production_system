@@ -110,7 +110,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const departmentTree = {{ department_tree|safe }};
+    const departmentTree = {{ department_tree|safe|default:"[]" }};
     const container = document.getElementById('orgChart');
     
     if (!departmentTree || departmentTree.length === 0) {

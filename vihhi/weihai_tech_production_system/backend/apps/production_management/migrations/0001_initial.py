@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('production_quality', '0005_add_production_startup_models'),
+        # ('production_quality', '0005_add_production_startup_models'),  # 已删除production_quality模块
         ('customer_management', '0001_initial_squashed_0015_remove_client_blacklist_details_remove_client_code_and_more'),
     ]
 
@@ -505,14 +505,14 @@ class Migration(migrations.Migration):
                 ('consultant_comment', models.TextField(blank=True, verbose_name='我方意见')),
                 ('created_time', models.DateTimeField(default=django.utils.timezone.now, verbose_name='创建时间')),
                 ('meeting', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='decisions', to='production_management.projectmeetingrecord', verbose_name='会议记录')),
-                ('opinion', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='meeting_decisions', to='production_quality.opinion', verbose_name='关联意见')),
+                ('opinion_id', models.IntegerField(null=True, blank=True, verbose_name='关联意见ID', help_text='已删除生产质量模块，此字段保留用于历史数据')),
             ],
             options={
                 'verbose_name': '三方会议结论',
                 'verbose_name_plural': '三方会议结论',
                 'db_table': 'production_management_meeting_decision',
                 'ordering': ['-created_time'],
-                'unique_together': {('meeting', 'opinion')},
+                'unique_together': {('meeting', 'opinion_id')},
             },
         ),
         migrations.CreateModel(
@@ -524,7 +524,7 @@ class Migration(migrations.Migration):
                 ('response_detail', models.TextField(blank=True, verbose_name='回复说明')),
                 ('created_time', models.DateTimeField(default=django.utils.timezone.now, verbose_name='创建时间')),
                 ('updated_time', models.DateTimeField(auto_now=True, verbose_name='更新时间')),
-                ('opinion', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='design_replies', to='production_quality.opinion', verbose_name='关联意见')),
+                ('opinion_id', models.IntegerField(null=True, blank=True, verbose_name='关联意见ID', help_text='已删除生产质量模块，此字段保留用于历史数据')),
                 ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='design_replies', to='production_management.project', verbose_name='项目')),
                 ('submitted_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='design_replies', to=settings.AUTH_USER_MODEL, verbose_name='提交人')),
             ],
@@ -533,7 +533,7 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': '设计方回复',
                 'db_table': 'production_management_design_reply',
                 'ordering': ['-created_time'],
-                'indexes': [models.Index(fields=['project', 'opinion'], name='production__project_2a9822_idx')],
+                'indexes': [models.Index(fields=['project', 'opinion_id'], name='production__project_2a9822_idx')],
             },
         ),
         migrations.CreateModel(

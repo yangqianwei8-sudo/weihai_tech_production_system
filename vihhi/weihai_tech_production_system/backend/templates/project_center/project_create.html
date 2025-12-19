@@ -312,8 +312,8 @@
 
 <script>
 const DRAFT_STORAGE_KEY = 'vihhi_project_create_draft';
-const professionOptions = {{ service_professions_map_json }};
-let preselectedProfessionIds = new Set({{ selected_profession_ids_json }});
+const professionOptions = {{ service_professions_map_json|default:"{}" }};
+let preselectedProfessionIds = new Set({{ selected_profession_ids_json|default:"[]" }});
 
 const steps = Array.from(document.querySelectorAll('[data-step-content]'));
 const stepButtons = Array.from(document.querySelectorAll('.stepper__step'));

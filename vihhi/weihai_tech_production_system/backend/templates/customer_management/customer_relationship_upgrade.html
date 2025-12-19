@@ -5,8 +5,9 @@
 {% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
-{% endblock %}
+<link rel="stylesheet" href="{% static 'css/components/list-filters.css' %}">
 
+{% endblock %}
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
@@ -16,52 +17,100 @@
     <div class="list-page-container">
         <!-- 页面标题区域 -->
         <div class="list-page-header">
-            <h1 class="list-page-title">
-                {{ page_title }}
-            </h1>
+            <div>
+                <h2 class="mb-0">
+                    {{ page_title }}
+                </h2>
+            </div>
+            <div class="list-page-actions">
+                {% if can_create %}
+                <a href="{% url 'business_pages:customer_relationship_upgrade_create' %}" class="btn btn-primary">
+                    + 新增升级
+                </a>
+                {% endif %}
+            </div>
         </div>
 
-        <!-- 筛选栏区域 -->
-        <div class="list-page-filters mb-3">
+                <!-- 筛选栏区域 -->
+        <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
+            <div class="list-page-filters-header">
+                <h6 class="list-page-filters-title">筛选条件</h6>
+                <div class="list-page-filters-actions">
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="settingsFilterFieldsBtn">
+                        ⚙️ 设置筛选字段
+                    </button>
+                </div>
+            </div>
             <form method="get" id="filterForm">
-                <div class="row g-2">
-                    <div class="col-md-2">
-                        <label class="form-label small">搜索:</label>
-                        <input type="text" name="search" class="form-control form-control-sm" 
-                               value="{{ search }}" placeholder="客户名称、升级原因">
+                <div id="basicFilters" style="display: block;">
+                    <!-- 搜索 -->
+                    <div class="filter-row mb-3" data-filter-key="search">
+                        <label class="filter-label">搜索:</label>
+                        <div class="filter-buttons">
+                            <div class="d-inline-flex align-items-center" style="flex: 1; max-width: 400px;">
+                                <input type="text" name="search" class="form-control form-control-sm" 
+                                       value="{{ search }}" placeholder="客户名称、升级原因">
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small">客户:</label>
-                        <select name="client" class="form-select form-select-sm">
-                            <option value="">全部客户</option>
-                            {% for c in clients %}
-                            <option value="{{ c.id }}" {% if client_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-                            {% endfor %}
-                        </select>
+
+                    <!-- 客户 -->
+                    <div class="filter-row mb-3" data-filter-key="client">
+                        <label class="filter-label">客户:</label>
+                        <div class="filter-buttons">
+                            <button type="button" class="filter-btn {% if not client_id %}active{% endif %}" 
+                                    data-filter="client" data-value="">
+                                全部客户
+                            </button>
+                            <div class="d-inline-flex align-items-center ms-2">
+                                <select name="client" class="form-select form-select-sm" style="width: 200px;" id="clientSelect">
+                                    <option value="">请选择客户</option>
+                                    {% for c in clients %}
+                                    <option value="{{ c.id }}" {% if client_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <input type="hidden" name="client" id="filter_client" value="{{ client_id }}">
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small">审批状态:</label>
-                        <select name="approval_status" class="form-select form-select-sm">
-                            <option value="">全部</option>
-                            {% for value, label in approval_status_choices %}
-                            <option value="{{ value }}" {% if approval_status == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+
+                    <!-- 审批状态 -->
+                    <div class="filter-row mb-3" data-filter-key="approval_status">
+                        <label class="filter-label">审批状态:</label>
+                        <div class="filter-buttons">
+                            <button type="button" class="filter-btn {% if not approval_status %}active{% endif %}" 
+                                    data-filter="approval_status" data-value="">
+                                全部
+                            </button>
+                            <div class="d-inline-flex align-items-center ms-2">
+                                <select name="approval_status" class="form-select form-select-sm" style="width: 150px;" id="approvalStatusSelect">
+                                    <option value="">请选择状态</option>
+                                    {% for value, label in approval_status_choices %}
+                                    <option value="{{ value }}" {% if approval_status == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <input type="hidden" name="approval_status" id="filter_approval_status" value="{{ approval_status }}">
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small">目标等级:</label>
-                        <select name="to_level" class="form-select form-select-sm">
-                            <option value="">全部</option>
-                            {% for value, label in relationship_level_choices %}
-                            <option value="{{ value }}" {% if to_level == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small">&nbsp;</label>
-                        <div class="d-flex gap-1">
-                            <button type="submit" class="btn btn-primary btn-sm flex-fill">筛选</button>
-                            <a href="{% url 'business_pages:customer_relationship_upgrade' %}" class="btn btn-secondary btn-sm flex-fill">重置</a>
+
+                    <!-- 目标等级 -->
+                    <div class="filter-row mb-3" data-filter-key="to_level">
+                        <label class="filter-label">目标等级:</label>
+                        <div class="filter-buttons">
+                            <button type="button" class="filter-btn {% if not to_level %}active{% endif %}" 
+                                    data-filter="to_level" data-value="">
+                                全部
+                            </button>
+                            <div class="d-inline-flex align-items-center ms-2">
+                                <select name="to_level" class="form-select form-select-sm" style="width: 150px;" id="toLevelSelect">
+                                    <option value="">请选择等级</option>
+                                    {% for value, label in relationship_level_choices %}
+                                    <option value="{{ value }}" {% if to_level == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <input type="hidden" name="to_level" id="filter_to_level" value="{{ to_level }}">
                         </div>
                     </div>
                 </div>
@@ -71,14 +120,9 @@
         <!-- 操作栏 -->
         <div class="list-page-action-bar mb-3 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3">
-                <span class="text-muted small">共 <strong>{{ page_obj.paginator.count|default:0 }}</strong> 条记录</span>
+                <span class="text-muted small">共 <strong>{% if page_obj %}{{ page_obj.paginator.count|default:0 }}{% else %}0{% endif %}</strong> 条记录</span>
             </div>
             <div class="d-flex gap-2">
-                {% if can_create %}
-                <a href="{% url 'business_pages:customer_relationship_upgrade_create' %}" class="btn btn-primary btn-sm">
-                    + 新增升级
-                </a>
-                {% endif %}
                 <button type="button" class="btn btn-outline-secondary btn-sm">导出</button>
             </div>
         </div>
@@ -134,7 +178,7 @@
             </div>
 
             <!-- 分页 -->
-            {% if page_obj.has_other_pages %}
+            {% if page_obj and page_obj.has_other_pages %}
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small">
                     共 <strong>{{ page_obj.paginator.count }}</strong> 条
@@ -188,4 +232,29 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+
+{% block extra_js %}
+    {% include "customer_management/includes/filter_fields_settings_modal.html" %}
+
+    <!-- 引入筛选字段设置功能模块 -->
+    <script src="{% static 'js/filter-fields-settings.js' %}"></script>
+    <!-- 配置筛选字段设置功能（必须在 list-filters.js 之前） -->
+    <script>
+    window.listFiltersConfig = {
+        enableFieldsSettings: true,
+        fieldsSettingsStorageKey: 'relationship_upgrade_filter_fields',
+        fieldsSettingsContainerId: 'basicFilters',
+        fieldsSettingsModalId: 'filterFieldsSettingsModal',
+        fieldsSettingsListId: 'filterFieldsList',
+        fieldsSettingsBtnId: 'settingsFilterFieldsBtn',
+        fieldsSettingsSaveBtnId: 'saveFilterFieldsSettings',
+        fieldsSettingsResetBtnId: 'resetFilterFieldsSettings',
+        maxEnabledFields: 10,
+        defaultEnabledFields: ['search', 'client', 'approval_status', 'to_level']
+    };
+    </script>
+    <!-- 引入列表筛选功能模块 -->
+    <script src="{% static 'js/list-filters.js' %}"></script>
 {% endblock %}

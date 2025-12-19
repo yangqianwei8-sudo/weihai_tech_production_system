@@ -672,7 +672,7 @@ def project_settlement_detail(request, settlement_id):
         request=request,
     )
     # 获取结算明细项
-    settlement_items = settlement.items.select_related('opinion', 'reviewed_by', 'created_by').order_by('order')
+    settlement_items = settlement.items.select_related('reviewed_by', 'created_by').order_by('order')
     
     # 检查是否有权限审核明细项（造价工程师或有管理权限）
     can_review_items = (

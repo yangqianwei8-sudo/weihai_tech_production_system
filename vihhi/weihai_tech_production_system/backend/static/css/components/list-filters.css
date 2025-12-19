@@ -16,6 +16,7 @@
     margin-bottom: 8px !important;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--vh-border);
+    position: relative !important; /* 为固定按钮提供定位上下文 */
 }
 
 .list-page-filters-header {
@@ -97,6 +98,8 @@
     align-items: flex-start;
     gap: 8px;
     margin-bottom: 8px;
+
+    text-align: left;
 }
 
 .filter-row:last-child {
@@ -118,6 +121,8 @@
     flex-shrink: 0;
     font-weight: 500;
     white-space: nowrap;
+
+    text-align: left;
 }
 
 /* ============================================
@@ -129,6 +134,9 @@
     gap: 6px;
     align-items: center;
     flex: 1;
+
+    text-align: left;
+    justify-content: flex-start;
 }
 
 /* ============================================
@@ -238,24 +246,75 @@
    筛选字段设置模态框
    ============================================ */
 
-/* 设置筛选字段按钮 */
+/* 设置筛选字段按钮 - 固定在筛选容器右上角 */
 #settingsFilterFieldsBtn {
-    color: var(--vh-text-muted);
+    color: #ffc107 !important; /* 黄色 */
     transition: all var(--transition-base);
-    padding: var(--spacing-xs);
+    padding: 4px 8px !important;
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    z-index: 101 !important; /* 高于操作栏的z-index:100，确保可点击 */
+    background: var(--vh-card-bg) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+    border: none !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    display: inline-block !important;
+    pointer-events: auto !important; /* 确保可点击 */
+    cursor: pointer !important;
+}
+
+/* 设置筛选字段按钮内的图标和文字颜色 */
+#settingsFilterFieldsBtn,
+#settingsFilterFieldsBtn * {
+    color: #ffc107 !important; /* 黄色 */
 }
 
 #settingsFilterFieldsBtn:hover {
-    color: var(--vh-primary);
-    background: rgba(255, 107, 53, 0.05);
-    border-radius: var(--radius-sm);
+    color: #ffb300 !important; /* 深一点的黄色 */
+    background: rgba(255, 193, 7, 0.15) !important; /* 黄色背景 */
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* hover 时图标和文字颜色 */
+#settingsFilterFieldsBtn:hover,
+#settingsFilterFieldsBtn:hover * {
+    color: #ffb300 !important; /* 深一点的黄色 */
 }
 
 /* 筛选字段设置模态框容器 */
+/* 弹窗位置：使用 Bootstrap 默认定位，不固定位置 */
+#filterFieldsSettingsModal {
+    z-index: 10050 !important; /* 确保模态框在操作栏(z-index:100)之上 */
+}
+
+#filterFieldsSettingsModal .modal-dialog {
+    margin: calc(56px + 2rem) auto 2rem auto; /* 上边距：导航栏高度(56px) + 额外间距(2rem)，下边距2rem，左右居中 */
+    max-width: fit-content; /* 宽度自适应内容 */
+    width: auto;
+    z-index: 10051 !important; /* 确保对话框在模态框容器之上 */
+    pointer-events: auto !important; /* 确保可交互 */
+}
+
+#filterFieldsSettingsModal .modal-content {
+    z-index: 10052 !important; /* 确保内容在最上层 */
+    pointer-events: auto !important; /* 确保可交互 */
+}
+
+/* 弹窗内容容器 */
 #filterFieldsSettingsModal .modal-content {
     border-radius: var(--radius-md);
     border: 1px solid var(--vh-border);
     box-shadow: var(--shadow-lg);
+    width: auto; /* 宽度自适应内容 */
+    min-width: 400px; /* 最小宽度，确保内容不会太窄 */
+    max-width: 90vw; /* 最大宽度不超过视口宽度的90% */
 }
 
 #filterFieldsSettingsModal .modal-header {
@@ -526,6 +585,7 @@
         flex-direction: column;
         align-items: flex-start;
         gap: var(--spacing-xs);
+    text-align: left;
     }
     
     .filter-label {
@@ -533,10 +593,13 @@
         width: 100%;
         padding-top: 0;
         margin-bottom: 4px;
+    text-align: left;
     }
     
     .filter-buttons {
         width: 100%;
+    justify-content: flex-start;
+    text-align: left;
     }
     
     .filter-btn {
@@ -552,6 +615,7 @@
     
     .filter-label {
         font-size: 12px;
+    text-align: left;
     }
     
     .filter-btn {
@@ -572,6 +636,8 @@
     .filter-buttons {
         flex-direction: column;
         align-items: stretch;
+    justify-content: flex-start;
+    text-align: left;
     }
     
     .filter-btn {
@@ -635,6 +701,7 @@
 
 .filter-row {
     animation: filterSlideIn 0.3s ease;
+    text-align: left;
 }
 
 /* ============================================

@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('production_management', '0004_create_design_stage_model'),
-        ('production_quality', '0006_alter_opinion_project_alter_productionreport_project_and_more'),
+        # ('production_quality', '0006_alter_opinion_project_alter_productionreport_project_and_more'),  # 已删除production_quality模块
         ('settlement_management', '0001_initial'),
     ]
 
@@ -103,7 +103,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='settlementitem',
             name='opinion',
-            field=models.ForeignKey(blank=True, help_text='从生产管理模块的意见生成', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='settlement_items_management', to='production_quality.opinion', verbose_name='关联意见'),
+            field=models.IntegerField(null=True, blank=True, verbose_name='关联意见ID', help_text='从生产管理模块的意见生成（已删除生产质量模块，此字段保留用于历史数据）'),
         ),
         migrations.AlterField(
             model_name='settlementitem',

@@ -60,7 +60,7 @@ HOME_NAV_STRUCTURE = [
     {'label': '生产管理', 'icon': '🏗️', 'url_name': 'production_pages:project_list', 'permission': 'production_management.view_assigned'},
     {'label': '资源管理', 'icon': '🗂️', 'url_name': 'resource_standard_pages:standard_list', 'permission': 'resource_center.view'},
     {'label': '任务协作', 'icon': '🤝', 'url_name': 'collaboration_pages:task_board', 'permission': 'task_collaboration.view'},
-    {'label': '交付管理', 'icon': '📦', 'url_name': 'delivery_pages:report_delivery', 'permission': 'delivery_center.view'},
+    {'label': '收发管理', 'icon': '📦', 'url_name': 'delivery_pages:report_delivery', 'permission': 'delivery_center.view'},
     {'label': '档案管理', 'icon': '📁', 'url_name': 'archive_management:archive_list', 'permission': 'archive_management.view'},
     {'label': '计划管理', 'icon': '📅', 'url_name': 'plan_pages:plan_list', 'permission': 'plan_management.view'},
     {'label': '诉讼管理', 'icon': '⚖️', 'url_name': 'litigation_pages:litigation_home', 'permission': 'litigation_management.view'},

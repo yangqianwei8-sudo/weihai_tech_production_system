@@ -1,8 +1,27 @@
 {% extends "customer_management/base.html" %}
-
-{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
-
 {% load static %}
+
+{% block title %}{{ page_title }} - 维海科技信息化管理平台
+    
+
+
+
+
+    
+
+    
+    
+    
+    
+    
+    
+
+
+
+
+
+{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
 <style>
@@ -33,10 +52,7 @@
     padding: 10px !important;
 }
 
-.list-page-action-bar {
-    margin-bottom: 8px !important;
-    padding: 6px 10px !important;
-}
+
 
 .list-page-table {
     margin-bottom: 6px !important;
@@ -211,15 +227,84 @@
 }
 
 /* 操作栏优化 */
-.list-page-action-bar {
-    padding: 6px 12px;
-    font-size: 13px;
-}
+
 </style>
+
+    
+
+
+
+
+    
+
+    
+    
+    
+    
+    
+    
+
+
+
+
+
 {% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
+
+    
+
+
+
+
+    
+
+    
+    
+    
+    
+    
+    
+
+
+
+
+
+
+
+<!-- 列设置模态框 -->
+<div class="modal fade" id="fieldsSettingsModal" tabindex="-1" aria-labelledby="fieldsSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fieldsSettingsModalLabel">自定义显示列</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3">已显示的列</h6>
+                        <div id="displayedFields" class="border rounded p-3" style="min-height: 200px; max-height: 400px; overflow-y: auto;">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="mb-3">可用的列</h6>
+                        <div id="availableFields" class="border rounded p-3" style="min-height: 200px; max-height: 400px; overflow-y: auto;">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveFieldsSettings">保存</button>
+                <button type="button" class="btn btn-outline-secondary" id="resetFieldsSettings">重置</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -281,12 +366,8 @@
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="mb-0 small fw-semibold">筛选条件</h6>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="settingsFilterFieldsBtn" data-bs-toggle="modal" data-bs-target="#filterFieldsSettingsModal">
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="settingsFilterFieldsBtn">
                         ⚙️ 设置筛选字段
-                    </button>
-                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="toggleFilterCollapse">
-                        <span id="filterCollapseText">展开</span>
-                        <span id="filterCollapseIcon">▼</span>
                     </button>
                 </div>
             </div>
@@ -296,7 +377,7 @@
                 {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
                 {% if search_field %}<input type="hidden" name="search_field" value="{{ search_field }}">{% endif %}
                 {% if page_obj.paginator.per_page %}<input type="hidden" name="page_size" value="{{ page_obj.paginator.per_page }}">{% endif %}
-                <div id="basicFilters" style="display: none;">
+                <div id="basicFilters" style="display: block;">
                     <!-- 客户分类 -->
                     <div class="filter-row mb-3" data-filter-key="client_level">
                         <label class="filter-label">客户分类:</label>
@@ -600,14 +681,13 @@
                                 <input type="text" name="legal_representative" class="form-control form-control-sm" 
                                        value="{{ legal_representative }}" placeholder="请输入法定代表人" style="width: 200px;" id="filter_legal_representative">
                             </div>
-                        </div>
-                    </div>
-                </div>
+            </div>
+        </div>
         </form>
     </div>
     
         <!-- 操作栏 -->
-        <div class="list-page-action-bar mb-1 d-flex justify-content-between align-items-center" style="margin-bottom: 8px !important;">
+        <div class="list-page-action-bar d-flex justify-content-between align-items-center">
             <!-- 左侧：批量操作 -->
             <div class="d-flex align-items-center gap-3">
                 <span class="text-muted small">已选 <strong id="selectedCount" style="color: #ff6b35;">0</strong> 个</span>
@@ -615,16 +695,6 @@
                     清除所选
                 </button>
                 <div class="d-flex align-items-center gap-1">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="batchEditBtn" disabled>编辑</button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="batchTransferBtn" disabled>转移</button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="batchExportBtn" disabled>导出</button>
-                    <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="batchSmsBtn" disabled>发送短信</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" disabled></button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" id="batchSmsAction">发送短信</a></li>
-                        </ul>
-                    </div>
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-outline-secondary btn-sm" id="batchDeleteBtn" disabled>删除</button>
                         <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" disabled></button>
@@ -632,29 +702,14 @@
                             <li><a class="dropdown-item" href="#" id="batchDeleteAction">删除</a></li>
                         </ul>
                     </div>
-                    <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" disabled>更多操作</button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" id="batchMoreAction">更多操作</a></li>
-                        </ul>
-                    </div>
                 </div>
             </div>
             
             <!-- 右侧：搜索/筛选控件 -->
             <div class="d-flex align-items-center gap-2">
-                <!-- 跟进模式切换 -->
-                <div class="d-flex align-items-center gap-1">
-                    <span class="text-muted small">跟进模式</span>
-                    <i class="bi bi-info-circle text-muted" style="font-size: 12px;" data-bs-toggle="tooltip" title="跟进模式说明"></i>
-                    <div class="form-check form-switch ms-1">
-                        <input class="form-check-input" type="checkbox" id="followUpModeSwitch" style="cursor: pointer;">
-                    </div>
-                </div>
-                
                 <!-- 搜索控件 -->
                 <div class="input-group input-group-sm" style="width: auto;">
-                    <select class="form-select form-select-sm" name="search_field" id="searchFieldSelect" style="width: 100px; font-size: 12px;">
+                    <select class="form-select form-select-sm" name="search_field" id="searchFieldSelect" style="min-width: 100px; width: auto; font-size: 14px; color: #333; padding-right: 24px;">
                         <option value="name" {% if search_field == 'name' or not search_field %}selected{% endif %}>客户名称</option>
                         <option value="phone" {% if search_field == 'phone' %}selected{% endif %}>手机</option>
                         <option value="wechat" {% if search_field == 'wechat' %}selected{% endif %}>微信号</option>
@@ -664,12 +719,9 @@
                         <option value="project_address3" {% if search_field == 'project_address3' %}selected{% endif %}>项目地址3</option>
                         <option value="approval_node" {% if search_field == 'approval_node' %}selected{% endif %}>当前审批节点</option>
                     </select>
-                    <input type="text" class="form-control form-control-sm" id="searchInput" name="search" placeholder="请输入搜索内容" value="{{ search }}" style="width: 200px; font-size: 12px;"data-keypress="handle_onkeypress_0"Enter') document.getElementById('searchForm').submit();">
-                    <button class="btn btn-outline-secondary btn-sm" type="submit" form="searchForm" style="font-size: 12px;">
-                        <i class="bi bi-search"></i> Q
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm" type="button"data-click="handle_onclick_1" style="font-size: 12px;">
-                        <i class="bi bi-arrow-clockwise"></i> C
+                    <input type="text" class="form-control form-control-sm" id="searchInput" name="search" placeholder="请输入搜索内容" value="{{ search }}" style="width: 200px; font-size: 12px;" data-keypress="handle_onkeypress_0">
+                    <button type="submit" form="searchForm" class="btn btn-outline-secondary btn-sm" style="font-size: 12px;" title="搜索">
+                        <i class="bi bi-search"></i>
                     </button>
                 </div>
             </div>
@@ -879,7 +931,7 @@
                         </select>
                         {% if page_obj.paginator.num_pages > 1 %}
                         <span class="text-muted small ms-2" style="font-size: 12px;">跳至</span>
-                        <input type="number" class="form-control form-control-sm" id="jumpToPage" min="1" max="{{ page_obj.paginator.num_pages }}" value="{{ page_obj.number }}" style="width: 50px; font-size: 12px; padding: 2px 4px;"data-keypress="handle_onkeypress_2"Enter') jumpToPage()">
+                        <input type="number" class="form-control form-control-sm" id="jumpToPage" min="1" max="{{ page_obj.paginator.num_pages }}" value="{{ page_obj.number }}" style="width: 50px; font-size: 12px; padding: 2px 4px;" data-keypress="handle_onkeypress_2">
                         <span class="text-muted small" style="font-size: 12px;">页</span>
         {% endif %}
     </div>
@@ -915,19 +967,12 @@
     }
 
 // 定义URL常量（从Django模板获取）
-const URLS = {
-    batchTransfer: '{% url "business_pages:customer_batch_transfer" %}',
-    batchDelete: '{% url "business_pages:customer_batch_delete" %}',
-    export: '{% url "business_pages:customer_export" %}',
-    customerEditBase: '{% url "business_pages:customer_edit" 999 %}'.replace('999', ''),
-};
+const URLS = {    batchDelete: '{% url "business_pages:customer_batch_delete" %}',};
 
 
 
 document.addEventListener('DOMContentLoaded', function() {
-        
-
-);
+    // 初始化代码
 });
 
 // 更新选中数量
@@ -939,7 +984,7 @@ function updateSelectedCount() {
     }
     
     // 启用/禁用批量操作按钮
-    const batchButtons = document.querySelectorAll('#batchEditBtn, #batchTransferBtn, #batchExportBtn, #batchSmsBtn, #batchDeleteBtn');
+    const batchButtons = document.querySelectorAll('#batchDeleteBtn');
     batchButtons.forEach(btn => {
         if (btn) {
             btn.disabled = selected === 0;
@@ -960,200 +1005,33 @@ function updateSelectedCount() {
         }
     });
     
-    // 更新清除所选按钮显示
-    updateClearSelectionButton();
-}
-
-// 更新全选状态
-function updateSelectAllState() {
+    // 全选框点击事件
+document.getElementById('selectAll')?.addEventListener('change', function() {
     const checkboxes = document.querySelectorAll('.row-checkbox');
-    const selectAll = document.getElementById('selectAll');
-    if (checkboxes.length > 0) {
-        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-        const someChecked = Array.from(checkboxes).some(cb => cb.checked);
-        selectAll.checked = allChecked;
-        selectAll.indeterminate = someChecked && !allChecked;
-    }
-}
-
-// 获取选中的客户ID列表
-function getSelectedClientIds() {
-    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-    return Array.from(checkboxes).map(cb => cb.value);
-}
-
-// 清除所选
-document.getElementById('clearSelection')?.addEventListener('click', function() {
-    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
-    document.getElementById('selectAll').checked = false;
-    updateSelectedCount();
-    this.style.display = 'none';
-});
-
-// 更新清除所选按钮显示
-function updateClearSelectionButton() {
-    const selected = document.querySelectorAll('.row-checkbox:checked').length;
-    const clearBtn = document.getElementById('clearSelection');
-    if (clearBtn) {
-        clearBtn.style.display = selected > 0 ? 'inline-block' : 'none';
-    }
-}
-
-// 批量编辑
-document.getElementById('batchEditBtn')?.addEventListener('click', function() {
-    const selectedIds = getSelectedClientIds();
-    if (selectedIds.length === 0) {
-        alert('请先选择要编辑的客户');
-        return;
-    }
-    if (selectedIds.length > 1) {
-        alert('批量编辑功能暂不支持多个客户，请选择一个客户进行编辑');
-        return;
-    }
-    // 跳转到编辑页面
-    // 使用URL常量（替换占位符）
-    const editUrl = URLS.customerEditBase.replace('999', selectedIds[0]);
-    window.location.href = editUrl;
-});
-
-// 批量转移
-document.getElementById('batchTransferBtn')?.addEventListener('click', function() {
-    const selectedIds = getSelectedClientIds();
-    if (selectedIds.length === 0) {
-        alert('请先选择要转移的客户');
-        return;
-    }
-    // 打开转移模态框
-    const modal = new bootstrap.Modal(document.getElementById('batchTransferModal'));
-    document.getElementById('batchTransferClientIds').value = selectedIds.join(',');
-    document.getElementById('batchTransferCount').textContent = selectedIds.length;
-    document.getElementById('newResponsibleUser').value = '';
-    modal.show();
-});
-
-// 确认批量转移
-document.getElementById('confirmBatchTransfer')?.addEventListener('click', function() {
-    const form = document.getElementById('batchTransferForm');
-    const responsibleUser = document.getElementById('newResponsibleUser').value;
-    const clientIds = document.getElementById('batchTransferClientIds').value;
-    const confirmBtn = document.getElementById('confirmBatchTransfer');
-    
-    if (!responsibleUser) {
-        alert('请选择新负责人');
-        return;
-    }
-    
-    if (!clientIds) {
-        alert('没有选中的客户');
-        return;
-    }
-    
-    // 禁用按钮，防止重复提交
-    const originalText = confirmBtn.textContent;
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = '转移中...';
-    
-    // 使用AJAX提交转移请求
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                     document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
-    
-    if (!csrfToken) {
-        alert('无法获取CSRF token，请刷新页面后重试');
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = originalText;
-        return;
-    }
-    
-    // 发送转移请求
-    fetch(URLS.batchTransfer, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': csrfToken
-        },
-        body: new URLSearchParams({
-            'client_ids': clientIds,
-            'responsible_user': responsibleUser
-        })
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        }
-        return response.json().then(data => {
-            throw new Error(data.message || '转移失败');
-        });
-    })
-    .then(data => {
-        if (data.success) {
-            alert(`成功转移 ${data.transferred_count} 个客户`);
-            const modal = bootstrap.Modal.getInstance(document.getElementById('batchTransferModal'));
-            modal.hide();
-            location.reload();
-        } else {
-            alert(data.message || '转移失败');
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = originalText;
-        }
-    })
-    .catch(error => {
-        alert('转移失败：' + error.message);
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = originalText;
+    const isChecked = this.checked;
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
     });
+    updateSelectedCount();
+    updateSelectAllState();
 });
 
-// 批量导出
-document.getElementById('batchExportBtn')?.addEventListener('click', function() {
-    const selectedIds = getSelectedClientIds();
-    if (selectedIds.length === 0) {
-        alert('请先选择要导出的客户');
-        return;
-    }
-    
-    // 显示导出提示
-    const exportBtn = document.getElementById('batchExportBtn');
-    const originalText = exportBtn.textContent;
-    exportBtn.disabled = true;
-    exportBtn.textContent = '导出中...';
-    
-    // 构建导出URL
-    const params = new URLSearchParams(window.location.search);
-    params.set('ids', selectedIds.join(','));
-    params.set('format', 'xlsx');
-    
-    // 创建临时链接进行下载
-    const link = document.createElement('a');
-    link.href = URLS.export + '?' + params.toString();
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // 恢复按钮状态（延迟一下，给下载时间）
-    setTimeout(() => {
-        exportBtn.disabled = false;
-        exportBtn.textContent = originalText;
-    }, 2000);
-});
-
-// 批量发送短信
-document.getElementById('batchSmsBtn')?.addEventListener('click', function() {
-    const selectedIds = getSelectedClientIds();
-    if (selectedIds.length === 0) {
-        alert('请先选择要发送短信的客户');
-        return;
-    }
-    // 暂时显示提示信息
-    if (confirm(`确定要向选中的 ${selectedIds.length} 个客户发送短信吗？\n\n功能开发中，请稍候...`)) {
-        // 后续可以在这里打开短信发送模态框
+// 行复选框点击事件 - 更新全选状态（使用事件委托，支持动态加载）
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('row-checkbox')) {
+        updateSelectedCount();
+        updateSelectAllState();
     }
 });
 
-document.getElementById('batchSmsAction')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('batchSmsBtn')?.click();
-});
+
+    
+
+
+
+
+
+
 
 // 批量删除
 document.getElementById('batchDeleteBtn')?.addEventListener('click', function() {
@@ -1234,18 +1112,6 @@ document.getElementById('batchDeleteAction')?.addEventListener('click', function
     document.getElementById('batchDeleteBtn')?.click();
 });
 
-// 更多操作
-document.getElementById('batchMoreAction')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    const selectedIds = getSelectedClientIds();
-    if (selectedIds.length === 0) {
-        alert('请先选择客户');
-        return;
-    }
-    // 可以在这里添加更多操作选项，如：批量标记、批量分配等
-    alert(`更多操作功能：已选择 ${selectedIds.length} 个客户\n\n功能开发中，请稍候...`);
-});
-
 // 更新选中数量时同时更新清除所选按钮
 (function() {
     const originalUpdateSelectedCount = updateSelectedCount;
@@ -1303,21 +1169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         searchFieldHidden.value = searchField || 'name';
     }
     
-    // 跟进模式切换（暂时只做前端处理，后续可添加后端支持）
-    const followUpModeSwitch = document.getElementById('followUpModeSwitch');
-    if (followUpModeSwitch) {
-        // 从localStorage读取跟进模式状态
-        const savedMode = localStorage.getItem('customer_list_followup_mode');
-        if (savedMode === 'true') {
-            followUpModeSwitch.checked = true;
-        }
-        
-        followUpModeSwitch.addEventListener('change', function() {
-            localStorage.setItem('customer_list_followup_mode', this.checked);
-            // 这里可以添加跟进模式切换后的逻辑
-            // 例如：重新加载数据或应用不同的筛选条件
-        });
-    }
+    // 例如：重新加载数据或应用不同的筛选条件
 });
 
 // 筛选按钮组功能
@@ -1368,6 +1220,19 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 });
 
 // 应用日期范围
+
+// 更新全选状态
+function updateSelectAllState() {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    if (checkboxes.length > 0 && selectAll) {
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+        selectAll.checked = allChecked;
+        selectAll.indeterminate = someChecked && !allChecked;
+    }
+}
+
 function applyDateRange(range) {
     const today = new Date();
     const startInput = document.querySelector('input[name="created_time_start"]');
@@ -1530,8 +1395,6 @@ document.querySelector('select[name="responsible_user"]')?.addEventListener('cha
 document.addEventListener('DOMContentLoaded', function() {
     const hasFilters = {% if client_level or relationship_stage or region or department or responsible_user_id or date_range %}true{% else %}false{% endif %};
     const basicFilters = document.getElementById('basicFilters');
-    const text = document.getElementById('filterCollapseText');
-    const icon = document.getElementById('filterCollapseIcon');
     
     if (hasFilters && basicFilters && text && icon) {
         basicFilters.style.display = '';
@@ -1773,7 +1636,7 @@ function createFieldTag(field, isDisplayed) {
     // TODO: 使用DOMPurify清理HTML
             tag.innerHTML = `
         ${field.label}
-        ${!field.required ? '<button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.65em;"data-click="handle_onclick_3"' + field.column + '\')"></button>' : ''}
+        ${!field.required ? '<button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.65em;" data-click="handle_onclick_3(\'${field.column}\')"></button>' : ''}
     `;
     
     if (tag.draggable) {
@@ -2132,831 +1995,102 @@ function applyColumnOrder(order) {
 }
 
 // 为表头齿轮按钮绑定事件
-document.getElementById('tableColumnSettingsBtn')?.addEventListener('click', function() {
+document.getElementById('tableColumnSettingsBtn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('列设置按钮被点击');
+    
+    // 先初始化模态框内容
     initColumnSettingsModal();
-});
-
-// ==================== 筛选字段设置功能 ====================
-
-// 从HTML中自动发现所有筛选字段
-function initializeFilterFields() {
-    const container = document.getElementById('basicFilters');
-    if (!container) {
-        return [];
-    }
     
-    const filterRows = container.querySelectorAll('.filter-row[data-filter-key]');
-    const fields = [];
-    
-    filterRows.forEach(row => {
-        const key = row.getAttribute('data-filter-key');
-        if (key) {
-            // 从label中提取字段名称（移除冒号）
-            const labelElement = row.querySelector('.filter-label');
-            let label = key; // 默认使用字段key
-            
-            if (labelElement) {
-                label = labelElement.textContent.replace(/[:：]/g, '').trim();
-            }
-            
-            // 默认启用的字段
-            const defaultEnabled = ['client_level', 'relationship_stage', 'region'];
-            
-            fields.push({
-                key: key,
-                label: label,
-                enabled: defaultEnabled.includes(key)
-            });
-        }
-    });
-    
-    return fields;
-}
-
-// 获取所有筛选字段（从HTML中动态获取）
-let FILTER_FIELDS = [];
-
-// 初始化筛选字段列表
-function initFilterFieldsList() {
-    FILTER_FIELDS = initializeFilterFields();
-    if (FILTER_FIELDS.length === 0) {
-        // 如果找不到，使用默认字段列表
-        FILTER_FIELDS = [
-            { key: 'client_level', label: '客户分类', enabled: true },
-            { key: 'relationship_stage', label: '关系阶段', enabled: true },
-            { key: 'grade', label: '客户分级', enabled: false },
-            { key: 'credit_level', label: '信用等级', enabled: false },
-            { key: 'client_type', label: '客户类型', enabled: false },
-            { key: 'industry', label: '所属行业', enabled: false },
-            { key: 'region', label: '地区', enabled: true },
-            { key: 'source', label: '客户来源', enabled: false },
-            { key: 'legal_risk_level', label: '风险等级', enabled: false },
-            { key: 'department', label: '所属部门', enabled: false },
-            { key: 'responsible_user', label: '负责人', enabled: false },
-            { key: 'date_range', label: '创建时间', enabled: false },
-            { key: 'is_active', label: '是否活跃', enabled: false },
-        ];
-    }
-}
-
-// 初始化筛选字段设置模态框
-function initFilterFieldsSettingsModal() {
-    // 确保筛选字段列表已初始化
-    if (FILTER_FIELDS.length === 0) {
-        initFilterFieldsList();
-    }
-    
-    const saved = localStorage.getItem('customer_list_filter_fields');
-    let filterFields = [];
-    
-    if (saved) {
-        try {
-            filterFields = JSON.parse(saved);
-            // 确保所有字段都在列表中（处理新增字段的情况）
-            const existingKeys = new Set(filterFields.map(f => f.key));
-            FILTER_FIELDS.forEach(field => {
-                if (!existingKeys.has(field.key)) {
-                    filterFields.push({ ...field });
-                }
-            });
-        } catch (e) {
-            filterFields = FILTER_FIELDS.map(f => ({ ...f }));
-        }
-    } else {
-        // 如果没有保存的数据，使用默认值
-        filterFields = FILTER_FIELDS.map(f => ({ ...f }));
-    }
-    
-    // 确保字段顺序与FILTER_FIELDS一致
-    const orderedFields = FILTER_FIELDS.map(f => {
-        const saved = filterFields.find(sf => sf.key === f.key);
-        return saved || { ...f };
-    });
-    
-    renderFilterFieldsList(orderedFields);
-    initFilterFieldsDragAndDrop();
-}
-
-// 渲染筛选字段列表
-function renderFilterFieldsList(filterFields) {
-    const tbody = document.getElementById('filterFieldsList');
-    if (!tbody) {
-        return;
-    }
-    
-    if (!filterFields || filterFields.length === 0) {
-        filterFields = FILTER_FIELDS.map(f => ({ ...f }));
-    }
-    
-    tbody.textContent = '';
-    
-    filterFields.forEach((field, index) => {
-        if (!field || !field.key) {
-            return;
-        }
-        
-        const row = document.createElement('tr');
-        row.dataset.fieldKey = field.key;
-        row.draggable = true;
-        row.style.cursor = 'move';
-        
-        // TODO: 使用DOMPurify清理HTML
-            row.innerHTML = `
-            <td>
-                <div class="form-check">
-                    <input class="form-check-input filter-field-checkbox" type="checkbox" 
-                           id="filter-field-${field.key}" 
-                           ${field.enabled ? 'checked' : ''}data-change="handle_onchange_5"${field.key}', this.checked)">
-                </div>
-            </td>
-            <td>
-                <label class="form-check-label" for="filter-field-${field.key}" style="cursor: pointer;">
-                    ${field.label || field.key}
-                </label>
-            </td>
-            <td>
-                <i class="bi bi-grip-vertical text-muted" style="font-size: 1.2em; cursor: move;"></i>
-            </td>
-        `;
-        
-        row.addEventListener('dragstart', handleFilterFieldDragStart);
-        row.addEventListener('dragover', handleFilterFieldDragOver);
-        row.addEventListener('drop', handleFilterFieldDrop);
-        row.addEventListener('dragend', handleFilterFieldDragEnd);
-        
-        tbody.appendChild(row);
-    });
-    
-}
-
-// 更新筛选字段启用状态
-function updateFilterFieldEnabled(fieldKey, enabled) {
-    const saved = localStorage.getItem('customer_list_filter_fields');
-    let filterFields = [];
-    
-    if (saved) {
-        try {
-            filterFields = JSON.parse(saved);
-        } catch (e) {
-            filterFields = FILTER_FIELDS.map(f => ({ ...f }));
-        }
-    } else {
-        filterFields = FILTER_FIELDS.map(f => ({ ...f }));
-    }
-    
-    const field = filterFields.find(f => f.key === fieldKey);
-    if (field) {
-        field.enabled = enabled;
-        
-        // 检查是否超过10个
-        const enabledCount = filterFields.filter(f => f.enabled).length;
-        if (enabledCount > 10) {
-            alert('最多只能启用10个筛选字段！');
-            field.enabled = false;
-            document.getElementById(`filter-field-${fieldKey}`).checked = false;
-            return;
-        }
-        
-        localStorage.setItem('customer_list_filter_fields', JSON.stringify(filterFields));
-        applyFilterFieldsSettings(filterFields);
-    } else {
-    }
-}
-
-// 应用筛选字段设置
-function applyFilterFieldsSettings(filterFields) {
-    const container = document.getElementById('basicFilters');
-    if (!container) {
-        return;
-    }
-    
-    if (!filterFields || filterFields.length === 0) {
-        const defaultEnabled = FILTER_FIELDS.filter(f => f.enabled).map(f => f.key);
-        defaultEnabled.forEach(key => {
-            const filterRow = container.querySelector(`[data-filter-key="${key}"]`);
-            if (filterRow) {
-                filterRow.style.display = 'flex';
-            }
-        });
-        return;
-    }
-    
-    // 获取所有筛选行（保留元素引用）
-    const filterRows = Array.from(container.querySelectorAll('.filter-row[data-filter-key]'));
-    
-    // 创建映射
-    const rowsMap = {};
-    filterRows.forEach(row => {
-        const key = row.getAttribute('data-filter-key');
-        if (key) {
-            rowsMap[key] = row;
-        }
-    });
-    
-    // 先移除所有元素（但保留引用），避免重复添加
-    filterRows.forEach(row => {
-        if (row.parentNode === container) {
-            container.removeChild(row);
-        }
-    });
-    
-    // 按用户设置的顺序重新排列
-    const orderedRows = [];
-    
-    // 1. 先添加用户设置顺序中的字段（只添加启用的）
-    filterFields.forEach(field => {
-        if (field.enabled && rowsMap[field.key]) {
-            orderedRows.push({ row: rowsMap[field.key], key: field.key });
-        }
-    });
-    
-    // 2. 添加未在顺序中的字段（可能是新添加的字段）
-    Object.keys(rowsMap).forEach(key => {
-        const field = filterFields.find(f => f.key === key);
-        if (!field || !field.enabled) {
-            // 如果字段未启用，也添加到列表末尾（但隐藏）
-            orderedRows.push({ row: rowsMap[key], key: key });
-        }
-    });
-    
-    // 3. 按顺序重新添加到容器，并根据启用状态显示/隐藏
-    let enabledCount = 0;
-    orderedRows.forEach(({ row, key }) => {
-        const field = filterFields.find(f => f.key === key);
-        if (field && field.enabled) {
-            row.style.display = 'flex';
-            enabledCount++;
-        } else {
-            row.style.display = 'none';
-        }
-        container.appendChild(row);
-    });
-    
-}
-
-// 筛选字段拖动相关变量
-let draggedFilterFieldRow = null;
-
-function handleFilterFieldDragStart(e) {
-    draggedFilterFieldRow = this;
-    this.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleFilterFieldDragOver(e) {
-    if (e.preventDefault) {
-        e.preventDefault();
-    }
-    e.dataTransfer.dropEffect = 'move';
-    
-    const rows = document.querySelectorAll('#filterFieldsList tr');
-    rows.forEach(row => {
-        if (row !== draggedFilterFieldRow) {
-            row.classList.remove('drag-over');
-        }
-    });
-    
-    if (this !== draggedFilterFieldRow) {
-        this.classList.add('drag-over');
-    }
-    
-    return false;
-}
-
-function handleFilterFieldDrop(e) {
-    if (e.stopPropagation) {
-        e.stopPropagation();
-    }
-    
-    if (draggedFilterFieldRow !== this) {
-        const tbody = document.getElementById('filterFieldsList');
-        const rows = Array.from(tbody.children);
-        const draggedIndex = rows.indexOf(draggedFilterFieldRow);
-        const targetIndex = rows.indexOf(this);
-        
-        if (draggedIndex < targetIndex) {
-            tbody.insertBefore(draggedFilterFieldRow, this.nextSibling);
-        } else {
-            tbody.insertBefore(draggedFilterFieldRow, this);
-        }
-        
-        // 更新顺序
-        const newOrder = Array.from(tbody.children).map(row => row.dataset.fieldKey);
-        const saved = localStorage.getItem('customer_list_filter_fields');
-        let filterFields = [];
-        
-        if (saved) {
-            try {
-                filterFields = JSON.parse(saved);
-            } catch (e) {
-            }
-        }
-        
-        // 重新排序
-        const orderedFields = [];
-        newOrder.forEach(key => {
-            const field = filterFields.find(f => f.key === key);
-            if (field) {
-                orderedFields.push(field);
-            }
-        });
-        
-        // 添加未在列表中的字段
-        filterFields.forEach(field => {
-            if (!orderedFields.find(f => f.key === field.key)) {
-                orderedFields.push(field);
-            }
-        });
-        
-        localStorage.setItem('customer_list_filter_fields', JSON.stringify(orderedFields));
-    }
-    
-    const rows = document.querySelectorAll('#filterFieldsList tr');
-    rows.forEach(row => {
-        row.classList.remove('drag-over');
-    });
-    
-    return false;
-}
-
-function handleFilterFieldDragEnd(e) {
-    this.classList.remove('dragging');
-    this.classList.remove('drag-over');
-    draggedFilterFieldRow = null;
-    
-    const rows = document.querySelectorAll('#filterFieldsList tr');
-    rows.forEach(row => {
-        row.classList.remove('drag-over');
-    });
-}
-
-// 初始化筛选字段拖动功能
-function initFilterFieldsDragAndDrop() {
-    const rows = document.querySelectorAll('#filterFieldsList tr');
-    rows.forEach(row => {
-        row.addEventListener('dragstart', handleFilterFieldDragStart);
-        row.addEventListener('dragover', handleFilterFieldDragOver);
-        row.addEventListener('drop', handleFilterFieldDrop);
-        row.addEventListener('dragend', handleFilterFieldDragEnd);
-    });
-}
-
-// 保存筛选字段设置
-function setupFilterFieldsEventListeners() {
-    const saveBtn = document.getElementById('saveFilterFieldsSettings');
-    const resetBtn = document.getElementById('resetFilterFieldsSettings');
-    const settingsBtn = document.getElementById('settingsFilterFieldsBtn');
-    const modalElement = document.getElementById('filterFieldsSettingsModal');
-    
-    if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-            const tbody = document.getElementById('filterFieldsList');
-            if (!tbody || tbody.children.length === 0) {
-                alert('没有可保存的筛选字段！');
-                return;
-            }
-            
-            // 确保筛选字段列表已初始化
-            if (FILTER_FIELDS.length === 0) {
-                initFilterFieldsList();
-            }
-            
-            const rows = Array.from(tbody.children);
-            const filterFields = rows.map(row => {
-                const checkbox = row.querySelector('.filter-field-checkbox');
-                if (!checkbox) {
-                    return null;
-                }
-                const fieldKey = row.dataset.fieldKey;
-                const field = FILTER_FIELDS.find(f => f.key === fieldKey);
-                return {
-                    key: fieldKey,
-                    label: field ? field.label : fieldKey,
-                    enabled: checkbox.checked
-                };
-            }).filter(f => f !== null);
-            
-            if (filterFields.length === 0) {
-                alert('没有有效的筛选字段！');
-                return;
-            }
-            
-            // 检查是否超过10个启用的字段
-            const enabledCount = filterFields.filter(f => f.enabled).length;
-            if (enabledCount > 10) {
-                alert('最多只能启用10个筛选字段！请取消一些字段的启用状态。');
-                return;
-            }
-            
-            try {
-                localStorage.setItem('customer_list_filter_fields', JSON.stringify(filterFields));
-                
-                // 应用设置
-                applyFilterFieldsSettings(filterFields);
-                
-                // 关闭模态框
-                if (modalElement) {
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    if (modal) {
-                        modal.hide();
-                    }
-                }
-            } catch (error) {
-                alert('保存失败：' + error.message);
-            }
-        });
-    }
-    
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function() {
-            if (confirm('确定要重置所有筛选字段设置吗？')) {
-                localStorage.removeItem('customer_list_filter_fields');
-                // 确保筛选字段列表已初始化
-                if (FILTER_FIELDS.length === 0) {
-                    initFilterFieldsList();
-                }
-                const defaultFields = FILTER_FIELDS.map(f => ({ ...f }));
-                renderFilterFieldsList(defaultFields);
-                initFilterFieldsDragAndDrop();
-            }
-        });
-    }
-    
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', function() {
-            initFilterFieldsSettingsModal();
-        });
-    }
-    
+    // 尝试使用Bootstrap打开模态框
+    const modalElement = document.getElementById('fieldsSettingsModal');
     if (modalElement) {
-        modalElement.addEventListener('show.bs.modal', function() {
-            initFilterFieldsSettingsModal();
-        });
-    }
-}
-
-// 页面加载时应用筛选字段设置
-document.addEventListener('DOMContentLoaded', function() {
-    // 先初始化筛选字段列表
-    initFilterFieldsList();
-    
-    // 设置事件监听器
-    setupFilterFieldsEventListeners();
-    
-    // 应用保存的设置
-    const saved = localStorage.getItem('customer_list_filter_fields');
-    if (saved) {
-        try {
-            const filterFields = JSON.parse(saved);
-            // 确保保存的字段在HTML中存在
-            const validFields = filterFields.filter(f => {
-                const exists = FILTER_FIELDS.some(ff => ff.key === f.key);
-                if (!exists) {
-                    // console.warn(...) // 已移除在HTML中不存在，将被忽略`);
-                }
-                return exists;
-            });
-            if (validFields.length > 0) {
-                applyFilterFieldsSettings(validFields);
-            } else {
-                // 如果所有字段都无效，使用默认设置
-                const defaultFields = FILTER_FIELDS.map(f => ({ ...f }));
-                applyFilterFieldsSettings(defaultFields);
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else if (typeof $ !== 'undefined' && $.fn.modal) {
+            // 兼容jQuery Bootstrap
+            $(modalElement).modal('show');
+        } else {
+            // 降级方案：直接显示模态框
+            console.log('使用降级方案打开模态框');
+            modalElement.style.display = 'block';
+            modalElement.classList.add('show');
+            modalElement.setAttribute('aria-hidden', 'false');
+            modalElement.setAttribute('aria-modal', 'true');
+            modalElement.setAttribute('role', 'dialog');
+            
+            // 创建backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'fieldsSettingsModalBackdrop';
+            backdrop.style.zIndex = '1040';
+            document.body.appendChild(backdrop);
+            
+            // 设置模态框z-index
+            modalElement.style.zIndex = '1050';
+            const dialog = modalElement.querySelector('.modal-dialog');
+            if (dialog) {
+                dialog.style.zIndex = '1051';
             }
-        } catch (e) {
-            const defaultFields = FILTER_FIELDS.map(f => ({ ...f }));
-            applyFilterFieldsSettings(defaultFields);
         }
     } else {
-        const defaultFields = FILTER_FIELDS.map(f => ({ ...f }));
-        applyFilterFieldsSettings(defaultFields);
+        console.error('列设置模态框未找到');
+        alert('列设置模态框未找到，请检查页面是否正确加载。');
     }
 });
-
-// 跳至指定页面
-// 构建包含所有参数的URL
-function buildPageUrl(pageNum, pageSize = null) {
-    const params = new URLSearchParams(window.location.search);
-    params.set('page', pageNum);
-    if (pageSize) {
-        params.set('page_size', pageSize);
-    }
-    return '?' + params.toString();
 }
-
-function jumpToPage() {
-    const input = document.getElementById('jumpToPage');
-    if (!input) return;
-    
-    const pageNum = parseInt(input.value);
-    const maxPage = parseInt(input.getAttribute('max'));
-    
-    if (isNaN(pageNum) || pageNum < 1 || pageNum > maxPage) {
-        alert(`请输入1到${maxPage}之间的页码！`);
-        input.value = input.getAttribute('value');
-        return;
-    }
-    
-    // 使用辅助函数构建URL
-    window.location.href = buildPageUrl(pageNum);
-}
-
-// 每页条数选择器变化
-document.getElementById('pageSizeSelect')?.addEventListener('change', function() {
-    const pageSize = this.value;
-    window.location.href = buildPageUrl(1, pageSize); // 跳转到第一页并设置每页条数
-});
-
-
-    // 事件处理器: handle_onkeypress_0
-    document.addEventListener('DOMContentLoaded', function() {
-        const element = document.querySelector('#searchInput');
-        if (element) {
-            element.addEventListener('keypress', function(e) {
-                if(event.key===
-            });
-        }
-    });
-
-
-    // 事件处理器: handle_onclick_1
-    document.addEventListener('DOMContentLoaded', function() {
-        const element = document.querySelector('.btn');
-        if (element) {
-            element.addEventListener('click', function(e) {
-                location.reload()
-            });
-        }
-    });
-
-
-    // 事件处理器: handle_onkeypress_2
-    document.addEventListener('DOMContentLoaded', function() {
-        const element = document.querySelector('#jumpToPage');
-        if (element) {
-            element.addEventListener('keypress', function(e) {
-                if(event.key===
-            });
-        }
-    });
-
-
-    // 事件处理器: handle_onclick_3
-    document.addEventListener('DOMContentLoaded', function() {
-        const element = document.querySelector('.btn-close');
-        if (element) {
-            element.addEventListener('click', function(e) {
-                removeField(\
-            });
-        }
-    });
-
-
-    // 事件处理器: handle_onclick_4
-    document.addEventListener('DOMContentLoaded', function() {
-        const element = document.querySelector('.btn');
-        if (element) {
-            element.addEventListener('click', function(e) {
-                addField(
-            });
-        }
-    });
-
-
-    // 事件处理器: handle_onchange_5
-    document.addEventListener('DOMContentLoaded', function() {
-        const element = document.querySelector('#filter-field-${field.key}');
-        if (element) {
-            element.addEventListener('change', function(e) {
-                updateFilterFieldEnabled(
-            });
-        }
-    });
-
-
-// 筛选条件折叠/展开
-(function() {
-    console.log('开始初始化筛选展开功能');
-    const toggleBtn = document.getElementById('toggleFilterCollapse');
-    const filters = document.getElementById('basicFilters');
-    const text = document.getElementById('filterCollapseText');
-    const icon = document.getElementById('filterCollapseIcon');
-    
-    console.log('元素检查:', { toggleBtn, filters, text, icon });
-    
-    if (toggleBtn && filters && text && icon) {
-        toggleBtn.addEventListener('click', function(e) {
-            console.log('筛选展开按钮被点击');
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const filters = document.getElementById('basicFilters');
-            const text = document.getElementById('filterCollapseText');
-            const icon = document.getElementById('filterCollapseIcon');
-            
-            if (filters && text && icon) {
-                const isHidden = filters.style.display === 'none' || window.getComputedStyle(filters).display === 'none';
-                console.log('当前状态 - 隐藏:', isHidden);
-                
-                if (isHidden) {
-                    filters.style.display = '';
-                    text.textContent = '收起';
-                    icon.textContent = '▲';
-                    console.log('已展开筛选条件');
-                } else {
-                    filters.style.display = 'none';
-                    text.textContent = '展开';
-                    icon.textContent = '▼';
-                    console.log('已收起筛选条件');
-                }
-            }
-        });
-        console.log('筛选展开事件监听器已绑定');
-    } else {
-        console.warn('筛选展开元素未找到，将在DOMContentLoaded后重试');
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggleBtn = document.getElementById('toggleFilterCollapse');
-            const filters = document.getElementById('basicFilters');
-            const text = document.getElementById('filterCollapseText');
-            const icon = document.getElementById('filterCollapseIcon');
-            
-            if (toggleBtn && filters && text && icon) {
-                toggleBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const isHidden = filters.style.display === 'none' || window.getComputedStyle(filters).display === 'none';
-                    if (isHidden) {
-                        filters.style.display = '';
-                        text.textContent = '收起';
-                        icon.textContent = '▲';
-                    } else {
-                        filters.style.display = 'none';
-                        text.textContent = '展开';
-                        icon.textContent = '▼';
-                    }
-                });
-            }
-        });
-    }
-})();
-
-
-
-
-
-
-
-
 </script>
 
-<!-- 自定义显示列模态框 -->
-<div class="modal fade" id="fieldsSettingsModal" tabindex="-1" aria-labelledby="fieldsSettingsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="fieldsSettingsModalLabel">自定义显示列</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-            <div class="modal-body">
-                <!-- 标签页 -->
-                <ul class="nav nav-tabs mb-3" role="tablist">
-                    <li cla
+{% include "customer_management/includes/filter_fields_settings_modal.html" %}
 
-});
 
-ss="nav-item" role="presentation">
-                        <button class="nav-link active" id="field-settings-tab" data-bs-toggle="tab" data-bs-target="#field-settings" type="button" role="tab" aria-controls="field-settings" aria-selected="true">
-                            字段设置
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="other-settings-tab" data-bs-toggle="tab" data-bs-target="#other-settings" type="button" role="tab" aria-controls="other-settings" aria-selected="false">
-                            其他设置
-                        </button>
-                    </li>
-                </ul>
-                
-                <!-- 标签页内容 -->
-                <div class="tab-content">
-                    <!-- 字段设置标签页 -->
-                    <div class="tab-pane fade show active" id="field-settings" role="tabpanel" aria-labelledby="field-settings-tab">
-                        <div class="mb-3">
-                            <small class="text-muted">拖动区块调整显示顺序</small>
-                </div>
-                        
-                        <!-- 已显示的字段（可拖动） -->
-                        <div class="mb-4">
-                            <h6 class="small fw-semibold mb-2">当前显示列</h6>
-                            <div id="displayedFields" class="d-flex flex-wrap gap-2 p-3 border rounded" style="min-height: 60px;">
-                                <!-- 已显示的字段将通过JavaScript动态生成 -->
-            </div>
-                </div>
-                        
-                        <!-- 可选择的字段 -->
-                        <div>
-                            <h6 class="small fw-semibold mb-2">选择显示列</h6>
-                            <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
-                                <div class="mb-3">
-                                    <h6 class="small fw-semibold mb-2">系统字段</h6>
-                                    <div id="availableFields" class="d-flex flex-column gap-2">
-                                        <!-- 可选择的字段将通过JavaScript动态生成 -->
-            </div>
-        </div>
-    </div>
-                </div>
-            </div>
+
+<!-- 引入筛选功能模块 -->
+<script src="{% static "js/list-filters.js" %}"></script>
+<script src="{% static "js/filter-fields-settings.js" %}"></script>
+
+<script>
+// 初始化筛选功能
+document.addEventListener("DOMContentLoaded", function() {
+    // 初始化列表筛选功能
+    if (typeof ListFilters !== "undefined") {
+        const listFilters = new ListFilters({
+            formId: "filterForm",
+            debounceDelay: 500,
+            autoSubmit: true,
+            enableFieldsSettings: false  // 使用独立的FilterFieldsSettings模块
+        });
+        listFilters.init();
+        console.log("列表筛选功能已初始化");
+    } else {
+        console.error("ListFilters模块未加载");
+    }
     
-                    <!-- 其他设置标签页 -->
-                    <div class="tab-pane fade" id="other-settings" role="tabpanel" aria-labelledby="other-settings-tab">
-                        <div class="mb-3">
-                            <h6 class="small fw-semibold mb-2">其他设置</h6>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="autoSaveSettings">
-                                <label class="form-check-label" for="autoSaveSettings">
-                                    自动保存设置
-                                </label>
-                </div>
-            </div>
-                </div>
-            </div>
-        </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="resetFieldsSettings">重置</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="saveFieldsSettings">确定</button>
-    </div>
-                </div>
-            </div>
-                </div>
+    // 初始化筛选字段设置功能
+    if (typeof FilterFieldsSettings !== "undefined") {
+        const filterFieldsSettings = new FilterFieldsSettings({
+            storageKey: "customer_list_filter_fields_settings",
+            containerId: "basicFilters",
+            modalId: "filterFieldsSettingsModal",
+            listId: "filterFieldsList",
+            settingsBtnId: "settingsFilterFieldsBtn",
+            saveBtnId: "saveFilterFieldsSettings",
+            resetBtnId: "resetFilterFieldsSettings",
+            maxEnabledFields: 10,
+            defaultEnabledFields: []
+        });
+        filterFieldsSettings.init();
+        console.log("筛选字段设置功能已初始化");
+    } else {
+        console.error("FilterFieldsSettings模块未加载");
+    }
+});
+</script>
 
-<!-- 自定义筛选字段模态框 -->
-<div class="modal fade" id="filterFieldsSettingsModal" tabindex="-1" aria-labelledby="filterFieldsSettingsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filterFieldsSettingsModalLabel">
-                    自定义筛选字段
-                    <i class="bi bi-info-circle ms-2 text-muted" style="font-size: 0.9em;" title="最多支持10个筛选字段"></i>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <small class="text-muted">最多支持10个筛选字段</small>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle">
-                        <thead>
-                            <tr>
-                                <th width="80">是否启用</th>
-                                <th>支持筛选的字段</th>
-                                <th width="100">拖动调整顺序</th>
-                            </tr>
-                        </thead>
-                        <tbody id="filterFieldsList">
-                            <!-- 筛选字段列表将通过JavaScript动态生成 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="saveFilterFieldsSettings">保存</button>
-                <button type="button" class="btn btn-secondary" id="resetFilterFieldsSettings">重置</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- 批量转移模态框 -->
-<div class="modal fade" id="batchTransferModal" tabindex="-1" aria-labelledby="batchTransferModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="batchTransferModalLabel">批量转移客户</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="POST" id="batchTransferForm">
-                {% csrf_token %}
-                <input type="hidden" name="client_ids" id="batchTransferClientIds">
-                <div class="modal-body">
-                    <p>确定要将选中的 <strong id="batchTransferCount">0</strong> 个客户转移给新的负责人吗？</p>
-                    <div class="mb-3">
-                        <label for="newResponsibleUser" class="form-label">新负责人</label>
-                        <select class="form-select" id="newResponsibleUser" name="responsible_user" required>
-                            <option value="">请选择负责人</option>
-                            {% for user in users %}
-                            <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="confirmBatchTransfer">确认转移</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-    {% endblock %}
 
+<!-- 筛选字段设置模态框 -->
+
+{% endblock %}

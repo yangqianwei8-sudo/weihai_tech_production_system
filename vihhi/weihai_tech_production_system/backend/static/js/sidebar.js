@@ -12,13 +12,18 @@
      */
     function initSidebar() {
         // 处理有子菜单的一级菜单项点击
+        // 只选择有子菜单的项（通过检查是否有menu-arrow标记）
         document.querySelectorAll('.sidenav-item > .sidenav-link').forEach(function(link) {
             link.addEventListener('click', function(e) {
                 const item = this.closest('.sidenav-item');
                 const submenu = item.querySelector('.submenu');
                 
-                // 如果有子菜单，阻止默认跳转，切换展开/收起状态
-                if (submenu && submenu.children.length > 0) {
+                // 检查是否有子菜单：1) 存在submenu元素 2) submenu有子元素 3) 链接中有menu-arrow标记
+                const hasSubmenu = submenu && submenu.children.length > 0;
+                const hasArrow = this.querySelector('.menu-arrow') !== null;
+                
+                // 只有当确实有子菜单时才阻止默认跳转
+                if (hasSubmenu && hasArrow) {
                     e.preventDefault();
                     e.stopPropagation();
                     

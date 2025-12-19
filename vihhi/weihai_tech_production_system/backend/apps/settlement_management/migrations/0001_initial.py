@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('production_quality', '0006_alter_opinion_project_alter_productionreport_project_and_more'),
+        # ('production_quality', '0006_alter_opinion_project_alter_productionreport_project_and_more'),  # 已删除production_quality模块
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('production_management', '0001_initial'),
     ]
@@ -257,7 +257,7 @@ class Migration(migrations.Migration):
                 ('created_time', models.DateTimeField(default=django.utils.timezone.now, verbose_name='创建时间')),
                 ('updated_time', models.DateTimeField(auto_now=True, verbose_name='更新时间')),
                 ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='created_settlement_items', to=settings.AUTH_USER_MODEL, verbose_name='创建人')),
-                ('opinion', models.ForeignKey(blank=True, help_text='从生产管理模块的意见生成', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='settlement_items', to='production_quality.opinion', verbose_name='关联意见')),
+                ('opinion_id', models.IntegerField(null=True, blank=True, verbose_name='关联意见ID', help_text='从生产管理模块的意见生成（已删除生产质量模块，此字段保留用于历史数据）')),
                 ('reviewed_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='reviewed_settlement_items', to=settings.AUTH_USER_MODEL, verbose_name='审核造价工程师')),
                 ('settlement', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='settlement_management.projectsettlement', verbose_name='关联结算单')),
             ],

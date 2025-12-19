@@ -3145,20 +3145,21 @@ def project_design_reply(request, project_id):
         _user_matches_role(request.user, project, 'design_engineer') or
         _has_permission(permission_set, 'production_management.view_all')
     )
-    replies = ProjectDesignReply.objects.filter(project=project).select_related('submitted_by', 'opinion')
-    available_opinions = list(project.opinions.order_by('-created_at')[:200])
+    replies = ProjectDesignReply.objects.filter(project=project).select_related('submitted_by')
+    # available_opinions = list(project.opinions.order_by('-created_at')[:200])  # 已删除生产质量模块
+    available_opinions = []  # 已删除生产质量模块
 
     if request.method == 'POST':
         if not can_submit:
             messages.error(request, '您没有提交回复的权限。')
             return redirect('production_pages:project_design_reply', project_id=project.id)
         opinion_id = request.POST.get('opinion_id')
-        opinion = None
-        if opinion_id:
-            opinion = project.opinions.filter(id=opinion_id).first()
-        if not opinion:
-            messages.error(request, '请选择需要回复的具体意见。')
-            return redirect('production_pages:project_design_reply', project_id=project.id)
+        # opinion = None  # 已删除生产质量模块
+        # if opinion_id:
+        #     opinion = project.opinions.filter(id=opinion_id).first()
+        # if not opinion:
+        #     messages.error(request, '请选择需要回复的具体意见。')
+        #     return redirect('production_pages:project_design_reply', project_id=project.id)
         issue_title = (request.POST.get('issue_title') or '').strip()
         status = request.POST.get('status') or 'agree'
         response_detail = (request.POST.get('response_detail') or '').strip()
@@ -3167,7 +3168,7 @@ def project_design_reply(request, project_id):
             return redirect('production_pages:project_design_reply', project_id=project.id)
         reply = ProjectDesignReply.objects.create(
             project=project,
-            opinion=opinion,
+            opinion_id=int(opinion_id) if opinion_id and opinion_id.isdigit() else None,
             issue_title=issue_title,
             status=status if status in dict(ProjectDesignReply.REPLY_STATUS_CHOICES) else 'agree',
             response_detail=response_detail,
@@ -3204,8 +3205,9 @@ def project_meeting_log(request, project_id):
         project.business_manager_id == request.user.id
     )
 
-    records = ProjectMeetingRecord.objects.filter(project=project).select_related('created_by').prefetch_related('decisions__opinion')
-    available_opinions = list(project.opinions.order_by('-created_at')[:200])
+    records = ProjectMeetingRecord.objects.filter(project=project).select_related('created_by')
+    # available_opinions = list(project.opinions.order_by('-created_at')[:200])  # 已删除生产质量模块
+    available_opinions = []  # 已删除生产质量模块
 
     if request.method == 'POST':
         form_type = request.POST.get('form_type', 'meeting')
@@ -3217,8 +3219,8 @@ def project_meeting_log(request, project_id):
             opinion_id = request.POST.get('opinion_id')
             decision_value = request.POST.get('decision') or 'pending'
             meeting = ProjectMeetingRecord.objects.filter(project=project, id=meeting_id).first()
-            opinion = project.opinions.filter(id=opinion_id).first()
-            if not meeting or not opinion:
+            # opinion = project.opinions.filter(id=opinion_id).first()  # 已删除生产质量模块
+            if not meeting or not opinion_id:
                 messages.error(request, '请选择有效的会议与意见条目。')
                 return redirect('production_pages:project_meeting_log', project_id=project.id)
             client_comment = (request.POST.get('decision_client_comment') or '').strip()
@@ -3226,7 +3228,7 @@ def project_meeting_log(request, project_id):
             consultant_comment = (request.POST.get('decision_consultant_comment') or '').strip()
             decision_obj, created = ProjectMeetingDecision.objects.update_or_create(
                 meeting=meeting,
-                opinion=opinion,
+                opinion_id=int(opinion_id) if opinion_id and opinion_id.isdigit() else None,
                 defaults={
                     'decision': decision_value if decision_value in dict(ProjectMeetingDecision.DECISION_CHOICES) else 'pending',
                     'client_comment': client_comment,

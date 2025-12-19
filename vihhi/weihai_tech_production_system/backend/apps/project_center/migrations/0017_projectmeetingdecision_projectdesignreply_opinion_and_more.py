@@ -8,7 +8,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('production_quality', '0004_opinion_closed_at_opinion_cycle_time_hours_and_more'),
+        # ('production_quality', '0004_opinion_closed_at_opinion_cycle_time_hours_and_more'),  # 已删除production_quality模块
         ('project_center', '0016_projectmeetingrecord_projectdesignreply'),
     ]
 
@@ -32,12 +32,12 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='projectdesignreply',
-            name='opinion',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='design_replies', to='production_quality.opinion', verbose_name='关联意见'),
+            name='opinion_id',
+            field=models.IntegerField(null=True, blank=True, verbose_name='关联意见ID', help_text='已删除生产质量模块，此字段保留用于历史数据'),
         ),
         migrations.AddIndex(
             model_name='projectdesignreply',
-            index=models.Index(fields=['project', 'opinion'], name='project_cen_project_ff9332_idx'),
+            index=models.Index(fields=['project', 'opinion_id'], name='project_cen_project_ff9332_idx'),
         ),
         migrations.AddField(
             model_name='projectmeetingdecision',
@@ -46,11 +46,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='projectmeetingdecision',
-            name='opinion',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='meeting_decisions', to='production_quality.opinion', verbose_name='关联意见'),
+            name='opinion_id',
+            field=models.IntegerField(null=True, blank=True, verbose_name='关联意见ID', help_text='已删除生产质量模块，此字段保留用于历史数据'),
         ),
         migrations.AlterUniqueTogether(
             name='projectmeetingdecision',
-            unique_together={('meeting', 'opinion')},
+            unique_together={('meeting', 'opinion_id')},
         ),
     ]

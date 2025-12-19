@@ -147,7 +147,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('forecastChart');
     if (ctx) {
-        const monthlyData = {{ forecast_data.monthly_forecast|safe }};
+        const monthlyData = {{ forecast_data.monthly_forecast|safe|default:"[]" }};
         const labels = monthlyData.map(item => item.month || item.label);
         const optimisticData = monthlyData.map(item => item.optimistic || 0);
         const neutralData = monthlyData.map(item => item.neutral || 0);

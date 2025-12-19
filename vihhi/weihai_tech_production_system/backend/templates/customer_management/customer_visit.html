@@ -1,14 +1,60 @@
 {% extends "customer_management/base.html" %}
 
-{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+{% block title %}{{ page_title }} - 维海科技信息化管理平台
+    
+    <!-- 引入列表筛选功能模块 -->
+    
+
+    
+    
+
+    
+    
+    
+    
+    <!-- 引入列表筛选功能模块 -->
+    
+
+{% endblock %}
 
 {% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/list-filters.css' %}">
+
+    
+    <!-- 引入列表筛选功能模块 -->
+    
+
+    
+    
+
+    
+    
+    
+    
+    <!-- 引入列表筛选功能模块 -->
+    
+
 {% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
+
+    
+    <!-- 引入列表筛选功能模块 -->
+    
+
+    
+    
+
+    
+    
+    
+    
+    <!-- 引入列表筛选功能模块 -->
+    
+
 {% endblock %}
 
 {% block content %}
@@ -16,43 +62,78 @@
     <div class="list-page-container">
         <!-- 页面标题区域 -->
         <div class="list-page-header">
-            <h1 class="list-page-title">
-                {{ page_title }}
-            </h1>
+            <div>
+                <h2 class="mb-0">
+                    {{ page_title }}
+                </h2>
+            </div>
+            <div class="list-page-actions">
+                {% if can_create %}
+                <a href="{% url 'business_pages:visit_plan_flow' %}" class="btn btn-primary">
+                    + 新增拜访
+                </a>
+                {% endif %}
+            </div>
         </div>
 
         <!-- 筛选栏区域 -->
-        <div class="list-page-filters mb-3">
+        <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0 small fw-semibold">筛选条件</h6>
+                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="settingsFilterFieldsBtn">
+                    ⚙️ 设置筛选字段
+                </button>
+            </div>
             <form method="get" id="filterForm">
-                <div class="row g-2">
-                    <div class="col-md-3">
-                        <label class="form-label small">搜索:</label>
-                        <input type="text" name="search" class="form-control form-control-sm" 
-                               value="{{ search }}" placeholder="客户名称、拜访内容">
+                <div id="basicFilters" style="display: block;">
+                    <!-- 搜索 -->
+                    <div class="filter-row mb-3" data-filter-key="search">
+                        <label class="filter-label">搜索:</label>
+                        <div class="filter-buttons">
+                            <div class="d-inline-flex align-items-center" style="flex: 1; max-width: 400px;">
+                                <input type="text" name="search" class="form-control form-control-sm" 
+                                       value="{{ search }}" placeholder="客户名称、拜访内容">
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small">客户:</label>
-                        <select name="client" class="form-select form-select-sm">
-                            <option value="">全部客户</option>
-                            {% for c in clients %}
-                            <option value="{{ c.id }}" {% if client_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
-                            {% endfor %}
-                        </select>
+
+                    <!-- 客户 -->
+                    <div class="filter-row mb-3" data-filter-key="client">
+                        <label class="filter-label">客户:</label>
+                        <div class="filter-buttons">
+                            <button type="button" class="filter-btn {% if not client_id %}active{% endif %}" 
+                                    data-filter="client" data-value="">
+                                全部客户
+                            </button>
+                            <div class="d-inline-flex align-items-center ms-2">
+                                <select name="client" class="form-select form-select-sm" style="width: 200px;" id="clientSelect">
+                                    <option value="">请选择客户</option>
+                                    {% for c in clients %}
+                                    <option value="{{ c.id }}" {% if client_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <input type="hidden" name="client" id="filter_client" value="{{ client_id }}">
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small">拜访类型:</label>
-                        <select name="visit_type" class="form-select form-select-sm">
-                            <option value="">全部类型</option>
-                            {% for value, label in visit_type_choices %}
-                            <option value="{{ value }}" {% if visit_type == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small">&nbsp;</label>
-                        <div class="d-flex gap-1">
-                            <button type="submit" class="btn btn-primary btn-sm flex-fill">筛选</button>
-                            <a href="{% url 'business_pages:customer_visit' %}" class="btn btn-secondary btn-sm flex-fill">重置</a>
+
+                    <!-- 拜访类型 -->
+                    <div class="filter-row mb-3" data-filter-key="visit_type">
+                        <label class="filter-label">拜访类型:</label>
+                        <div class="filter-buttons">
+                            <button type="button" class="filter-btn {% if not visit_type %}active{% endif %}" 
+                                    data-filter="visit_type" data-value="">
+                                全部类型
+                            </button>
+                            <div class="d-inline-flex align-items-center ms-2">
+                                <select name="visit_type" class="form-select form-select-sm" style="width: 150px;" id="visitTypeSelect">
+                                    <option value="">请选择类型</option>
+                                    {% for value, label in visit_type_choices %}
+                                    <option value="{{ value }}" {% if visit_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <input type="hidden" name="visit_type" id="filter_visit_type" value="{{ visit_type }}">
                         </div>
                     </div>
                 </div>
@@ -177,4 +258,40 @@
         </div>
     </div>
 </div>
+
+    
+    <!-- 引入列表筛选功能模块 -->
+    
+
+    
+    
+
+    
+    
+    
+    
+    <!-- 引入列表筛选功能模块 -->
+    
+
+    {% include "customer_management/includes/filter_fields_settings_modal.html" %}
+
+    <!-- 引入筛选字段设置功能模块 -->
+    <script src="{% static 'js/filter-fields-settings.js' %}"></script>
+    <!-- 配置筛选字段设置功能（必须在 list-filters.js 之前） -->
+    <script>
+    window.listFiltersConfig = {
+        enableFieldsSettings: true,
+        fieldsSettingsStorageKey: 'customer_visit_filter_fields',
+        fieldsSettingsContainerId: 'basicFilters',
+        fieldsSettingsModalId: 'filterFieldsSettingsModal',
+        fieldsSettingsListId: 'filterFieldsList',
+        fieldsSettingsBtnId: 'settingsFilterFieldsBtn',
+        fieldsSettingsSaveBtnId: 'saveFilterFieldsSettings',
+        fieldsSettingsResetBtnId: 'resetFilterFieldsSettings',
+        maxEnabledFields: 10,
+        defaultEnabledFields: ['search', 'client', 'visit_type']
+    };
+    </script>
+    <!-- 引入列表筛选功能模块 -->
+    <script src="{% static 'js/list-filters.js' %}"></script>
 {% endblock %}

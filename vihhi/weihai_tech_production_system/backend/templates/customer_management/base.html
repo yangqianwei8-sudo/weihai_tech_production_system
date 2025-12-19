@@ -9,55 +9,116 @@
     <link id="bootstrap-css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <link id="bootstrap-icons-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
-    <script>
-        // Bootstrap CSS fallback: 如果主CDN失败，切换到备用CDN
+        <script>
+        // Bootstrap CSS fallback: 如果主CDN失败，立即切换到备用CDN
         (function() {
-            function switchToFallback() {
+            var fallbackCDNs = [
+                {
+                    bootstrap: 'https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css',
+                    icons: 'https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.0/font/bootstrap-icons.min.css'
+                },
+                {
+                    bootstrap: 'https://unpkg.com/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+                    icons: 'https://unpkg.com/bootstrap-icons@1.11.0/font/bootstrap-icons.css'
+                }
+            ];
+            
+            var currentFallbackIndex = 0;
+            
+            function checkAndSwitch() {
                 var bootstrapCss = document.getElementById('bootstrap-css');
                 var iconsCss = document.getElementById('bootstrap-icons-css');
+                var needSwitch = false;
                 
-                // 检查CSS是否加载成功（通过检查sheet属性）
+                // 检查Bootstrap CSS
                 if (bootstrapCss) {
                     try {
-                        // 如果sheet为null或无法访问cssRules，说明加载失败
-                        if (!bootstrapCss.sheet || (bootstrapCss.sheet.cssRules && bootstrapCss.sheet.cssRules.length === 0)) {
-                            // 如果当前还是主CDN的URL，切换到备用CDN
-                            if (bootstrapCss.href.indexOf('cdn.jsdelivr.net') !== -1) {
-                                bootstrapCss.href = 'https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css';
+                        // 检查是否加载失败
+                        if (!bootstrapCss.sheet) {
+                            needSwitch = true;
+                        } else {
+                            // 尝试访问cssRules，如果失败说明跨域或加载失败
+                            try {
+                                var rules = bootstrapCss.sheet.cssRules || bootstrapCss.sheet.rules;
+                                if (!rules || rules.length === 0) {
+                                    needSwitch = true;
+                                }
+                            } catch(e) {
+                                // 跨域错误，可能是加载失败
+                                needSwitch = true;
                             }
                         }
                     } catch(e) {
-                        // 跨域或其他错误，尝试切换到备用CDN
-                        if (bootstrapCss.href.indexOf('cdn.jsdelivr.net') !== -1) {
-                            bootstrapCss.href = 'https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css';
-                        }
+                        needSwitch = true;
                     }
                 }
                 
+                // 检查Icons CSS
                 if (iconsCss) {
                     try {
-                        if (!iconsCss.sheet || (iconsCss.sheet.cssRules && iconsCss.sheet.cssRules.length === 0)) {
-                            if (iconsCss.href.indexOf('cdn.jsdelivr.net') !== -1) {
-                                iconsCss.href = 'https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.0/font/bootstrap-icons.min.css';
+                        if (!iconsCss.sheet) {
+                            needSwitch = true;
+                        } else {
+                            try {
+                                var rules = iconsCss.sheet.cssRules || iconsCss.sheet.rules;
+                                if (!rules || rules.length === 0) {
+                                    needSwitch = true;
+                                }
+                            } catch(e) {
+                                needSwitch = true;
                             }
                         }
                     } catch(e) {
-                        if (iconsCss.href.indexOf('cdn.jsdelivr.net') !== -1) {
-                            iconsCss.href = 'https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.0/font/bootstrap-icons.min.css';
-                        }
+                        needSwitch = true;
                     }
+                }
+                
+                // 如果需要切换且还有备用CDN
+                if (needSwitch && currentFallbackIndex < fallbackCDNs.length) {
+                    var fallback = fallbackCDNs[currentFallbackIndex];
+                    if (bootstrapCss && bootstrapCss.href.indexOf('cdn.jsdelivr.net') !== -1) {
+                        bootstrapCss.href = fallback.bootstrap;
+                        console.log('切换到备用CDN (Bootstrap):', fallback.bootstrap);
+                    }
+                    if (iconsCss && iconsCss.href.indexOf('cdn.jsdelivr.net') !== -1) {
+                        iconsCss.href = fallback.icons;
+                        console.log('切换到备用CDN (Icons):', fallback.icons);
+                    }
+                    currentFallbackIndex++;
                 }
             }
             
-            // 延迟检查，给主CDN一些时间加载（3秒）
-            setTimeout(switchToFallback, 3000);
+            // 立即检查（500ms后）
+            setTimeout(checkAndSwitch, 500);
             
-            // 页面加载完成后也检查一次
+            // 1秒后再次检查
+            setTimeout(checkAndSwitch, 1000);
+            
+            // 2秒后再次检查
+            setTimeout(checkAndSwitch, 2000);
+            
+            // 页面加载完成后检查
             if (document.readyState === 'complete') {
-                setTimeout(switchToFallback, 1000);
+                setTimeout(checkAndSwitch, 500);
             } else {
                 window.addEventListener('load', function() {
-                    setTimeout(switchToFallback, 2000);
+                    setTimeout(checkAndSwitch, 500);
+                });
+            }
+            
+            // 监听link标签的error事件
+            var bootstrapCss = document.getElementById('bootstrap-css');
+            var iconsCss = document.getElementById('bootstrap-icons-css');
+            
+            if (bootstrapCss) {
+                bootstrapCss.addEventListener('error', function() {
+                    checkAndSwitch();
+                });
+            }
+            
+            if (iconsCss) {
+                iconsCss.addEventListener('error', function() {
+                    checkAndSwitch();
                 });
             }
         })();

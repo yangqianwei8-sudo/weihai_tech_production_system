@@ -15,6 +15,9 @@
     padding: 12px !important;
     background: var(--vh-bg);
     min-height: calc(100vh - 200px);
+    /* 确保sticky定位在flex容器中正常工作 */
+    overflow: visible;
+    position: relative;
 }
 
 /* ============================================
@@ -254,6 +257,48 @@
     flex: 1;
 }
 
+/* 操作栏搜索下拉框样式优化 */
+.list-page-action-bar #searchFieldSelect,
+.list-page-actions-bar #searchFieldSelect {
+    min-width: 100px;
+    width: auto !important;
+    font-size: 14px !important;
+    color: #333 !important;
+    font-weight: 500;
+    padding-right: 24px;
+    background-color: #fff !important;
+}
+
+.list-page-action-bar #searchFieldSelect option,
+.list-page-actions-bar #searchFieldSelect option {
+    color: #333;
+    font-size: 14px;
+    padding: 4px 8px;
+}
+
+/* 操作栏搜索按钮样式 */
+.list-page-action-bar .input-group .btn,
+.list-page-actions-bar .input-group .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 12px;
+    border-left: none;
+    transition: all var(--transition-base);
+}
+
+.list-page-action-bar .input-group .btn:hover,
+.list-page-actions-bar .input-group .btn:hover {
+    background-color: var(--vh-primary);
+    border-color: var(--vh-primary);
+    color: #fff;
+}
+
+.list-page-action-bar .input-group .btn i,
+.list-page-actions-bar .input-group .btn i {
+    font-size: 14px;
+}
+
 .list-page-filter-actions {
     display: flex;
     gap: var(--spacing-xs);
@@ -290,6 +335,16 @@
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--vh-border);
     margin-bottom: 8px !important; /* 压缩间距 */
+    /* 固定在列表上方 - 优化sticky定位在flex容器中的表现 */
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    /* 确保固定时有背景和阴影 */
+    background: var(--vh-card-bg) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    /* 确保在flex容器中sticky定位正常工作 */
+    align-self: stretch;
+    width: 100%;
 }
 
 /* 兼容 customer_list.html 中使用的类名 */
@@ -303,6 +358,16 @@
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--vh-border);
     margin-bottom: 8px !important; /* 压缩间距 */
+    /* 固定在列表上方 - 优化sticky定位在flex容器中的表现 */
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    /* 确保固定时有背景和阴影 */
+    background: var(--vh-card-bg) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    /* 确保在flex容器中sticky定位正常工作 */
+    align-self: stretch;
+    width: 100%;
 }
 
 .list-page-selection-info {
@@ -389,9 +454,35 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: calc(var(--spacing-sm) * 0.7) calc(var(--spacing-md) * 0.7);
-    line-height: 1.4;
+    line-height: var(--table-line-height);
     position: relative;
     white-space: nowrap;
+}
+
+/* 列设置模态框样式 */
+#fieldsSettingsModal {
+    z-index: 10060 !important; /* 确保在操作栏(z-index:100)和筛选字段设置模态框(z-index:10050)之上 */
+}
+
+#fieldsSettingsModal .modal-dialog {
+    margin: calc(56px + 2rem) auto 2rem auto;
+    max-width: 900px;
+    z-index: 10061 !important;
+    pointer-events: auto !important;
+}
+
+#fieldsSettingsModal .modal-content {
+    z-index: 10062 !important;
+    pointer-events: auto !important;
+}
+
+/* 列设置按钮样式 */
+#tableColumnSettingsBtn {
+    position: relative;
+    z-index: 102 !important; /* 确保按钮在操作栏之上 */
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
 }
 
 .list-page-table thead th.sortable {
@@ -408,7 +499,7 @@
     padding: calc(var(--spacing-md) * 0.7);
     vertical-align: middle;
     border-bottom: 1px solid var(--vh-border-light);
-    line-height: 1.4;
+    line-height: var(--table-line-height);
 }
 
 .list-page-table tbody tr {

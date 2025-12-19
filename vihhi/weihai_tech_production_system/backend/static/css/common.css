@@ -65,3 +65,20 @@
 /* @import url('modules/financial.css'); */
 /* @import url('modules/project.css'); */
 /* @import url('modules/personnel.css'); */
+
+/* 确保表单容器可以正常交互 */
+.workspace-content,
+.customer-content,
+.workspace-main {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+}
+
+/* 确保表单区域可以正常交互 */
+.form-section,
+form {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+}

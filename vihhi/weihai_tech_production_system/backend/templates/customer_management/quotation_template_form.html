@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if rule %}
     // 编辑模式，填充规则参数
     const ruleType = '{{ rule.rule_type }}';
-    const ruleParams = {{ rule_params_json|safe }};
+    const ruleParams = {{ rule_params_json|safe|default:"{}" }};
     
     updateRuleParams();
     

@@ -89,13 +89,6 @@ CUSTOMER_MANAGEMENT_MENU = [
                 'permission': 'customer_management.contact.view',
             },
             {
-                'id': 'contact_info_change',
-                'label': '创建人员信息变更',
-                'icon': '📝',
-                'url_name': 'business_pages:contact_info_change_create',
-                'permission': 'customer_management.contact.view',
-            },
-            {
                 'id': 'contact_relationship_mining',
                 'label': '关系挖掘',
                 'icon': '🔍',
@@ -1295,10 +1288,14 @@ def customer_list(request):
         elif tab == 'subordinate_responsible':
             # 下属负责的 - 需要获取当前用户的下属
             from backend.apps.system_management.models import User
-            subordinates = User.objects.filter(
-                manager=request.user,
-                is_active=True
-            )
+            # 通过部门关系查找下属：如果用户是部门负责人，则部门成员是下属
+            subordinates = User.objects.none()
+            if request.user.department and request.user.department.leader == request.user:
+                # 用户是部门负责人，获取部门所有成员（不包括自己）
+                subordinates = User.objects.filter(
+                    department=request.user.department,
+                    is_active=True
+                ).exclude(id=request.user.id)
             clients = clients.filter(responsible_user__in=subordinates)
         elif tab == 'my_collaboration':
             # 我协作的 - 需要根据协作关系筛选（这里需要根据实际模型调整）
@@ -1307,10 +1304,14 @@ def customer_list(request):
         elif tab == 'subordinate_collaboration':
             # 下属协作的
             from backend.apps.system_management.models import User
-            subordinates = User.objects.filter(
-                manager=request.user,
-                is_active=True
-            )
+            # 通过部门关系查找下属：如果用户是部门负责人，则部门成员是下属
+            subordinates = User.objects.none()
+            if request.user.department and request.user.department.leader == request.user:
+                # 用户是部门负责人，获取部门所有成员（不包括自己）
+                subordinates = User.objects.filter(
+                    department=request.user.department,
+                    is_active=True
+                ).exclude(id=request.user.id)
             clients = clients.filter(contacts__user__in=subordinates).distinct()
         elif tab == 'pending_approval':
             # 待审批的 - 需要根据审批状态筛选（这里需要根据实际审批流程调整）
@@ -2201,69 +2202,6 @@ def customer_delete(request, client_id):
         'has_relations': has_relations,
     })
     return render(request, "customer_management/customer_delete.html", context)
-
-
-@login_required
-def customer_batch_transfer(request):
-    """批量转移客户"""
-    from backend.apps.customer_management.models import Client
-    from backend.apps.system_management.models import User
-    from django.http import JsonResponse
-    import json
-    
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'message': '仅支持POST请求'}, status=405)
-    
-    permission_set = get_user_permission_codes(request.user)
-    if not _check_customer_permission('customer_management.client.edit', permission_set):
-        return JsonResponse({'success': False, 'message': '您没有权限转移客户'}, status=403)
-    
-    try:
-        # 获取参数
-        client_ids_str = request.POST.get('client_ids', '')
-        responsible_user_id = request.POST.get('responsible_user', '')
-        
-        if not client_ids_str:
-            return JsonResponse({'success': False, 'message': '请选择要转移的客户'}, status=400)
-        
-        if not responsible_user_id:
-            return JsonResponse({'success': False, 'message': '请选择新负责人'}, status=400)
-        
-        # 解析客户ID列表
-        client_ids = [int(id.strip()) for id in client_ids_str.split(',') if id.strip()]
-        
-        if not client_ids:
-            return JsonResponse({'success': False, 'message': '无效的客户ID列表'}, status=400)
-        
-        # 验证新负责人
-        try:
-            new_responsible = User.objects.get(id=int(responsible_user_id), is_active=True)
-        except User.DoesNotExist:
-            return JsonResponse({'success': False, 'message': '新负责人不存在或已停用'}, status=400)
-        
-        # 批量转移
-        clients = Client.objects.filter(id__in=client_ids)
-        transferred_count = 0
-        
-        for client in clients:
-            # 检查权限（可以添加更细粒度的权限检查）
-            client.responsible_user = new_responsible
-            client.save()
-            transferred_count += 1
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'成功转移 {transferred_count} 个客户',
-            'transferred_count': transferred_count
-        })
-        
-    except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.exception('批量转移客户失败: %s', str(e))
-        return JsonResponse({'success': False, 'message': f'批量转移失败：{str(e)}'}, status=500)
-
-
 @login_required
 def customer_batch_delete(request):
     """批量删除客户"""
@@ -2562,12 +2500,9 @@ def customer_public_sea(request):
     from django.core.paginator import Paginator
     from backend.apps.customer_management.models import Client
     
-    # 获取筛选参数
+    # 获取搜索参数（保留搜索功能）
     search = request.GET.get('search', '').strip()
-    public_sea_reason = request.GET.get('public_sea_reason', '')
-    client_level = request.GET.get('client_level', '')
-    industry = request.GET.get('industry', '')
-    region = request.GET.get('region', '')
+    # 筛选参数将通过新的筛选模块处理，这里不再单独获取
     
     # 获取权限
     permission_set = get_user_permission_codes(request.user)
@@ -2584,15 +2519,22 @@ def customer_public_sea(request):
                 Q(unified_credit_code__icontains=search)
             )
         
+        # 筛选条件将通过新的筛选模块处理，这里使用通用方式获取所有GET参数
+        # 支持通过GET参数进行筛选（由前端筛选模块提交）
+        filter_params = {}
+        for key, value in request.GET.items():
+            if key not in ['search', 'page', 'page_size', 'tab'] and value:
+                filter_params[key] = value
+        
         # 应用筛选条件
-        if public_sea_reason:
-            clients = clients.filter(public_sea_reason=public_sea_reason)
-        if client_level:
-            clients = clients.filter(client_level=client_level)
-        if industry:
-            clients = clients.filter(industry__icontains=industry)
-        if region:
-            clients = clients.filter(region__icontains=region)
+        if filter_params.get('public_sea_reason'):
+            clients = clients.filter(public_sea_reason=filter_params['public_sea_reason'])
+        if filter_params.get('client_level'):
+            clients = clients.filter(client_level=filter_params['client_level'])
+        if filter_params.get('industry'):
+            clients = clients.filter(industry__icontains=filter_params['industry'])
+        if filter_params.get('region'):
+            clients = clients.filter(region__icontains=filter_params['region'])
         
         # 按进入公海时间倒序排列
         clients = clients.order_by('-public_sea_entry_time', '-created_time')
@@ -2654,6 +2596,12 @@ def customer_public_sea(request):
         permission_set, 
         active_id='customer_public_sea'
     )
+    
+    # 获取筛选参数（用于前端显示当前筛选状态）
+    public_sea_reason = request.GET.get('public_sea_reason', '')
+    client_level = request.GET.get('client_level', '')
+    industry = request.GET.get('industry', '')
+    region = request.GET.get('region', '')
     
     context.update({
         'page_obj': page_obj,
@@ -2721,11 +2669,13 @@ def contact_list(request):
     from django.core.paginator import Paginator
     from backend.apps.customer_management.models import ClientContact, Client
     
-    # 获取筛选参数
+    # 获取搜索参数（保留搜索功能）
     search = request.GET.get('search', '').strip()
-    client_id = request.GET.get('client', '')
-    role = request.GET.get('role', '')
-    relationship_level = request.GET.get('relationship_level', '')
+    # 筛选参数将通过新的筛选模块处理，这里使用通用方式获取所有GET参数
+    filter_params = {}
+    for key, value in request.GET.items():
+        if key not in ['search', 'page', 'page_size', 'tab'] and value:
+            filter_params[key] = value
     
     # 获取权限
     permission_set = get_user_permission_codes(request.user)
@@ -2745,12 +2695,12 @@ def contact_list(request):
             )
         
         # 应用筛选条件
-        if client_id:
-            contacts = contacts.filter(client_id=client_id)
-        if role:
-            contacts = contacts.filter(role=role)
-        if relationship_level:
-            contacts = contacts.filter(relationship_level=relationship_level)
+        if filter_params.get('client'):
+            contacts = contacts.filter(client_id=filter_params['client'])
+        if filter_params.get('role'):
+            contacts = contacts.filter(role=filter_params['role'])
+        if filter_params.get('relationship_level'):
+            contacts = contacts.filter(relationship_level=filter_params['relationship_level'])
         
         # 按创建时间倒序排列
         contacts = contacts.order_by('-is_primary', '-created_time')
@@ -2786,9 +2736,9 @@ def contact_list(request):
     context.update({
         'page_obj': page_obj,
         'search': search,
-        'client_id': client_id,
-        'role': role,
-        'relationship_level': relationship_level,
+        'client_id': filter_params.get('client', ''),
+        'role': filter_params.get('role', ''),
+        'relationship_level': filter_params.get('relationship_level', ''),
         'clients': clients,
         'can_create': can_create,
         'role_choices': ClientContact.ROLE_CHOICES,
@@ -3697,252 +3647,64 @@ def contact_tracking_reminders(request):
 
 @login_required
 def contact_info_change_create(request):
-    """创建人员信息变更"""
-    from backend.apps.customer_management.models import ClientContact, ContactInfoChange
-    from backend.apps.customer_management.forms import ContactInfoChangeForm
-    from backend.apps.workflow_engine.models import WorkflowTemplate
-    from backend.apps.workflow_engine.services import ApprovalEngine
-    import json
-    
+    """创建联系人信息变更申请"""
+    # 检查权限
     permission_set = get_user_permission_codes(request.user)
-    if not _check_customer_permission('customer_management.contact.view', permission_set):
-        messages.error(request, '您没有权限访问此功能')
+    if not _check_customer_permission('customer_management.contact.edit', permission_set):
+        messages.error(request, '您没有权限创建联系人信息变更申请')
         return redirect('business_pages:contact_list')
     
+    # 检查 ContactInfoChange 模型是否存在
+    try:
+        from backend.apps.customer_management.models import ContactInfoChange
+        from backend.apps.customer_management.forms import ContactInfoChangeForm
+    except (ImportError, AttributeError):
+        # 模型不存在，重定向到联系人列表
+        messages.warning(request, '联系人信息变更功能暂时不可用，请直接编辑联系人信息')
+        return redirect('business_pages:contact_list')
+    
+    # 如果模型为 None（在 forms.py 中可能被设置为 None）
+    if ContactInfoChange is None:
+        messages.warning(request, '联系人信息变更功能暂时不可用，请直接编辑联系人信息')
+        return redirect('business_pages:contact_list')
+    
+    # 处理表单提交
     if request.method == 'POST':
-        action = request.POST.get('action', 'submit')
-        is_draft = (action == 'save_draft')
-        
-        # 处理变更内容
-        change_content = {}
-        if not is_draft:
-            # 获取变更的字段
-            contact_id = request.POST.get('contact')
-            if contact_id:
-                try:
-                    contact = ClientContact.objects.get(id=contact_id)
-                    # 遍历所有可能的字段，检查是否有变更
-                    changeable_fields = [
-                        'name', 'gender', 'birthplace', 'phone', 'email', 'wechat',
-                        'office_address', 'role', 'relationship_level', 'decision_influence',
-                        'contact_frequency', 'tracking_cycle_days', 'is_primary', 'notes'
-                    ]
-                    
-                    for field_name in changeable_fields:
-                        old_value = getattr(contact, field_name, None)
-                        new_value = request.POST.get(f'field_{field_name}', '')
-                        
-                        # 处理不同类型的字段
-                        if field_name in ['is_primary']:
-                            new_value = new_value == 'on' or new_value == 'true'
-                        elif field_name in ['tracking_cycle_days']:
-                            try:
-                                new_value = int(new_value) if new_value else None
-                            except (ValueError, TypeError):
-                                new_value = None
-                        
-                        # 如果值有变化，记录到变更内容中
-                        if str(old_value) != str(new_value):
-                            change_content[field_name] = {
-                                'old': old_value,
-                                'new': new_value
-                            }
-                except ClientContact.DoesNotExist:
-                    pass
-        
-        # 创建表单数据
-        form_data = request.POST.copy()
-        if change_content:
-            form_data['change_content'] = json.dumps(change_content, ensure_ascii=False, default=str)
-        
-        form = ContactInfoChangeForm(form_data, is_draft=is_draft)
-        
-        if is_draft or form.is_valid():
-            change = form.save(commit=False)
-            change.created_by = request.user
-            change.approval_status = 'draft' if is_draft else 'pending'
-            
-            # 如果提交，启动审批流程
-            if not is_draft:
-                try:
-                    workflow = WorkflowTemplate.objects.get(
-                        code='contact_info_change_approval',
-                        status='active'
-                    )
-                    instance = ApprovalEngine.start_approval(
-                        workflow=workflow,
-                        content_object=change,
-                        applicant=request.user,
-                        comment=f'申请变更联系人信息：{change.contact.name} - {change.get_change_type_display()}'
-                    )
-                    change.approval_instance = instance
-                except WorkflowTemplate.DoesNotExist:
-                    messages.warning(request, '人员信息变更审批流程未配置或已停用，将保存为草稿。')
-                    change.approval_status = 'draft'
-                except Exception as e:
-                    logger.exception('启动人员信息变更审批流程失败: %s', str(e))
-                    messages.error(request, f'启动审批流程失败：{str(e)}，将保存为草稿。')
-                    change.approval_status = 'draft'
-            
-            change.save()
-            
-            if is_draft:
-                messages.success(request, '人员信息变更申请草稿保存成功')
-            else:
-                messages.success(request, f'人员信息变更申请已提交。变更类型：{change.get_change_type_display()}')
-            
-            return redirect('business_pages:contact_info_change_list')
+        form = ContactInfoChangeForm(request.POST, user=request.user)
+        if form.is_valid():
+            info_change = form.save(commit=False)
+            info_change.created_by = request.user
+            info_change.approval_status = 'draft'  # 默认为草稿状态
+            info_change.save()
+            messages.success(request, '联系人信息变更申请已创建')
+            return redirect('business_pages:contact_list')
         else:
             messages.error(request, '表单验证失败，请检查输入')
     else:
-        form = ContactInfoChangeForm()
+        form = ContactInfoChangeForm(user=request.user)
     
-    # 获取联系人列表（用于选择）
-    contacts = ClientContact.objects.all().select_related('client').order_by('client__name', 'name')
+    # 获取联系人列表（用于下拉选择）
+    contacts = ClientContact.objects.all().order_by('name')
     
     context = _context(
-        "创建人员信息变更",
+        "创建联系人信息变更申请",
         "📝",
-        "创建人员信息变更申请",
+        "创建新的联系人信息变更申请",
         request=request,
     )
     
     # 生成左侧菜单
     context['customer_menu'] = _build_customer_management_menu(
-        permission_set,
-        active_id='contact_info_change'
+        permission_set, 
+        active_id='contact_list'
     )
     
     context.update({
         'form': form,
         'contacts': contacts,
-        'change_type_choices': ContactInfoChange.CHANGE_TYPE_CHOICES,
     })
     
     return render(request, "customer_management/contact_info_change_create.html", context)
-
-
-@login_required
-def contact_info_change_list(request):
-    """人员信息变更申请列表"""
-    from django.core.paginator import Paginator
-    from django.db.models import Q
-    from backend.apps.customer_management.models import ContactInfoChange, ClientContact
-    
-    # 获取筛选参数
-    search = request.GET.get('search', '').strip()
-    contact_id = request.GET.get('contact', '')
-    change_type = request.GET.get('change_type', '')
-    approval_status = request.GET.get('approval_status', '')
-    
-    # 获取权限
-    permission_set = get_user_permission_codes(request.user)
-    can_create = _check_customer_permission('customer_management.contact.view', permission_set)
-    
-    # 获取变更申请列表
-    try:
-        changes = ContactInfoChange.objects.select_related(
-            'contact', 'contact__client', 'created_by', 'approval_instance'
-        )
-        
-        # 应用搜索条件
-        if search:
-            changes = changes.filter(
-                Q(contact__name__icontains=search) |
-                Q(contact__client__name__icontains=search) |
-                Q(change_reason__icontains=search)
-            )
-        
-        # 应用筛选条件
-        if contact_id:
-            changes = changes.filter(contact_id=contact_id)
-        if change_type:
-            changes = changes.filter(change_type=change_type)
-        if approval_status:
-            changes = changes.filter(approval_status=approval_status)
-        
-        # 按创建时间倒序排列
-        changes = changes.order_by('-created_time')
-        
-        # 分页
-        paginator = Paginator(changes, 20)
-        page_number = request.GET.get('page', 1)
-        page_obj = paginator.get_page(page_number)
-        
-    except Exception as e:
-        logger.exception('获取人员信息变更申请列表失败: %s', str(e))
-        messages.error(request, f'获取人员信息变更申请列表失败：{str(e)}')
-        page_obj = None
-    
-    # 获取联系人列表（用于筛选）
-    contacts = ClientContact.objects.all().select_related('client').order_by('client__name', 'name')
-    
-    context = _context(
-        "人员信息变更申请列表",
-        "📝",
-        "查看和管理人员信息变更申请",
-        request=request,
-    )
-    
-    # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
-        permission_set,
-        active_id='contact_info_change'
-    )
-    
-    context.update({
-        'page_obj': page_obj,
-        'search': search,
-        'contact_id': contact_id,
-        'change_type': change_type,
-        'approval_status': approval_status,
-        'contacts': contacts,
-        'can_create': can_create,
-        'approval_status_choices': ContactInfoChange.APPROVAL_STATUS_CHOICES,
-        'change_type_choices': ContactInfoChange.CHANGE_TYPE_CHOICES,
-    })
-    
-    return render(request, "customer_management/contact_info_change_list.html", context)
-
-
-@login_required
-def contact_info_change_detail(request, change_id):
-    """人员信息变更申请详情"""
-    from backend.apps.customer_management.models import ContactInfoChange
-    
-    change = get_object_or_404(
-        ContactInfoChange.objects.select_related(
-            'contact', 'contact__client', 'created_by', 'approval_instance'
-        ),
-        id=change_id
-    )
-    
-    permission_set = get_user_permission_codes(request.user)
-    can_view = _check_customer_permission('customer_management.contact.view', permission_set)
-    
-    if not can_view:
-        messages.error(request, '您没有权限查看此变更申请')
-        return redirect('business_pages:contact_info_change_list')
-    
-    context = _context(
-        "人员信息变更申请详情",
-        "📝",
-        "查看人员信息变更申请详细信息",
-        request=request,
-    )
-    
-    # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
-        permission_set,
-        active_id='contact_info_change'
-    )
-    
-    context.update({
-        'change': change,
-        'change_content': change.change_content or {},
-    })
-    
-    return render(request, "customer_management/contact_info_change_detail.html", context)
 
 
 # ==================== 跟进与拜访管理视图函数 =====================
@@ -3953,16 +3715,18 @@ def customer_visit(request):
     from django.core.paginator import Paginator
     from backend.apps.customer_management.models import CustomerRelationship
     
-    # 获取筛选参数
+    # 获取筛选参数（使用通用方式支持新筛选模块）
     search = request.GET.get('search', '').strip()
-    client_id = request.GET.get('client', '')
-    record_type = request.GET.get('record_type', 'visit')  # 默认显示拜访记录
+    
+    # 获取通用筛选参数
+    filter_params = {}
+    for key, value in request.GET.items():
+        if key not in ['search', 'page', 'page_size'] and value:
+            filter_params[key] = value
     
     # 获取权限
     permission_set = get_user_permission_codes(request.user)
     can_create = _check_customer_permission('customer_management.relationship.create', permission_set)
-    
-    visit_type = request.GET.get('visit_type', '')  # 拜访类型筛选
     
     # 获取拜访记录列表（record_type='visit'）
     try:
@@ -3977,13 +3741,11 @@ def customer_visit(request):
                 Q(content__icontains=search)
             )
         
-        # 应用筛选条件
-        if client_id:
-            relationships = relationships.filter(client_id=client_id)
-        
-        # 应用拜访类型筛选
-        if visit_type:
-            relationships = relationships.filter(visit_type=visit_type)
+        # 应用通用筛选条件
+        if filter_params.get('client'):
+            relationships = relationships.filter(client_id=filter_params['client'])
+        if filter_params.get('visit_type'):
+            relationships = relationships.filter(visit_type=filter_params['visit_type'])
         
         # 按跟进时间倒序排列
         relationships = relationships.order_by('-followup_time')
@@ -4020,9 +3782,8 @@ def customer_visit(request):
     context.update({
         'page_obj': page_obj,
         'search': search,
-        'client_id': client_id,
-        'record_type': record_type,
-        'visit_type': visit_type,
+        'client_id': filter_params.get('client', ''),
+        'visit_type': filter_params.get('visit_type', ''),
         'clients': clients,
         'can_create': can_create,
         'visit_type_choices': CustomerRelationship.VISIT_TYPE_CHOICES,
@@ -4856,9 +4617,9 @@ def contract_management_list(request):
     
     # 权限检查
     permission_set = get_user_permission_codes(request.user)
-    if not _permission_granted('customer_management.client.view', permission_set):
+    if not _permission_granted('customer_management.contract.view', permission_set):
         messages.error(request, '您没有权限访问合同管理')
-        return redirect('business_pages:customer_list')
+        return redirect('business_pages:customer_management_home')
     
     # 获取筛选参数
     filters = {
@@ -4916,7 +4677,7 @@ def contract_management_list(request):
         projects = []
     
     # 检查创建权限
-    can_create = _permission_granted('customer_management.client.create', permission_set)
+    can_create = _permission_granted('customer_management.contract.create', permission_set)
     
     context = _context(
         "合同管理",
@@ -4934,14 +4695,14 @@ def contract_management_list(request):
             contract.can_edit = (
                 contract.status == 'draft' and (
                     contract.created_by == request.user or 
-                    _permission_granted('customer_management.client.edit', permission_set)
+                    _permission_granted('customer_management.contract.manage', permission_set)
                 )
             )
             # 判断是否可以删除（创建人或具有删除权限，且状态为草稿）
             contract.can_delete = (
                 contract.status == 'draft' and (
                     contract.created_by == request.user or 
-                    _permission_granted('customer_management.client.delete', permission_set)
+                    _permission_granted('customer_management.contract.manage', permission_set)
                 )
             )
     
@@ -4965,7 +4726,6 @@ def contract_management_list(request):
 
 
 @login_required
-@login_required
 def contract_detail(request, contract_id):
     """
     合同详情页面
@@ -4983,7 +4743,7 @@ def contract_detail(request, contract_id):
     
     # 权限检查
     permission_set = get_user_permission_codes(request.user)
-    if not _permission_granted('customer_management.client.view', permission_set):
+    if not _permission_granted('customer_management.contract.view', permission_set):
         messages.error(request, '您没有权限查看合同详情')
         return redirect('business_pages:contract_management_list')
     
@@ -5127,7 +4887,7 @@ def contract_create(request):
     
     # 权限检查
     permission_set = get_user_permission_codes(request.user)
-    if not _permission_granted('customer_management.client.create', permission_set):
+    if not _permission_granted('customer_management.contract.create', permission_set):
         messages.error(request, '您没有权限创建合同')
         return redirect('business_pages:contract_management_list')
     
@@ -5357,7 +5117,7 @@ def contract_create(request):
         ('legal_default', '法定管辖'),
     ]
         # 获取客户数据（用于自动填充客户方信息）
-    from backend.apps.customer_management.models import Client, Contact
+    from backend.apps.customer_management.models import Client, ClientContact
     clients = Client.objects.filter(is_active=True).select_related().prefetch_related('contacts').order_by('name')
     
     # 获取我方签约主体、项目负责人、商务负责人数据
@@ -5413,7 +5173,7 @@ def contract_edit(request, contract_id):
     can_edit = (
         contract.status == 'draft' and (
             contract.created_by == request.user or 
-            _permission_granted('customer_management.client.edit', permission_set)
+            _permission_granted('customer_management.contract.manage', permission_set)
         )
     )
     
@@ -5608,7 +5368,7 @@ def contract_delete(request, contract_id):
     can_delete = (
         contract.status == 'draft' and (
             contract.created_by == request.user or 
-            _permission_granted('customer_management.client.delete', permission_set)
+            _permission_granted('customer_management.contract.manage', permission_set)
         )
     )
     
@@ -7329,9 +7089,16 @@ def opportunity_detail(request, opportunity_id):
 @login_required
 def opportunity_create(request):
     """创建商机（根据商机管理专项设计方案）"""
-    permission_set = get_user_permission_codes(request.user)
-    if not _permission_granted('customer_management.opportunity.create', permission_set):
-        messages.error(request, '您没有权限创建商机')
+    try:
+        permission_set = get_user_permission_codes(request.user)
+        if not _permission_granted('customer_management.opportunity.create', permission_set):
+            messages.error(request, '您没有权限创建商机')
+            return redirect('business_pages:opportunity_management')
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('权限检查失败: %s', str(e))
+        messages.error(request, f'权限检查失败：{str(e)}')
         return redirect('business_pages:opportunity_management')
     
     if request.method == 'POST':
@@ -7405,53 +7172,60 @@ def opportunity_create(request):
             messages.error(request, f'创建商机失败：{str(e)}')
     
     # GET请求，显示表单
-    from backend.apps.production_management.models import ServiceType, Project
-    from django.db.models import Max
-    from datetime import datetime
-    
-    clients = Client.objects.filter(is_active=True).order_by('name')
-    service_types = ServiceType.objects.all().order_by('order', 'name')
-    design_stages = DesignStage.objects.filter(is_active=True).order_by('order', 'id')
-    
-    # 生成商机编号预览
-    current_date = datetime.now().strftime('%Y%m%d')
-    date_prefix = f'SJ-{current_date}-'
-    max_opp = BusinessOpportunity.objects.filter(
-        opportunity_number__startswith=date_prefix
-    ).aggregate(max_num=Max('opportunity_number'))['max_num']
-    
-    if max_opp:
-        try:
-            seq = int(max_opp.split('-')[-1]) + 1
-        except (ValueError, IndexError):
+    try:
+        from backend.apps.production_management.models import ServiceType, Project
+        from django.db.models import Max
+        from datetime import datetime
+        
+        clients = Client.objects.filter(is_active=True).order_by('name')
+        service_types = ServiceType.objects.all().order_by('order', 'name')
+        design_stages = DesignStage.objects.filter(is_active=True).order_by('order', 'id')
+        
+        # 生成商机编号预览
+        current_date = datetime.now().strftime('%Y%m%d')
+        date_prefix = f'SJ-{current_date}-'
+        max_opp = BusinessOpportunity.objects.filter(
+            opportunity_number__startswith=date_prefix
+        ).aggregate(max_num=Max('opportunity_number'))['max_num']
+        
+        if max_opp:
+            try:
+                seq = int(max_opp.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                seq = 1
+        else:
             seq = 1
-    else:
-        seq = 1
-    
-    preview_opportunity_number = f'{date_prefix}{seq:04d}'
-    
-    context = _context(
-        "创建商机",
-        "➕",
-        "填写以下信息创建新商机",
-        request=request,
-    )
-    if request and request.user.is_authenticated:
-        context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
-        # 生成左侧菜单（商机创建页面，激活"商机创建"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='opportunity_create')
-    else:
-        context['full_top_nav'] = []
-        context['customer_menu'] = []
-    context.update({
-        'clients': clients,
-        'service_types': service_types,
-        'design_stages': design_stages,
-        'urgency_choices': BusinessOpportunity.URGENCY_CHOICES,
-        'business_types': Project.BUSINESS_TYPES,
-        'preview_opportunity_number': preview_opportunity_number,
-    })
-    return render(request, "customer_management/opportunity_form.html", context)
+        
+        preview_opportunity_number = f'{date_prefix}{seq:04d}'
+        
+        context = _context(
+            "创建商机",
+            "➕",
+            "填写以下信息创建新商机",
+            request=request,
+        )
+        if request and request.user.is_authenticated:
+            context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
+            # 生成左侧菜单（商机创建页面，激活"商机创建"菜单项）
+            context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='opportunity_create')
+        else:
+            context['full_top_nav'] = []
+            context['customer_menu'] = []
+        context.update({
+            'clients': clients,
+            'service_types': service_types,
+            'design_stages': design_stages,
+            'urgency_choices': BusinessOpportunity.URGENCY_CHOICES,
+            'business_types': Project.BUSINESS_TYPES,
+            'preview_opportunity_number': preview_opportunity_number,
+        })
+        return render(request, "customer_management/opportunity_form.html", context)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('创建商机表单加载失败: %s', str(e))
+        messages.error(request, f'加载创建商机表单失败：{str(e)}')
+        return redirect('business_pages:opportunity_management')
 
 
 @login_required

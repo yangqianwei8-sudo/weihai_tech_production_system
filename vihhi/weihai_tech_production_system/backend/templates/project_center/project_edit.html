@@ -110,8 +110,8 @@
 </div>
 
 <script>
-const professionOptions = {{ service_professions_map_json }};
-const preselectedProfessionIds = new Set({{ selected_profession_ids_json }});
+const professionOptions = {{ service_professions_map_json|default:"{}" }};
+const preselectedProfessionIds = new Set({{ selected_profession_ids_json|default:"[]" }});
 
 document.querySelectorAll('input[name="service_type"]').forEach(radio => {
     radio.addEventListener('change', function() {
