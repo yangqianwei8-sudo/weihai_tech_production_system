@@ -1976,6 +1976,14 @@
                 `;
                 }
 
+                // 再次确认按钮存在（在创建DynamicTableManager之前）
+                const addButtonCheck = document.getElementById('add-service-content-btn');
+                if (!addButtonCheck) {
+                    console.error('创建DynamicTableManager前检查：添加按钮 add-service-content-btn 未找到');
+                    return;
+                }
+                console.log('按钮已找到，准备创建DynamicTableManager');
+                
                 // 初始化DynamicTableManager
                 const serviceContentsTableManager = new DynamicTableManager({
                     containerId: 'service-contents-container',
@@ -2000,6 +2008,37 @@
                 
                 // 导出到全局作用域，方便调试
                 window.serviceContentsTableManager = serviceContentsTableManager;
+                console.log('serviceContentsTableManager已导出到全局');
+                
+                // 验证按钮是否已绑定事件 - 手动添加一个备用监听器
+                const addButtonAfter = document.getElementById('add-service-content-btn');
+                if (addButtonAfter) {
+                    console.log('按钮对象:', addButtonAfter);
+                    
+                    // 手动添加一个备用事件监听器（如果DynamicTableManager的绑定失败，这个会生效）
+                    // 使用once: false，这样即使DynamicTableManager也绑定了，两个都会执行
+                    addButtonAfter.addEventListener('click', function(e) {
+                        console.log('✅ 按钮点击事件触发（备用监听器）');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // 调用addRow方法
+                        if (window.serviceContentsTableManager) {
+                            console.log('调用 serviceContentsTableManager.addRow()');
+                            const newRow = window.serviceContentsTableManager.addRow();
+                            if (newRow) {
+                                console.log('✅ 添加行成功，新行:', newRow);
+                            } else {
+                                console.error('❌ 添加行失败，返回null');
+                            }
+                        } else {
+                            console.error('❌ serviceContentsTableManager未找到');
+                        }
+                    });
+                    console.log('✅ 已添加备用事件监听器到按钮');
+                } else {
+                    console.error('❌ 创建DynamicTableManager后，按钮 add-service-content-btn 未找到');
+                }
                 
                 // 加载现有数据（编辑模式）
                 {% if form.instance and form.instance.pk %}
