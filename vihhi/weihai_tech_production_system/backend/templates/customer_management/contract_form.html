@@ -268,7 +268,7 @@
             </div>
             <div style="margin-top: 16px; text-align: left;">
                 <button type="button" class="btn btn-sm btn-primary" id="add-service-content-btn">
-                    <i class="bi bi-plus-circle"></i> 添加服务信息
+                    <i class="bi bi-plus-circle"></i> 增加新行
                 </button>
             </div>
         </div>
@@ -1885,6 +1885,7 @@
                         // 如果指定了服务类型，只显示匹配的专业
                         if (selectedServiceTypeId && sp.service_type_id && String(sp.service_type_id) !== String(selectedServiceTypeId)) {
                             return;
+                        }
                         const option = document.createElement('option');
                         option.value = sp.id;
                         option.textContent = sp.name;
@@ -2066,6 +2067,9 @@
                     populateSelectOptions(defaultRow, null, null, null, []);
                 }
             {% endif %}
+            
+            // 导出到全局作用域，方便调试
+            window.serviceContentsTableManager = serviceContentsTableManager;
         }
     })();
 
