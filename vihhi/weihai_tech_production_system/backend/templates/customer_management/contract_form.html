@@ -1793,6 +1793,20 @@
                     console.error('DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
                     return;
                 }
+                
+                // 检查容器是否存在
+                const container = document.getElementById('service-contents-container');
+                if (!container) {
+                    console.error('服务信息容器 service-contents-container 未找到');
+                    return;
+                }
+                
+                // 检查按钮是否存在
+                const addButton = document.getElementById('add-service-content-btn');
+                if (!addButton) {
+                    console.error('添加按钮 add-service-content-btn 未找到');
+                    return;
+                }
     
                 // 服务信息数据（从后端传入）
                 const serviceTypesData = [
@@ -1826,8 +1840,9 @@
                     // 无服务专业数据
                     {% endfor %}
                 ];
-            // 填充下拉选项的函数
-            function populateSelectOptions(row, serviceTypeId, designStageId, businessTypeId, professionIds) {
+                
+                // 填充下拉选项的函数
+                function populateSelectOptions(row, serviceTypeId, designStageId, businessTypeId, professionIds) {
                 if (!row) return;
                 
                 // 填充服务类型下拉选项
@@ -1914,25 +1929,18 @@
                         }
                     });
                 }
-            }
-            // 等待DOM加载完成
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initServiceContentsTable);
-            } else {
-                initServiceContentsTable();
-            }
-    
-    
-// 行模板函数
-            function serviceContentRowTemplate(index, data) {
-                const service = data || {};
-                const serviceTypeId = service.service_type_id || service.service_type || '';
-                const designStageId = service.design_stage_id || service.design_stage || '';
-                const businessTypeId = service.business_type_id || service.business_type || '';
-                const buildingArea = service.building_area || '';
-                const professionIds = service.service_profession_ids || service.service_professions || [];
+                }
+                
+                // 行模板函数
+                function serviceContentRowTemplate(index, data) {
+                    const service = data || {};
+                    const serviceTypeId = service.service_type_id || service.service_type || '';
+                    const designStageId = service.design_stage_id || service.design_stage || '';
+                    const businessTypeId = service.business_type_id || service.business_type || '';
+                    const buildingArea = service.building_area || '';
+                    const professionIds = service.service_profession_ids || service.service_professions || [];
 
-                return `                    <td style="text-align: center;">
+                    return `                    <td style="text-align: center;">
                         <strong>${index + 1}</strong>
                     </td>
                     <td>
@@ -1966,112 +1974,92 @@
                         </button>
                     </td>
                 `;
-            }
-
-            // 初始化DynamicTableManager
-            const serviceContentsTableManager = new DynamicTableManager({
-                containerId: 'service-contents-container',
-                rowClass: 'service-content-row',
-                addButtonId: 'add-service-content-btn',
-                removeButtonClass: 'remove-service-content-btn',
-                minRows: 1,
-                rowTemplate: serviceContentRowTemplate,
-                autoUpdateNumbers: true,
-                numberCellSelector: 'td:first-child',
-                onAdd: function(row, index) {
-                    // 添加行后填充下拉选项
-                    populateSelectOptions(row, null, null, null, []);
-                    console.log('添加了服务信息行，索引:', index);
-                },
-                onRemove: function(row, index) {
-                    // 删除行前的回调
-                    console.log('删除了服务信息行，索引:', index);
-                    return true; // 返回true允许删除
-                }
-            });
-
-            // 监听联系人选择变化，自动填充联系方式
-            document.addEventListener('change', function(e) {
-                    const select = e.target;
-                    const selectedOption = select.options[select.selectedIndex];
-                    const row = select.closest('tr');
-                    
-                    if (selectedOption && selectedOption.value) {
-                        // 自动填充联系电话
-                        const phoneInput = row.querySelector('input[name*="[contact_phone]"]');
-                        if (phoneInput && selectedOption.getAttribute('data-contact-phone')) {
-                            phoneInput.value = selectedOption.getAttribute('data-contact-phone');
-                        }
-                        
-                        // 自动填充联系邮箱
-                        const emailInput = row.querySelector('input[name*="[contact_email]"]');
-                        if (emailInput && selectedOption.getAttribute('data-contact-email')) {
-                            emailInput.value = selectedOption.getAttribute('data-contact-email');
-                        }
-                        
-                        // 自动填充办公地址
-                        const addressInput = row.querySelector('input[name*="[address]"]');
-                        if (addressInput && selectedOption.getAttribute('data-contact-address')) {
-                            addressInput.value = selectedOption.getAttribute('data-contact-address');
-                        }
-                    }
-                }
-            });
-
-            // 加载现有数据（编辑模式）
-            {% if form.instance and form.instance.pk %}
-                const existingServiceContents = [
-                    {% for service in form.instance.service_contents.all %}
-                    {
-                        service_type_id: {{ service.service_type_id|default:"null" }},
-                        design_stage_id: {{ service.design_stage_id|default:"null" }},
-                        business_type_id: {{ service.business_type_id|default:"null" }},
-                        building_area: {{ service.building_area|default:"0" }},
-                        service_profession_ids: [{% for sp in service.service_professions.all %}{{ sp.id }}{% if not forloop.last %}, {% endif %}{% empty %}{% endfor %}]
-                    }{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ];
-
-                // 清空容器（如果有默认行）
-                const container = document.getElementById('service-contents-container');
-                if (container) {
-                    container.innerHTML = '';
                 }
 
-                // 添加现有数据行
-                existingServiceContents.forEach(function(serviceData) {
-                    const row = serviceContentsTableManager.addRow(serviceData);
-                    if (row) {
-                        populateSelectOptions(
-                            row,
-                            serviceData.service_type_id,
-                            serviceData.design_stage_id,
-                            serviceData.business_type_id,
-                            serviceData.service_profession_ids || []
-                        );
+                // 初始化DynamicTableManager
+                const serviceContentsTableManager = new DynamicTableManager({
+                    containerId: 'service-contents-container',
+                    rowClass: 'service-content-row',
+                    addButtonId: 'add-service-content-btn',
+                    removeButtonClass: 'remove-service-content-btn',
+                    minRows: 1,
+                    rowTemplate: serviceContentRowTemplate,
+                    autoUpdateNumbers: true,
+                    numberCellSelector: 'td:first-child',
+                    onAdd: function(row, index) {
+                        // 添加行后填充下拉选项
+                        populateSelectOptions(row, null, null, null, []);
+                        console.log('添加了服务信息行，索引:', index);
+                    },
+                    onRemove: function(row, index) {
+                        // 删除行前的回调
+                        console.log('删除了服务信息行，索引:', index);
+                        return true; // 返回true允许删除
                     }
                 });
-                // 如果没有现有数据，至少添加一行空行
-                if (existingServiceContents.length === 0) {
+                
+                // 导出到全局作用域，方便调试
+                window.serviceContentsTableManager = serviceContentsTableManager;
+                
+                // 加载现有数据（编辑模式）
+                {% if form.instance and form.instance.pk %}
+                    const existingServiceContents = [
+                        {% for service in form.instance.service_contents.all %}
+                        {
+                            service_type_id: {{ service.service_type_id|default:"null" }},
+                            design_stage_id: {{ service.design_stage_id|default:"null" }},
+                            business_type_id: {{ service.business_type_id|default:"null" }},
+                            building_area: {{ service.building_area|default:"0" }},
+                            service_profession_ids: [{% for sp in service.service_professions.all %}{{ sp.id }}{% if not forloop.last %}, {% endif %}{% empty %}{% endfor %}]
+                        }{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ];
+
+                    // 清空容器（如果有默认行）
+                    if (container) {
+                        container.innerHTML = '';
+                    }
+
+                    // 添加现有数据行
+                    existingServiceContents.forEach(function(serviceData) {
+                        const row = serviceContentsTableManager.addRow(serviceData);
+                        if (row) {
+                            populateSelectOptions(
+                                row,
+                                serviceData.service_type_id,
+                                serviceData.design_stage_id,
+                                serviceData.business_type_id,
+                                serviceData.service_profession_ids || []
+                            );
+                        }
+                    });
+                    // 如果没有现有数据，至少添加一行空行
+                    if (existingServiceContents.length === 0) {
+                        const defaultRow = serviceContentsTableManager.addRow();
+                        if (defaultRow) {
+                            populateSelectOptions(defaultRow, null, null, null, []);
+                        }
+                    }
+                    // 更新索引计数器
+                    serviceContentsTableManager.updateIndexCounter();
+                {% else %}
+                    // 创建模式：添加一行默认空行
                     const defaultRow = serviceContentsTableManager.addRow();
                     if (defaultRow) {
                         populateSelectOptions(defaultRow, null, null, null, []);
                     }
-                }
-                // 更新索引计数器
-                serviceContentsTableManager.updateIndexCounter();
-            {% else %}
-                // 创建模式：添加一行默认空行
-                const defaultRow = serviceContentsTableManager.addRow();
-                if (defaultRow) {
-                    populateSelectOptions(defaultRow, null, null, null, []);
-                }
-            {% endif %}
+                {% endif %}
+                
+                console.log('服务信息表格初始化完成');
+            }
             
-            // 导出到全局作用域，方便调试
-            window.serviceContentsTableManager = serviceContentsTableManager;
-        }
-    })();
+            // 等待DOM加载完成
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initServiceContentsTable);
+            } else {
+                initServiceContentsTable();
+            }
+        })();
 
     // ========== 回款信息表格管理（使用DynamicTableManager） ==========
     (function() {
