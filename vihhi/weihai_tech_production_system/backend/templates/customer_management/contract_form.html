@@ -1791,41 +1791,42 @@
                 }
             });
     })();
-// ========== 服务信息表格管理（使用DynamicTableManager） ==========
-        console.log('🔵 开始加载服务信息表格管理代码...');
-        (function() {
-            console.log('🔵 服务信息表格管理 IIFE 开始执行');
-            function initServiceContentsTable() {
-                console.log('🔵 initServiceContentsTable 函数开始执行');
-                
-                // 检查DynamicTableManager是否已加载
-                if (typeof DynamicTableManager === 'undefined') {
-                    console.error('❌ DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
-                    alert('DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
-                    return;
-                }
-                console.log('✅ DynamicTableManager 已加载');
-                
-                // 检查容器是否存在
-                const container = document.getElementById('service-contents-container');
-                if (!container) {
-                    console.error('❌ 服务信息容器 service-contents-container 未找到');
-                    alert('服务信息容器未找到');
-                    return;
-                }
-                console.log('✅ 服务信息容器已找到:', container);
-                
-                // 检查按钮是否存在
-                const addButton = document.getElementById('add-service-content-btn');
-                if (!addButton) {
-                    console.error('❌ 添加按钮 add-service-content-btn 未找到');
-                    alert('添加按钮未找到');
-                    return;
-                }
-                console.log('✅ 添加按钮已找到:', addButton);
+
+    // ========== 服务信息表格管理（使用DynamicTableManager） ==========
+    console.log('🔵 开始加载服务信息表格管理代码...');
+    (function() {
+        console.log('🔵 服务信息表格管理 IIFE 开始执行');
+        function initServiceContentsTable() {
+            console.log('🔵 initServiceContentsTable 函数开始执行');
+            
+            // 检查DynamicTableManager是否已加载
+            if (typeof DynamicTableManager === 'undefined') {
+                console.error('❌ DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
+                alert('DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
+                return;
+            }
+            console.log('✅ DynamicTableManager 已加载');
+            
+            // 检查容器是否存在
+            const container = document.getElementById('service-contents-container');
+            if (!container) {
+                console.error('❌ 服务信息容器 service-contents-container 未找到');
+                alert('服务信息容器未找到');
+                return;
+            }
+            console.log('✅ 服务信息容器已找到:', container);
+            
+            // 检查按钮是否存在
+            const addButton = document.getElementById('add-service-content-btn');
+            if (!addButton) {
+                console.error('❌ 添加按钮 add-service-content-btn 未找到');
+                alert('添加按钮未找到');
+                return;
+            }
+            console.log('✅ 添加按钮已找到:', addButton);
     
-                // 服务信息数据（从后端传入）
-                const serviceTypesData = [
+            // 服务信息数据（从后端传入）
+            const serviceTypesData = [
                     {% for st in service_types %}
                     { id: {{ st.id }}, name: "{{ st.name|escapejs }}" }{% if not forloop.last %},{% endif %}
                     {% empty %}
@@ -1833,32 +1834,32 @@
                     {% endfor %}
                 ];
                 
-                const designStagesData = [
-                    {% for ds in design_stages %}
-                    { id: {{ ds.id }}, name: "{{ ds.name|escapejs }}" }{% if not forloop.last %},{% endif %}
-                    {% empty %}
-                    // 无图纸阶段数据
-                    {% endfor %}
-                ];
+            const designStagesData = [
+                {% for ds in design_stages %}
+                { id: {{ ds.id }}, name: "{{ ds.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+                {% empty %}
+                // 无图纸阶段数据
+                {% endfor %}
+            ];
                 
-                const businessTypesData = [
-                    {% for bt in business_types %}
-                    { id: {{ bt.id }}, name: "{{ bt.name|escapejs }}" }{% if not forloop.last %},{% endif %}
-                    {% empty %}
-                    // 无项目业态数据
-                    {% endfor %}
-                ];
+            const businessTypesData = [
+                {% for bt in business_types %}
+                { id: {{ bt.id }}, name: "{{ bt.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+                {% empty %}
+                // 无项目业态数据
+                {% endfor %}
+            ];
                 
-                const serviceProfessionsData = [
-                    {% for sp in service_professions %}
-                    { id: {{ sp.id }}, name: "{{ sp.name|escapejs }}", service_type_id: {{ sp.service_type_id|default:"null" }} }{% if not forloop.last %},{% endif %}
-                    {% empty %}
-                    // 无服务专业数据
-                    {% endfor %}
-                ];
+            const serviceProfessionsData = [
+                {% for sp in service_professions %}
+                { id: {{ sp.id }}, name: "{{ sp.name|escapejs }}", service_type_id: {{ sp.service_type_id|default:"null" }} }{% if not forloop.last %},{% endif %}
+                {% empty %}
+                // 无服务专业数据
+                {% endfor %}
+            ];
                 
-                // 填充下拉选项的函数
-                function populateSelectOptions(row, serviceTypeId, designStageId, businessTypeId, professionIds) {
+            // 填充下拉选项的函数
+            function populateSelectOptions(row, serviceTypeId, designStageId, businessTypeId, professionIds) {
                 if (!row) return;
                 
                 // 填充服务类型下拉选项
@@ -1945,18 +1946,18 @@
                         }
                     });
                 }
-                }
+            }
                 
-                // 行模板函数
-                function serviceContentRowTemplate(index, data) {
-                    const service = data || {};
-                    const serviceTypeId = service.service_type_id || service.service_type || '';
-                    const designStageId = service.design_stage_id || service.design_stage || '';
-                    const businessTypeId = service.business_type_id || service.business_type || '';
-                    const buildingArea = service.building_area || '';
-                    const professionIds = service.service_profession_ids || service.service_professions || [];
+            // 行模板函数
+            function serviceContentRowTemplate(index, data) {
+                const service = data || {};
+                const serviceTypeId = service.service_type_id || service.service_type || '';
+                const designStageId = service.design_stage_id || service.design_stage || '';
+                const businessTypeId = service.business_type_id || service.business_type || '';
+                const buildingArea = service.building_area || '';
+                const professionIds = service.service_profession_ids || service.service_professions || [];
 
-                    return `                    <td style="text-align: center;">
+                return `                    <td style="text-align: center;">
                         <strong>${index + 1}</strong>
                     </td>
                     <td>
@@ -1990,18 +1991,18 @@
                         </button>
                     </td>
                 `;
-                }
+            }
 
-                // 再次确认按钮存在（在创建DynamicTableManager之前）
-                const addButtonCheck = document.getElementById('add-service-content-btn');
-                if (!addButtonCheck) {
-                    console.error('创建DynamicTableManager前检查：添加按钮 add-service-content-btn 未找到');
-                    return;
-                }
-                console.log('按钮已找到，准备创建DynamicTableManager');
-                
-                // 初始化DynamicTableManager
-                const serviceContentsTableManager = new DynamicTableManager({
+            // 再次确认按钮存在（在创建DynamicTableManager之前）
+            const addButtonCheck = document.getElementById('add-service-content-btn');
+            if (!addButtonCheck) {
+                console.error('创建DynamicTableManager前检查：添加按钮 add-service-content-btn 未找到');
+                return;
+            }
+            console.log('按钮已找到，准备创建DynamicTableManager');
+            
+            // 初始化DynamicTableManager
+            const serviceContentsTableManager = new DynamicTableManager({
                     containerId: 'service-contents-container',
                     rowClass: 'service-content-row',
                     addButtonId: 'add-service-content-btn',
@@ -2020,123 +2021,128 @@
                         console.log('删除了服务信息行，索引:', index);
                         return true; // 返回true允许删除
                     }
-                });
+            });
+            
+            // 导出到全局作用域，方便调试
+            window.serviceContentsTableManager = serviceContentsTableManager;
+            console.log('serviceContentsTableManager已导出到全局');
+            
+            // 验证按钮是否已绑定事件 - 使用多种方式确保事件能够触发
+            // 方式1: 直接在按钮上添加onclick属性（最简单直接）
+            const addButtonDirect = document.getElementById('add-service-content-btn');
+            if (addButtonDirect) {
+                console.log('🔵 找到按钮，准备绑定事件');
+                console.log('🔵 按钮HTML:', addButtonDirect.outerHTML);
                 
-                // 导出到全局作用域，方便调试
-                window.serviceContentsTableManager = serviceContentsTableManager;
-                console.log('serviceContentsTableManager已导出到全局');
-                
-                // 验证按钮是否已绑定事件 - 使用多种方式确保事件能够触发
-                // 方式1: 直接在按钮上添加onclick属性（最简单直接）
-                const addButtonDirect = document.getElementById('add-service-content-btn');
-                if (addButtonDirect) {
-                    console.log('🔵 找到按钮，准备绑定事件');
-                    console.log('🔵 按钮HTML:', addButtonDirect.outerHTML);
+                // 直接设置onclick属性（这种方式最可靠）
+                addButtonDirect.onclick = function(e) {
+                    console.log('✅✅✅ 按钮onclick事件触发 ✅✅✅');
+                    e.preventDefault();
+                    e.stopPropagation();
                     
-                    // 直接设置onclick属性（这种方式最可靠）
-                    addButtonDirect.onclick = function(e) {
-                        console.log('✅✅✅ 按钮onclick事件触发 ✅✅✅');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        if (window.serviceContentsTableManager) {
-                            console.log('🔵 调用 serviceContentsTableManager.addRow()');
-                            try {
-                                const newRow = window.serviceContentsTableManager.addRow();
-                                if (newRow) {
-                                    console.log('✅✅✅ 添加行成功！');
-                                } else {
-                                    console.error('❌ 添加行失败，返回null');
-                                    alert('添加行失败');
-                                }
-                            } catch (error) {
-                                console.error('❌ 调用addRow时出错:', error);
-                                alert('错误: ' + error.message);
+                    if (window.serviceContentsTableManager) {
+                        console.log('🔵 调用 serviceContentsTableManager.addRow()');
+                        try {
+                            const newRow = window.serviceContentsTableManager.addRow();
+                            if (newRow) {
+                                console.log('✅✅✅ 添加行成功！');
+                            } else {
+                                console.error('❌ 添加行失败，返回null');
+                                alert('添加行失败');
                             }
-                        } else {
-                            console.error('❌ serviceContentsTableManager未找到');
-                            alert('表格管理器未找到');
+                        } catch (error) {
+                            console.error('❌ 调用addRow时出错:', error);
+                            alert('错误: ' + error.message);
                         }
-                        return false;
-                    };
-                    console.log('✅ 已设置按钮onclick属性');
-                    
-                    // 方式2: 也添加addEventListener作为备用
-                    addButtonDirect.addEventListener('click', function(e) {
-                        console.log('✅✅✅ 按钮addEventListener事件触发 ✅✅✅');
-                        // 这里不阻止默认行为，让onclick先执行
-                    });
-                    console.log('✅ 已添加addEventListener事件监听器');
-                } else {
-                    console.error('❌ 按钮 add-service-content-btn 未找到');
-                }
+                    } else {
+                        console.error('❌ serviceContentsTableManager未找到');
+                        alert('表格管理器未找到');
+                    }
+                    return false;
+                };
+                console.log('✅ 已设置按钮onclick属性');
                 
-                // 加载现有数据（编辑模式）
-                {% if form.instance and form.instance.pk %}
-                    const existingServiceContents = [
-                        {% for service in form.instance.service_contents.all %}
-                        {
-                            service_type_id: {{ service.service_type_id|default:"null" }},
-                            design_stage_id: {{ service.design_stage_id|default:"null" }},
-                            business_type_id: {{ service.business_type_id|default:"null" }},
-                            building_area: {{ service.building_area|default:"0" }},
-                            service_profession_ids: [{% for sp in service.service_professions.all %}{{ sp.id }}{% if not forloop.last %}, {% endif %}{% empty %}{% endfor %}]
-                        }{% if not forloop.last %},{% endif %}
-                        {% endfor %}
-                    ];
+                // 方式2: 也添加addEventListener作为备用
+                addButtonDirect.addEventListener('click', function(e) {
+                    console.log('✅✅✅ 按钮addEventListener事件触发 ✅✅✅');
+                    // 这里不阻止默认行为，让onclick先执行
+                });
+                console.log('✅ 已添加addEventListener事件监听器');
+            } else {
+                console.error('❌ 按钮 add-service-content-btn 未找到');
+            }
+            
+            // 加载现有数据（编辑模式）
+            {% if form.instance and form.instance.pk %}
+                const existingServiceContents = [
+                    {% for service in form.instance.service_contents.all %}
+                    {
+                        service_type_id: {{ service.service_type_id|default:"null" }},
+                        design_stage_id: {{ service.design_stage_id|default:"null" }},
+                        business_type_id: {{ service.business_type_id|default:"null" }},
+                        building_area: {{ service.building_area|default:"0" }},
+                        service_profession_ids: [
+                            {% for sp in service.service_professions.all %}
+                            {{ sp.id }}{% if not forloop.last %},{% endif %}
+                            {% empty %}
+                            {% endfor %}
+                        ]
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ];
 
-                    // 清空容器（如果有默认行）
-                    if (container) {
-                        container.innerHTML = '';
-                    }
+                // 清空容器（如果有默认行）
+                if (container) {
+                    container.innerHTML = '';
+                }
 
-                    // 添加现有数据行
-                    existingServiceContents.forEach(function(serviceData) {
-                        const row = serviceContentsTableManager.addRow(serviceData);
-                        if (row) {
-                            populateSelectOptions(
-                                row,
-                                serviceData.service_type_id,
-                                serviceData.design_stage_id,
-                                serviceData.business_type_id,
-                                serviceData.service_profession_ids || []
-                            );
-                        }
-                    });
-                    // 如果没有现有数据，至少添加一行空行
-                    if (existingServiceContents.length === 0) {
-                        const defaultRow = serviceContentsTableManager.addRow();
-                        if (defaultRow) {
-                            populateSelectOptions(defaultRow, null, null, null, []);
-                        }
+                // 添加现有数据行
+                existingServiceContents.forEach(function(serviceData) {
+                    const row = serviceContentsTableManager.addRow(serviceData);
+                    if (row) {
+                        populateSelectOptions(
+                            row,
+                            serviceData.service_type_id,
+                            serviceData.design_stage_id,
+                            serviceData.business_type_id,
+                            serviceData.service_profession_ids || []
+                        );
                     }
-                    // 更新索引计数器
-                    serviceContentsTableManager.updateIndexCounter();
-                {% else %}
-                    // 创建模式：添加一行默认空行
+                });
+                // 如果没有现有数据，至少添加一行空行
+                if (existingServiceContents.length === 0) {
                     const defaultRow = serviceContentsTableManager.addRow();
                     if (defaultRow) {
                         populateSelectOptions(defaultRow, null, null, null, []);
                     }
-                {% endif %}
-                
-                console.log('✅ 服务信息表格初始化完成');
-            }
+                }
+                // 更新索引计数器
+                serviceContentsTableManager.updateIndexCounter();
+            {% else %}
+                // 创建模式：添加一行默认空行
+                const defaultRow = serviceContentsTableManager.addRow();
+                if (defaultRow) {
+                    populateSelectOptions(defaultRow, null, null, null, []);
+                }
+            {% endif %}
             
-            // 等待DOM加载完成
-            console.log('🔵 当前 document.readyState:', document.readyState);
-            if (document.readyState === 'loading') {
-                console.log('🔵 等待 DOMContentLoaded 事件...');
-                document.addEventListener('DOMContentLoaded', function() {
-                    console.log('🔵 DOMContentLoaded 事件触发，开始初始化');
-                    initServiceContentsTable();
-                });
-            } else {
-                console.log('🔵 DOM 已加载，立即初始化');
+            console.log('✅ 服务信息表格初始化完成');
+        }
+        
+        // 等待DOM加载完成
+        console.log('🔵 当前 document.readyState:', document.readyState);
+        if (document.readyState === 'loading') {
+            console.log('🔵 等待 DOMContentLoaded 事件...');
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('🔵 DOMContentLoaded 事件触发，开始初始化');
                 initServiceContentsTable();
-            }
-        })();
-        console.log('🔵 服务信息表格管理 IIFE 执行完成');
+            });
+        } else {
+            console.log('🔵 DOM 已加载，立即初始化');
+            initServiceContentsTable();
+        }
+    })();
+    console.log('🔵 服务信息表格管理 IIFE 执行完成');
 
     // 页面加载完成后测试函数是否可用
     (function() {
