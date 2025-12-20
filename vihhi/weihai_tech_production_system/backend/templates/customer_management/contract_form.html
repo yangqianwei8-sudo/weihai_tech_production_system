@@ -1237,6 +1237,12 @@
 {% block extra_js %}
 <script src="{% static 'js/dynamic-table.js' %}"></script>
 <script>
+    // ========== 页面加载测试 ==========
+    console.log('🚀🚀🚀 合同表单页面JavaScript开始加载 🚀🚀🚀');
+    console.log('🚀 当前URL:', window.location.href);
+    console.log('🚀 DynamicTableManager是否已加载:', typeof DynamicTableManager !== 'undefined');
+    console.log('🚀 document.readyState:', document.readyState);
+    
     // ========== 金额自动计算功能 ==========
     (function() {
         function calculateAmountFields() {
@@ -1786,27 +1792,37 @@
             });
     })();
 // ========== 服务信息表格管理（使用DynamicTableManager） ==========
+        console.log('🔵 开始加载服务信息表格管理代码...');
         (function() {
+            console.log('🔵 服务信息表格管理 IIFE 开始执行');
             function initServiceContentsTable() {
+                console.log('🔵 initServiceContentsTable 函数开始执行');
+                
                 // 检查DynamicTableManager是否已加载
                 if (typeof DynamicTableManager === 'undefined') {
-                    console.error('DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
+                    console.error('❌ DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
+                    alert('DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
                     return;
                 }
+                console.log('✅ DynamicTableManager 已加载');
                 
                 // 检查容器是否存在
                 const container = document.getElementById('service-contents-container');
                 if (!container) {
-                    console.error('服务信息容器 service-contents-container 未找到');
+                    console.error('❌ 服务信息容器 service-contents-container 未找到');
+                    alert('服务信息容器未找到');
                     return;
                 }
+                console.log('✅ 服务信息容器已找到:', container);
                 
                 // 检查按钮是否存在
                 const addButton = document.getElementById('add-service-content-btn');
                 if (!addButton) {
-                    console.error('添加按钮 add-service-content-btn 未找到');
+                    console.error('❌ 添加按钮 add-service-content-btn 未找到');
+                    alert('添加按钮未找到');
                     return;
                 }
+                console.log('✅ 添加按钮已找到:', addButton);
     
                 // 服务信息数据（从后端传入）
                 const serviceTypesData = [
@@ -2013,31 +2029,53 @@
                 // 验证按钮是否已绑定事件 - 手动添加一个备用监听器
                 const addButtonAfter = document.getElementById('add-service-content-btn');
                 if (addButtonAfter) {
-                    console.log('按钮对象:', addButtonAfter);
+                    console.log('🔵 按钮对象:', addButtonAfter);
+                    console.log('🔵 按钮类型:', addButtonAfter.type);
+                    console.log('🔵 按钮ID:', addButtonAfter.id);
                     
-                    // 手动添加一个备用事件监听器（如果DynamicTableManager的绑定失败，这个会生效）
-                    // 使用once: false，这样即使DynamicTableManager也绑定了，两个都会执行
+                    // 手动添加一个备用事件监听器（优先级更高，先执行）
                     addButtonAfter.addEventListener('click', function(e) {
-                        console.log('✅ 按钮点击事件触发（备用监听器）');
+                        console.log('✅✅✅ 按钮点击事件触发（备用监听器）✅✅✅');
                         e.preventDefault();
                         e.stopPropagation();
                         
                         // 调用addRow方法
                         if (window.serviceContentsTableManager) {
-                            console.log('调用 serviceContentsTableManager.addRow()');
-                            const newRow = window.serviceContentsTableManager.addRow();
-                            if (newRow) {
-                                console.log('✅ 添加行成功，新行:', newRow);
-                            } else {
-                                console.error('❌ 添加行失败，返回null');
+                            console.log('🔵 调用 serviceContentsTableManager.addRow()');
+                            try {
+                                const newRow = window.serviceContentsTableManager.addRow();
+                                if (newRow) {
+                                    console.log('✅✅✅ 添加行成功！新行:', newRow);
+                                    console.log('✅ 新行HTML:', newRow.outerHTML.substring(0, 200));
+                                } else {
+                                    console.error('❌ 添加行失败，返回null');
+                                    alert('添加行失败，返回null');
+                                }
+                            } catch (error) {
+                                console.error('❌ 调用addRow时出错:', error);
+                                alert('调用addRow时出错: ' + error.message);
                             }
                         } else {
                             console.error('❌ serviceContentsTableManager未找到');
+                            alert('serviceContentsTableManager未找到，请检查初始化');
                         }
-                    });
-                    console.log('✅ 已添加备用事件监听器到按钮');
+                    }, { capture: true }); // 使用capture确保先执行
+                    console.log('✅ 已添加备用事件监听器到按钮（capture模式）');
+                    
+                    // 测试按钮是否可以点击
+                    console.log('🔵 测试：手动触发按钮点击事件');
+                    setTimeout(function() {
+                        const testEvent = new MouseEvent('click', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
+                        });
+                        console.log('🔵 尝试手动触发点击事件...');
+                        // addButtonAfter.dispatchEvent(testEvent); // 注释掉，避免自动触发
+                    }, 1000);
                 } else {
                     console.error('❌ 创建DynamicTableManager后，按钮 add-service-content-btn 未找到');
+                    alert('按钮未找到！');
                 }
                 
                 // 加载现有数据（编辑模式）
@@ -2089,16 +2127,23 @@
                     }
                 {% endif %}
                 
-                console.log('服务信息表格初始化完成');
+                console.log('✅ 服务信息表格初始化完成');
             }
             
             // 等待DOM加载完成
+            console.log('🔵 当前 document.readyState:', document.readyState);
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initServiceContentsTable);
+                console.log('🔵 等待 DOMContentLoaded 事件...');
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log('🔵 DOMContentLoaded 事件触发，开始初始化');
+                    initServiceContentsTable();
+                });
             } else {
+                console.log('🔵 DOM 已加载，立即初始化');
                 initServiceContentsTable();
             }
         })();
+        console.log('🔵 服务信息表格管理 IIFE 执行完成');
 
     // 页面加载完成后测试函数是否可用
     (function() {
