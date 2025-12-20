@@ -2026,56 +2026,49 @@
                 window.serviceContentsTableManager = serviceContentsTableManager;
                 console.log('serviceContentsTableManager已导出到全局');
                 
-                // 验证按钮是否已绑定事件 - 手动添加一个备用监听器
-                const addButtonAfter = document.getElementById('add-service-content-btn');
-                if (addButtonAfter) {
-                    console.log('🔵 按钮对象:', addButtonAfter);
-                    console.log('🔵 按钮类型:', addButtonAfter.type);
-                    console.log('🔵 按钮ID:', addButtonAfter.id);
+                // 验证按钮是否已绑定事件 - 使用多种方式确保事件能够触发
+                // 方式1: 直接在按钮上添加onclick属性（最简单直接）
+                const addButtonDirect = document.getElementById('add-service-content-btn');
+                if (addButtonDirect) {
+                    console.log('🔵 找到按钮，准备绑定事件');
+                    console.log('🔵 按钮HTML:', addButtonDirect.outerHTML);
                     
-                    // 手动添加一个备用事件监听器（优先级更高，先执行）
-                    addButtonAfter.addEventListener('click', function(e) {
-                        console.log('✅✅✅ 按钮点击事件触发（备用监听器）✅✅✅');
+                    // 直接设置onclick属性（这种方式最可靠）
+                    addButtonDirect.onclick = function(e) {
+                        console.log('✅✅✅ 按钮onclick事件触发 ✅✅✅');
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        // 调用addRow方法
                         if (window.serviceContentsTableManager) {
                             console.log('🔵 调用 serviceContentsTableManager.addRow()');
                             try {
                                 const newRow = window.serviceContentsTableManager.addRow();
                                 if (newRow) {
-                                    console.log('✅✅✅ 添加行成功！新行:', newRow);
-                                    console.log('✅ 新行HTML:', newRow.outerHTML.substring(0, 200));
+                                    console.log('✅✅✅ 添加行成功！');
                                 } else {
                                     console.error('❌ 添加行失败，返回null');
-                                    alert('添加行失败，返回null');
+                                    alert('添加行失败');
                                 }
                             } catch (error) {
                                 console.error('❌ 调用addRow时出错:', error);
-                                alert('调用addRow时出错: ' + error.message);
+                                alert('错误: ' + error.message);
                             }
                         } else {
                             console.error('❌ serviceContentsTableManager未找到');
-                            alert('serviceContentsTableManager未找到，请检查初始化');
+                            alert('表格管理器未找到');
                         }
-                    }, { capture: true }); // 使用capture确保先执行
-                    console.log('✅ 已添加备用事件监听器到按钮（capture模式）');
+                        return false;
+                    };
+                    console.log('✅ 已设置按钮onclick属性');
                     
-                    // 测试按钮是否可以点击
-                    console.log('🔵 测试：手动触发按钮点击事件');
-                    setTimeout(function() {
-                        const testEvent = new MouseEvent('click', {
-                            bubbles: true,
-                            cancelable: true,
-                            view: window
-                        });
-                        console.log('🔵 尝试手动触发点击事件...');
-                        // addButtonAfter.dispatchEvent(testEvent); // 注释掉，避免自动触发
-                    }, 1000);
+                    // 方式2: 也添加addEventListener作为备用
+                    addButtonDirect.addEventListener('click', function(e) {
+                        console.log('✅✅✅ 按钮addEventListener事件触发 ✅✅✅');
+                        // 这里不阻止默认行为，让onclick先执行
+                    });
+                    console.log('✅ 已添加addEventListener事件监听器');
                 } else {
-                    console.error('❌ 创建DynamicTableManager后，按钮 add-service-content-btn 未找到');
-                    alert('按钮未找到！');
+                    console.error('❌ 按钮 add-service-content-btn 未找到');
                 }
                 
                 // 加载现有数据（编辑模式）
