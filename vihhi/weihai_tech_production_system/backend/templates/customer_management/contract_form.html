@@ -2100,60 +2100,15 @@
             }
         })();
 
-    // ========== 回款信息表格管理（使用DynamicTableManager） ==========
-    (function() {
-            initPaymentInfoTable();
-        }
-
-            // 加载现有数据（编辑模式）
-            {% if form.instance and form.instance.pk %}
-                const existingPaymentPlans = [
-                    {% for plan in form.instance.payment_plans.all %}
-                    {
-                        phase_name: '{{ plan.phase_name|escapejs }}',
-                        trigger_condition: '{{ plan.trigger_condition|escapejs }}',
-                        payment_method: '{{ plan.payment_method|escapejs }}',
-                        planned_amount: '{{ plan.planned_amount|default:"" }}',
-                        condition_detail: '{{ plan.condition_detail|escapejs }}'
-                    }{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ];
-
-                // 清空容器（如果有默认行）
-                const container = document.getElementById('payment-info-container');
-                if (container) {
-                    container.innerHTML = '';
-                }
-
-                // 添加现有数据行
-                existingPaymentPlans.forEach(function(paymentData) {
-                    paymentInfoTableManager.addRow(paymentData);
-                });
-                // 如果没有现有数据，至少添加一行空行
-                if (existingPaymentPlans.length === 0) {
-                    paymentInfoTableManager.addRow();
-                }
-                // 更新索引计数器
-                paymentInfoTableManager.updateIndexCounter();
-            {% else %}
-                // 创建模式：添加一行默认空行
-                paymentInfoTableManager.addRow();
-            {% endif %}
-        }
-        // 等待DOM加载完成
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initPaymentInfoTable);
-        } else {
-
-    })();
-
     // 页面加载完成后测试函数是否可用
     (function() {
         function testContactFunctions() {
-            console.log('
+            console.log('测试联系人函数');
             
             // 尝试查找联系人下拉框
-            const contactSelects = document.querySelectorAll('
+            const contactSelects = document.querySelectorAll('select[name*="[party_contact]"]');
+            console.log('找到联系人下拉框数量:', contactSelects.length);
+        }
         
         // 在DOM加载完成后执行测试
         if (document.readyState === 'loading') {
@@ -2163,6 +2118,10 @@
         } else {
             setTimeout(testContactFunctions, 1000);
         }
+    })();
+
+    // ========== 回款信息表格管理（使用DynamicTableManager） ==========
+    (function() {
         function initPaymentInfoTable() {
             // 检查DynamicTableManager是否已加载
             if (typeof DynamicTableManager === 'undefined') {
@@ -2225,33 +2184,51 @@
                 }
             });
 
-            // 监听联系人选择变化，自动填充联系方式
-            document.addEventListener('change', function(e) {
-                    const select = e.target;
-                    const selectedOption = select.options[select.selectedIndex];
-                    const row = select.closest('tr');
-                    
-                    if (selectedOption && selectedOption.value) {
-                        // 自动填充联系电话
-                        const phoneInput = row.querySelector('input[name*="[contact_phone]"]');
-                        if (phoneInput && selectedOption.getAttribute('data-contact-phone')) {
-                            phoneInput.value = selectedOption.getAttribute('data-contact-phone');
-                        }
-                        
-                        // 自动填充联系邮箱
-                        const emailInput = row.querySelector('input[name*="[contact_email]"]');
-                        if (emailInput && selectedOption.getAttribute('data-contact-email')) {
-                            emailInput.value = selectedOption.getAttribute('data-contact-email');
-                        }
-                        
-                        // 自动填充办公地址
-                        const addressInput = row.querySelector('input[name*="[address]"]');
-                        if (addressInput && selectedOption.getAttribute('data-contact-address')) {
-                            addressInput.value = selectedOption.getAttribute('data-contact-address');
-                        }
-                    }
+            // 加载现有数据（编辑模式）
+            {% if form.instance and form.instance.pk %}
+                const existingPaymentPlans = [
+                    {% for plan in form.instance.payment_plans.all %}
+                    {
+                        phase_name: '{{ plan.phase_name|escapejs }}',
+                        trigger_condition: '{{ plan.trigger_condition|escapejs }}',
+                        payment_method: '{{ plan.payment_method|escapejs }}',
+                        planned_amount: '{{ plan.planned_amount|default:"" }}',
+                        condition_detail: '{{ plan.condition_detail|escapejs }}'
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ];
+
+                // 清空容器（如果有默认行）
+                const paymentContainer = document.getElementById('payment-info-container');
+                if (paymentContainer) {
+                    paymentContainer.innerHTML = '';
                 }
-            });
+
+                // 添加现有数据行
+                existingPaymentPlans.forEach(function(paymentData) {
+                    paymentInfoTableManager.addRow(paymentData);
+                });
+                // 如果没有现有数据，至少添加一行空行
+                if (existingPaymentPlans.length === 0) {
+                    paymentInfoTableManager.addRow();
+                }
+                // 更新索引计数器
+                paymentInfoTableManager.updateIndexCounter();
+            {% else %}
+                // 创建模式：添加一行默认空行
+                paymentInfoTableManager.addRow();
+            {% endif %}
+            
+            // 导出到全局作用域
+            window.paymentInfoTableManager = paymentInfoTableManager;
+        }
+        
+        // 等待DOM加载完成
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPaymentInfoTable);
+        } else {
+            initPaymentInfoTable();
+        }
     })();
 
 </script>
