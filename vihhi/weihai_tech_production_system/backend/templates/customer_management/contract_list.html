@@ -2,6 +2,13 @@
 
 {% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
 
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item"><a href="{% url 'business_pages:contract_management_list' %}">合同管理</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
+{% endblock %}
+
+
+
 {% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
@@ -133,7 +140,7 @@
 </style>
 {% endblock %}
 
-{% block contract_content %}
+{% block content %}
 <div class="container-fluid py-4">
     <!-- 页面标题区域 -->
     <div class="list-page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding: 6px 0;">

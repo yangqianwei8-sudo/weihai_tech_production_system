@@ -32,6 +32,13 @@ SERVICE_DEFINITIONS = [
             '建筑', '结构', '电气', '给排水', '暖通'
         ],
     ),
+    (
+        'cost_consulting',
+        '造价咨询',
+        [
+            '建筑', '结构', '电气', '给排水', '暖通'
+        ],
+    ),
 ]
 
 PROFESSION_CODE_MAP = {

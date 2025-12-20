@@ -292,9 +292,62 @@
     border: 1px solid var(--vh-border);
 }
 
+/* 表单区域（表单卡片别名，用于保持一致性） */
+.form-section {
+    background: var(--vh-card-bg);
+    border-radius: 0 !important;
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid var(--vh-border);
+}
+
+/* 当 form-section 嵌套在 form 标签的 form-card 内时，form 作为容器，去掉自己的卡片样式，让 form-section 显示为独立卡片 */
+form.form-card {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+}
+
+/* 当 form-section 嵌套在 form.form-card 内时，保持 form-section 的独立卡片样式 */
+form.form-card .form-section {
+    /* 保持 form-section 的独立卡片样式 */
+    background: var(--vh-card-bg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--vh-border);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--vh-primary);
+}
+
+.form-section-header h5 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--vh-text);
+}
+
+/* 修复 form-section 内 table-responsive 的对齐问题 */
+.form-section .table-responsive {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
 /* 响应式调整 */
 @media (max-width: 992px) {
-    .form-card {
+    .form-card,
+    .form-section {
         padding: var(--spacing-lg);
     }
 }
@@ -305,7 +358,8 @@
         border-radius: 0;
     }
     
-    .form-card {
+    .form-card,
+    .form-section {
         padding: var(--spacing-md);
         border-radius: 0;
     }
@@ -318,7 +372,8 @@
         margin-bottom: var(--spacing-md);
     }
     
-    .form-card {
+    .form-card,
+    .form-section {
         padding: var(--spacing-md);
     }
     
@@ -372,3 +427,4 @@
         margin-bottom: var(--spacing-sm);
     }
 }
+

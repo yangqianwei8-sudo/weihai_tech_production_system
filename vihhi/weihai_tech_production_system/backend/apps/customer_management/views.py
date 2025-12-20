@@ -2841,12 +2841,51 @@ def get_opportunities_by_client_name(request):
     from .models import BusinessOpportunity
     
     try:
+        opportunity_id = request.GET.get('opportunity_id', '').strip()
         client_id = request.GET.get('client_id', '').strip()
         client_name = request.GET.get('client_name', '').strip()
         
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f'[商机API] 请求参数 - client_id: {client_id}, client_name: {client_name}')
+        logger.info(f'[商机API] 请求参数 - opportunity_id: {opportunity_id}, client_id: {client_id}, client_name: {client_name}')
+        
+        # 如果提供了opportunity_id，返回单个商机详情
+        if opportunity_id:
+            try:
+                opportunity_id_int = int(opportunity_id)
+                opportunity = BusinessOpportunity.objects.select_related('client').get(id=opportunity_id_int)
+                opportunity_data = {
+                    'id': opportunity.id,
+                    'name': opportunity.name,
+                    'opportunity_number': opportunity.opportunity_number or '',
+                    'status': opportunity.status,
+                    'status_display': opportunity.get_status_display() if hasattr(opportunity, 'get_status_display') else opportunity.status,
+                    'is_active': opportunity.is_active,
+                    'project_type': opportunity.project_type or '',
+                    'client': {
+                        'id': opportunity.client.id if opportunity.client else None,
+                        'name': opportunity.client.name if opportunity.client else '未指定客户'
+                    }
+                }
+                return Response({
+                    'success': True,
+                    'opportunity': opportunity_data,
+                    'message': '获取商机详情成功'
+                })
+            except (ValueError, TypeError) as e:
+                logger.warning(f'[商机API] opportunity_id转换失败: {opportunity_id}, 错误: {e}')
+                return Response({
+                    'success': False,
+                    'opportunity': None,
+                    'message': f'商机ID无效：{opportunity_id}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except BusinessOpportunity.DoesNotExist:
+                logger.warning(f'[商机API] 商机不存在: ID={opportunity_id}')
+                return Response({
+                    'success': False,
+                    'opportunity': None,
+                    'message': f'商机不存在：ID={opportunity_id}'
+                }, status=status.HTTP_404_NOT_FOUND)
         
         # 获取商机列表（从商机管理中获取该客户的所有商机，包含所有状态）
         # 优先使用client_id过滤，如果没有则使用client_name
@@ -2899,6 +2938,7 @@ def get_opportunities_by_client_name(request):
                 'status': opp.status,  # 商机状态
                 'status_display': opp.get_status_display() if hasattr(opp, 'get_status_display') else opp.status,  # 状态显示名称
                 'is_active': opp.is_active,  # 是否激活
+                'project_type': opp.project_type or '',  # 项目业态
                 'client': {
                     'id': opp.client.id if opp.client else None,
                     'name': opp.client.name if opp.client else '未指定客户'

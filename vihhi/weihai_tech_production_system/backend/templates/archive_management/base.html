@@ -276,7 +276,6 @@
             </ol>
         </nav>
         {% endblock %}
-        {% endblock %}
 
         <div class="archive-management-layout">
             <!-- 左侧导航菜单 -->
@@ -335,44 +334,7 @@
         
         {% block content %}{% endblock %}
         
-        {% if archive_sidebar_nav %}
-            </main>
-        </div>
-        {% else %}
-        </div>
-        {% endif %}" onclick="toggleArchiveNavGroup(this)">
-                                    <span class="nav-label">{{ nav_item.label }}</span>
-                                    <span class="nav-toggle">{% if nav_item.collapsed %}▶{% else %}▼{% endif %}</span>
-                                </div>
-                                <div class="archive-nav-group-items {% if nav_item.collapsed %}collapsed{% endif %}">
-                                    {% for sub_item in nav_item.items %}
-                                    <a class="archive-nav-link archive-nav-sub {% if sub_item.active %}active{% endif %}" href="{{ sub_item.url|default:'#' }}">
-                                        <span class="nav-label">{{ sub_item.label }}</span>
-                                    </a>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% elif not nav_item.is_home %}
-                            <!-- 单个菜单项（不显示三角形） -->
-                            <a class="archive-nav-link archive-nav-single {% if nav_item.active %}active{% endif %}" href="{{ nav_item.url|default:'#' }}">
-                                <span class="nav-label">{{ nav_item.label }}</span>
-                            </a>
-                            {% endif %}
-                        {% endfor %}
-                        {% else %}
-                        <!-- 默认菜单（如果sidebar_nav未定义） -->
-                        <a class="archive-nav-link archive-nav-single {% if request.path == project_archive_list_url %}active{% endif %}" href="{{ project_archive_list_url }}">
-                            <span class="nav-label">项目归档</span>
-                        </a>
-                        {% endif %}
                     </div>
-                </nav>
-            </aside>
-            
-            <!-- 主内容区域 -->
-            <main class="archive-content">
-                {% block content %}{% endblock %}
-            </main>
         </div>
     </div>
 

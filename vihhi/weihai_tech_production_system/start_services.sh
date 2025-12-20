@@ -68,12 +68,17 @@ else
     exit 1
 fi
 
-# 重新加载 Nginx 配置
-echo "重新加载 Nginx 配置..."
-if sudo nginx -s reload 2>/dev/null; then
-    echo "✓ Nginx 配置已重新加载"
+# 重新加载 Nginx 配置（如果 Nginx 已安装且运行中）
+if command -v nginx >/dev/null 2>&1 && pgrep nginx >/dev/null 2>&1; then
+    echo "重新加载 Nginx 配置..."
+    if sudo nginx -s reload 2>/dev/null; then
+        echo "✓ Nginx 配置已重新加载"
+    else
+        echo "⚠ Nginx 重新加载失败，请手动检查"
+        echo "  提示: 运行 'sudo nginx -t' 检查配置，或查看日志排查"
+    fi
 else
-    echo "⚠ Nginx 重新加载失败，请手动检查"
+    echo "跳过 Nginx 重新加载（Nginx 未安装或未运行）"
 fi
 
 echo ""

@@ -38,7 +38,7 @@ class ContractForm(forms.ModelForm):
             # 关联信息
             'client', 'opportunity', 'parent_contract',
             # 基本信息
-            'project_number', 'contract_name', 'contract_type', 'status',
+            'project_number', 'contract_number', 'contract_name', 'contract_type', 'status',
             # 项目信息
             'structure_type', 'design_unit_category',
             # 金额信息
@@ -54,8 +54,11 @@ class ContractForm(forms.ModelForm):
             'parent_contract': forms.Select(attrs={'class': 'form-select'}),
             'project_number': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '项目编号（自动生成）',
-                'readonly': True
+                'placeholder': '项目编号（自动生成：YYYYMMDD-0000）',
+            }),
+            'contract_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '合同编号（可手动修改）',
             }),
             'contract_name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -165,19 +168,16 @@ class ContractForm(forms.ModelForm):
         
         # 设置关联商机查询集（从商机管理列表中获取）
         if 'opportunity' in self.fields:
-            # 获取商机管理列表中的所有商机
+            # 获取商机管理列表中的所有商机（不依赖客户选择）
             opportunities = BusinessOpportunity.objects.select_related(
                 'client', 'business_manager', 'created_by'
             ).order_by('-created_time')
             
-            # 如果已选择客户，则只显示该客户的商机
-            if self.instance and self.instance.client_id:
-                opportunities = opportunities.filter(client_id=self.instance.client_id)
-            elif self.data and 'client' in self.data and self.data['client']:
-                opportunities = opportunities.filter(client_id=self.data['client'])
+            # 不再根据客户过滤，显示所有商机
+            # 关联客户将通过JavaScript根据选择的商机自动填充
             
             self.fields['opportunity'].queryset = opportunities
-            self.fields['opportunity'].empty_label = '-- 请选择商机 --'
+            self.fields['opportunity'].empty_label = '-- 请选择关联商机 --'
             self.fields['opportunity'].required = True
         
         self.fields['parent_contract'].queryset = BusinessContract.objects.filter(
@@ -238,47 +238,105 @@ class ContractForm(forms.ModelForm):
         
         if 'project_number' in self.fields:
             self.fields['project_number'].required = False
-            # 解析项目编号，设置年度和顺序号的初始值
-            import datetime
-            current_year = datetime.datetime.now().year
-            
-            if self.instance and self.instance.pk and self.instance.project_number:
-                # 编辑模式：解析现有项目编号
-                parts = self.instance.project_number.split('-')
-                if len(parts) == 3 and parts[0] == 'HT':
-                    project_year = parts[1]
-                    project_seq = parts[2]
-                else:
-                    project_year = str(current_year)
-                    project_seq = '0001'
-            else:
-                # 新建模式：使用当前年度和自动生成的顺序号
-                project_year = str(current_year)
-                # 自动生成顺序号
+            # 自动生成项目编号：YYYYMMDD-0000格式
+            if not self.instance or not self.instance.pk or not self.instance.project_number:
+                # 新建模式：自动生成项目编号
+                from datetime import datetime
                 from django.db.models import Max
                 from backend.apps.customer_management.models import AuthorizationLetter
-                year_prefix = f'HT-{project_year}-'
+                
+                current_date = datetime.now().strftime('%Y%m%d')
+                date_prefix = f'{current_date}-'
+                
+                # 查找当天最大项目编号（从业务委托书和合同中查找）
                 max_letter = AuthorizationLetter.objects.filter(
-                    project_number__startswith=year_prefix
+                    project_number__startswith=date_prefix
                 ).aggregate(max_num=Max('project_number'))['max_num']
+                
                 max_contract = BusinessContract.objects.filter(
-                    project_number__startswith=year_prefix
+                    project_number__startswith=date_prefix
                 ).exclude(id=self.instance.id if self.instance.id else None).aggregate(max_num=Max('project_number'))['max_num']
-                max_project_number = max_letter if max_letter else (max_contract if max_contract else None)
+                
+                # 取两者中的最大值
+                max_project_number = None
+                if max_letter and max_contract:
+                    max_project_number = max(max_letter, max_contract)
+                elif max_letter:
+                    max_project_number = max_letter
+                elif max_contract:
+                    max_project_number = max_contract
+                
                 if max_project_number:
                     try:
+                        # 提取序列号，格式：YYYYMMDD-0000
                         seq_str = max_project_number.split('-')[-1]
                         seq = int(seq_str) + 1
                     except (ValueError, IndexError):
                         seq = 1
                 else:
                     seq = 1
-                project_seq = f'{seq:04d}'
-            
-            # 设置初始值（这些值会在模板中使用）
-            self.project_year_initial = project_year
-            self.project_seq_initial = project_seq
+                
+                # 设置初始值
+                project_number_initial = f'{date_prefix}{seq:04d}'
+                self.fields['project_number'].initial = project_number_initial
+                
+                # 自动生成合同编号：HT-项目编号
+                if 'contract_number' in self.fields:
+                    if not self.instance or not self.instance.pk or not self.instance.contract_number:
+                        # 新建模式：根据项目编号自动生成合同编号
+                        self.fields['contract_number'].initial = f'HT-{project_number_initial}'
+                    else:
+                        # 编辑模式：如果合同编号为空，根据项目编号生成
+                        if not self.instance.contract_number:
+                            if self.instance.project_number:
+                                self.fields['contract_number'].initial = f'HT-{self.instance.project_number}'
+                            else:
+                                self.fields['contract_number'].initial = f'HT-{project_number_initial}'
+        else:
+            # 编辑模式：如果项目编号存在但合同编号为空，自动生成
+            if self.instance and self.instance.pk:
+                if 'contract_number' in self.fields:
+                    if not self.instance.contract_number and self.instance.project_number:
+                        self.fields['contract_number'].initial = f'HT-{self.instance.project_number}'
     
+    def clean_project_number(self):
+        """验证项目编号的唯一性"""
+        project_number = self.cleaned_data.get('project_number')
+        if project_number:
+            # 检查是否与其他合同或业务委托书的项目编号重复
+            from backend.apps.customer_management.models import AuthorizationLetter
+            
+            # 检查合同中的重复
+            existing_contract = BusinessContract.objects.filter(
+                project_number=project_number
+            ).exclude(id=self.instance.id if self.instance.id else None).first()
+            
+            if existing_contract:
+                raise forms.ValidationError(f'项目编号 "{project_number}" 已被使用（合同：{existing_contract.contract_number or existing_contract.id}）')
+            
+            # 检查业务委托书中的重复
+            existing_letter = AuthorizationLetter.objects.filter(
+                project_number=project_number
+            ).first()
+            
+            if existing_letter:
+                raise forms.ValidationError(f'项目编号 "{project_number}" 已被使用（业务委托书：{existing_letter.letter_number or existing_letter.id}）')
+        
+        return project_number
+    
+    def clean_contract_number(self):
+        """验证合同编号的唯一性"""
+        contract_number = self.cleaned_data.get('contract_number')
+        if contract_number:
+            # 检查是否与其他合同的合同编号重复
+            existing_contract = BusinessContract.objects.filter(
+                contract_number=contract_number
+            ).exclude(id=self.instance.id if self.instance.id else None).first()
+            
+            if existing_contract:
+                raise forms.ValidationError(f'合同编号 "{contract_number}" 已被使用（合同：{existing_contract.contract_name or existing_contract.id}）')
+        
+        return contract_number
 
 # ==================== 客户管理模块表单（按《客户管理详细设计方案 v1.12》实现）====================
 
@@ -1449,7 +1507,6 @@ class AuthorizationLetterForm(forms.ModelForm):
         
         # 项目编号字段设置为只读（系统自动生成）
         if 'project_number' in self.fields:
-            self.fields['project_number'].widget.attrs['readonly'] = True
             self.fields['project_number'].required = False
         
         # 为字段添加 ID，方便 JavaScript 使用

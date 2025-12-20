@@ -15,19 +15,67 @@ class QixinbaoAPIService:
     """启信宝API服务类"""
     
     def __init__(self):
-        self.app_key = getattr(settings, 'QIXINBAO_APP_KEY', '')
-        self.app_secret = getattr(settings, 'QIXINBAO_APP_SECRET', '')
-        self.api_base_url = getattr(settings, 'QIXINBAO_API_BASE_URL', 'https://api.qixin.com')
-        self.timeout = getattr(settings, 'QIXINBAO_API_TIMEOUT', 10)
+        # 优先从后台API管理系统读取配置
+        self._load_config_from_api_management()
+        
+        # 如果后台没有配置，则从环境变量读取（向后兼容）
+        if not self.app_key or not self.app_secret:
+            self.app_key = self.app_key or getattr(settings, 'QIXINBAO_APP_KEY', '')
+            self.app_secret = self.app_secret or getattr(settings, 'QIXINBAO_APP_SECRET', '')
+            self.api_base_url = self.api_base_url or getattr(settings, 'QIXINBAO_API_BASE_URL', 'https://api.qixin.com')
+            self.timeout = self.timeout or getattr(settings, 'QIXINBAO_API_TIMEOUT', 10)
         
         # 记录配置状态（用于调试）
         if self.app_key and self.app_secret:
-            logger.info(f'启信宝API配置已加载: app_key={self.app_key[:20]}..., base_url={self.api_base_url}')
+            logger.info(f'启信宝API配置已加载: app_key={self.app_key[:20]}..., base_url={self.api_base_url}, 来源={"后台API管理" if hasattr(self, "_config_source") and self._config_source == "api_management" else "环境变量"}')
         else:
             logger.warning('启信宝API配置未完整: app_key={}, app_secret={}'.format(
                 '已配置' if self.app_key else '未配置',
                 '已配置' if self.app_secret else '未配置'
             ))
+    
+    def _load_config_from_api_management(self):
+        """从后台API管理系统加载配置"""
+        try:
+            from backend.apps.api_management.models import ExternalSystem, ApiInterface
+            
+            # 查找启信宝外部系统
+            qixinbao_system = ExternalSystem.objects.filter(
+                code='QIXINBAO',
+                is_active=True
+            ).first()
+            
+            if qixinbao_system:
+                # 查找任意一个激活的API接口（所有接口使用相同的认证配置）
+                api_interface = ApiInterface.objects.filter(
+                    external_system=qixinbao_system,
+                    is_active=True
+                ).first()
+                
+                if api_interface and api_interface.auth_config:
+                    auth_config = api_interface.auth_config
+                    self.app_key = auth_config.get('app_key', '')
+                    self.app_secret = auth_config.get('app_secret', '')
+                    self.api_base_url = qixinbao_system.base_url
+                    self.timeout = api_interface.timeout or 10
+                    self._config_source = "api_management"
+                    logger.info('从后台API管理系统加载启信宝配置成功')
+                    return
+            
+            # 如果未找到配置，初始化默认值
+            self.app_key = ''
+            self.app_secret = ''
+            self.api_base_url = 'https://api.qixin.com'
+            self.timeout = 10
+            self._config_source = "fallback"
+            
+        except Exception as e:
+            logger.warning(f'从后台API管理系统加载启信宝配置失败: {str(e)}，将使用环境变量配置')
+            self.app_key = ''
+            self.app_secret = ''
+            self.api_base_url = 'https://api.qixin.com'
+            self.timeout = 10
+            self._config_source = "fallback"
     
     def _generate_sign(self, appkey: str, timestamp: str, secret_key: str) -> str:
         """
@@ -1172,15 +1220,60 @@ class AmapAPIService:
     """
     
     def __init__(self):
-        self.api_key = getattr(settings, 'AMAP_API_KEY', '')
-        self.api_base_url = getattr(settings, 'AMAP_API_BASE_URL', 'https://restapi.amap.com/v3')
-        self.timeout = getattr(settings, 'AMAP_API_TIMEOUT', 10)
+        # 优先从后台API管理系统读取配置
+        self._load_config_from_api_management()
+        
+        # 如果后台没有配置，则从环境变量读取（向后兼容）
+        if not self.api_key:
+            self.api_key = self.api_key or getattr(settings, 'AMAP_API_KEY', '')
+            self.api_base_url = self.api_base_url or getattr(settings, 'AMAP_API_BASE_URL', 'https://restapi.amap.com/v3')
+            self.timeout = self.timeout or getattr(settings, 'AMAP_API_TIMEOUT', 10)
         
         # 记录配置状态（用于调试）
         if self.api_key:
-            logger.info(f'高德地图API配置已加载: api_key={self.api_key[:20]}..., base_url={self.api_base_url}')
+            logger.info(f'高德地图API配置已加载: api_key={self.api_key[:20]}..., base_url={self.api_base_url}, 来源={"后台API管理" if hasattr(self, "_config_source") and self._config_source == "api_management" else "环境变量"}')
         else:
-            logger.warning('高德地图API配置未设置，请配置AMAP_API_KEY')
+            logger.warning('高德地图API配置未设置，请在后台API管理中配置或设置环境变量AMAP_API_KEY')
+    
+    def _load_config_from_api_management(self):
+        """从后台API管理系统加载配置"""
+        try:
+            from backend.apps.api_management.models import ExternalSystem, ApiInterface
+            
+            # 查找高德地图外部系统
+            amap_system = ExternalSystem.objects.filter(
+                code='AMAP',
+                is_active=True
+            ).first()
+            
+            if amap_system:
+                # 查找任意一个激活的API接口（所有接口使用相同的API Key）
+                api_interface = ApiInterface.objects.filter(
+                    external_system=amap_system,
+                    is_active=True
+                ).first()
+                
+                if api_interface and api_interface.auth_config:
+                    auth_config = api_interface.auth_config
+                    self.api_key = auth_config.get('api_key', '')
+                    self.api_base_url = amap_system.base_url
+                    self.timeout = api_interface.timeout or 10
+                    self._config_source = "api_management"
+                    logger.info('从后台API管理系统加载高德地图配置成功')
+                    return
+            
+            # 如果未找到配置，初始化默认值
+            self.api_key = ''
+            self.api_base_url = 'https://restapi.amap.com/v3'
+            self.timeout = 10
+            self._config_source = "fallback"
+            
+        except Exception as e:
+            logger.warning(f'从后台API管理系统加载高德地图配置失败: {str(e)}，将使用环境变量配置')
+            self.api_key = ''
+            self.api_base_url = 'https://restapi.amap.com/v3'
+            self.timeout = 10
+            self._config_source = "fallback"
     
     def _make_request(self, endpoint: str, params: Dict) -> Optional[Dict]:
         """

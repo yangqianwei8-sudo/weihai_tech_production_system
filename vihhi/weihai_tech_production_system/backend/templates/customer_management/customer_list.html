@@ -359,7 +359,28 @@
                     待审批的
                 </a>
             </li>
-        </ul>
+                </ul>
+
+        <!-- 统计卡片 -->
+        {% if summary_cards %}
+        <div class="info-card mb-3" style="margin-bottom: 12px !important;">
+            <div class="info-card-body">
+                <div class="info-grid info-grid-4">
+                    {% for card in summary_cards %}
+                    <div class="info-item" style="cursor: pointer;">
+                        <span class="info-label">{{ card.label }}</span>
+                        <div class="info-value info-value-bold info-value-large" style="color: {% if card.variant == 'danger' %}#E23D3D{% elif card.variant == 'warning' %}#D97706{% elif card.variant == 'success' %}#16A34A{% elif card.variant == 'info' %}#2563EB{% else %}var(--vh-text){% endif %};">
+                            {{ card.value }}
+                        </div>
+                        {% if card.hint %}
+                        <div class="text-muted" style="font-size: 12px; margin-top: 4px;">{{ card.hint }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- 筛选栏区域 -->
         <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
@@ -1995,52 +2016,56 @@ function applyColumnOrder(order) {
 }
 
 // 为表头齿轮按钮绑定事件
-document.getElementById('tableColumnSettingsBtn')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('列设置按钮被点击');
-    
-    // 先初始化模态框内容
-    initColumnSettingsModal();
-    
-    // 尝试使用Bootstrap打开模态框
-    const modalElement = document.getElementById('fieldsSettingsModal');
-    if (modalElement) {
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        } else if (typeof $ !== 'undefined' && $.fn.modal) {
-            // 兼容jQuery Bootstrap
-            $(modalElement).modal('show');
-        } else {
-            // 降级方案：直接显示模态框
-            console.log('使用降级方案打开模态框');
-            modalElement.style.display = 'block';
-            modalElement.classList.add('show');
-            modalElement.setAttribute('aria-hidden', 'false');
-            modalElement.setAttribute('aria-modal', 'true');
-            modalElement.setAttribute('role', 'dialog');
+document.addEventListener('DOMContentLoaded', function() {
+    const tableColumnSettingsBtn = document.getElementById('tableColumnSettingsBtn');
+    if (tableColumnSettingsBtn) {
+        tableColumnSettingsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('列设置按钮被点击');
             
-            // 创建backdrop
-            const backdrop = document.createElement('div');
-            backdrop.className = 'modal-backdrop fade show';
-            backdrop.id = 'fieldsSettingsModalBackdrop';
-            backdrop.style.zIndex = '1040';
-            document.body.appendChild(backdrop);
+            // 先初始化模态框内容
+            initColumnSettingsModal();
             
-            // 设置模态框z-index
-            modalElement.style.zIndex = '1050';
-            const dialog = modalElement.querySelector('.modal-dialog');
-            if (dialog) {
-                dialog.style.zIndex = '1051';
+            // 尝试使用Bootstrap打开模态框
+            const modalElement = document.getElementById('fieldsSettingsModal');
+            if (modalElement) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                    // 兼容jQuery Bootstrap
+                    $(modalElement).modal('show');
+                } else {
+                    // 降级方案：直接显示模态框
+                    console.log('使用降级方案打开模态框');
+                    modalElement.style.display = 'block';
+                    modalElement.classList.add('show');
+                    modalElement.setAttribute('aria-hidden', 'false');
+                    modalElement.setAttribute('aria-modal', 'true');
+                    modalElement.setAttribute('role', 'dialog');
+                    
+                    // 创建backdrop
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    backdrop.id = 'fieldsSettingsModalBackdrop';
+                    backdrop.style.zIndex = '1040';
+                    document.body.appendChild(backdrop);
+                    
+                    // 设置模态框z-index
+                    modalElement.style.zIndex = '1050';
+                    const dialog = modalElement.querySelector('.modal-dialog');
+                    if (dialog) {
+                        dialog.style.zIndex = '1051';
+                    }
+                }
+            } else {
+                console.error('列设置模态框未找到');
+                alert('列设置模态框未找到，请检查页面是否正确加载。');
             }
-        }
-    } else {
-        console.error('列设置模态框未找到');
-        alert('列设置模态框未找到，请检查页面是否正确加载。');
+        });
     }
 });
-}
 </script>
 
 {% include "customer_management/includes/filter_fields_settings_modal.html" %}

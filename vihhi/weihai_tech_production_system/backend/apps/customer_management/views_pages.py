@@ -1,5 +1,8 @@
 from decimal import Decimal, InvalidOperation
 import json
+import csv
+import io
+import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -45,10 +48,12 @@ try:
 except ImportError:
     HAS_COMMUNICATION_CHECKLIST_MODELS = False
 # BusinessContract和BusinessPaymentPlan已迁移到production_management
-from backend.apps.production_management.models import BusinessContract, BusinessPaymentPlan, DesignStage
+from backend.apps.production_management.models import BusinessContract, BusinessPaymentPlan, DesignStage, ServiceType
 from backend.apps.system_management.services import get_user_permission_codes
 from backend.core.views import HOME_NAV_STRUCTURE, _permission_granted, _build_full_top_nav
 from backend.apps.permission_management.utils import normalize_permission_code
+
+logger = logging.getLogger(__name__)
 
 
 # ==================== 客户管理模块左侧菜单结构（按《客户管理详细设计方案 v1.12》）====================
@@ -188,6 +193,13 @@ CONTRACT_MANAGEMENT_MENU = [
                 'permission': 'customer_management.client.create',
             },
             {
+                'id': 'contract_finalize_list',
+                'label': '合同定稿列表',
+                'icon': '📋',
+                'url_name': 'business_pages:contract_finalize_list',
+                'permission': 'customer_management.client.view',
+            },
+            {
                 'id': 'contract_finalize_create',
                 'label': '创建合同定稿',
                 'icon': '✅',
@@ -207,6 +219,13 @@ CONTRACT_MANAGEMENT_MENU = [
                 'label': '履约跟踪',
                 'icon': '📋',
                 'url_name': 'business_pages:contract_performance_track',
+                'permission': 'customer_management.client.view',
+            },
+            {
+                'id': 'contract_dispute_list',
+                'label': '合同争议',
+                'icon': '⚖️',
+                'url_name': 'business_pages:contract_dispute_list',
                 'permission': 'customer_management.client.view',
             },
         ]
@@ -796,6 +815,8 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
             if active_menu_id is None:
                 if '/business/contracts/management' in request.path:
                     active_menu_id = 'contract_management_list'
+                elif '/business/contracts/dispute' in request.path:
+                    active_menu_id = 'contract_dispute_list'
                 elif '/business/contracts/finalize' in request.path:
                     active_menu_id = 'contract_finalize_create' if '/create' in request.path else 'contract_finalize_list'
                 elif '/business/contracts/negotiation' in request.path:
@@ -1476,6 +1497,45 @@ def customer_list(request):
     
     # 统计卡片
     summary_cards = []
+    try:
+        from django.urls import reverse
+        from django.urls.exceptions import NoReverseMatch
+        
+        # 客户总数
+        summary_cards.append({
+            'label': '客户总数',
+            'value': total_clients,
+            'hint': '所有客户数量',
+            'variant': 'info',
+        })
+        
+        # 活跃客户
+        summary_cards.append({
+            'label': '活跃客户',
+            'value': active_clients,
+            'hint': f'占比 {round(active_clients / total_clients * 100, 1) if total_clients > 0 else 0}%',
+            'variant': 'success',
+        })
+        
+        # VIP客户
+        summary_cards.append({
+            'label': 'VIP客户',
+            'value': vip_clients,
+            'hint': f'占比 {round(vip_clients / total_clients * 100, 1) if total_clients > 0 else 0}%',
+            'variant': 'warning',
+        })
+        
+        # 公海客户
+        summary_cards.append({
+            'label': '公海客户',
+            'value': public_sea_clients,
+            'hint': '未分配负责人的客户',
+            'variant': 'danger',
+        })
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('生成统计卡片失败: %s', str(e))
     
     context = _context(
         "客户列表",
@@ -4933,63 +4993,6 @@ def contract_create(request):
                         contract.save()
                         messages.success(request, f'合同创建成功。')
                     
-                    # 处理服务内容项
-                    from backend.apps.production_management.models import ContractServiceContent, ServiceType, DesignStage, BusinessType, ServiceProfession
-                    # 删除旧的服务内容项
-                    ContractServiceContent.objects.filter(contract=contract).delete()
-                    # 保存新的服务内容项
-                    service_contents_data = {}
-                    service_professions_data = {}  # 存储每个服务内容项的专业ID列表
-                    
-                    for key, value in request.POST.items():
-                        if key.startswith('service_contents['):
-                            # 解析 service_contents[0][service_type] 格式
-                            import re
-                            match = re.match(r'service_contents\[(\d+)\]\[(\w+)\]', key)
-                            if match:
-                                index = int(match.group(1))
-                                field = match.group(2)
-                                if index not in service_contents_data:
-                                    service_contents_data[index] = {}
-                                service_contents_data[index][field] = value
-                            # 解析服务专业复选框 service_contents[0][service_professions]
-                            match_profession = re.match(r'service_contents\[(\d+)\]\[service_professions\]', key)
-                            if match_profession:
-                                index = int(match_profession.group(1))
-                                if index not in service_professions_data:
-                                    service_professions_data[index] = []
-                                if value:  # 复选框被选中
-                                    try:
-                                        service_professions_data[index].append(int(value))
-                                    except ValueError:
-                                        pass
-                    
-                    # 保存服务内容项
-                    for index, content_data in service_contents_data.items():
-                        # 至少需要服务类型才保存
-                        if content_data.get('service_type'):
-                            try:
-                                service_type_id = int(content_data.get('service_type', 0)) or None
-                                design_stage_id = int(content_data.get('design_stage', 0)) or None if content_data.get('design_stage') else None
-                                business_type_id = int(content_data.get('business_type', 0)) or None if content_data.get('business_type') else None
-                                
-                                service_content = ContractServiceContent.objects.create(
-                                    contract=contract,
-                                    service_type_id=service_type_id,
-                                    design_stage_id=design_stage_id,
-                                    business_type_id=business_type_id,
-                                    description=content_data.get('description', ''),
-                                    order=index,
-                                )
-                                
-                                # 保存服务专业（多对多关系）
-                                if index in service_professions_data and service_professions_data[index]:
-                                    profession_ids = service_professions_data[index]
-                                    professions = ServiceProfession.objects.filter(id__in=profession_ids)
-                                    service_content.service_professions.set(professions)
-                            except (ValueError, TypeError) as e:
-                                logger.warning(f'保存服务内容项失败: {str(e)}')
-                                continue
                     
                     try:
                         from decimal import Decimal
@@ -5063,7 +5066,7 @@ def contract_create(request):
     
     # 使用统一的上下文构建函数
     base_context = _context(
-        '新建合同',
+        '创建合同草稿',
         '➕',
         '创建新的业务合同',
         request=request,
@@ -5072,10 +5075,11 @@ def contract_create(request):
     
     from datetime import datetime
     import json
-    # 从数据库获取我方单位列表
+    # 从数据库获取我方单位列表（用于下拉选择）
     from backend.apps.system_management.models import OurCompany
-    our_units_list = list(OurCompany.objects.filter(is_active=True).order_by('order', 'id').values_list('company_name', flat=True))
-    # 如果没有配置，使用默认值
+    our_companies = OurCompany.objects.filter(is_active=True).order_by('order', 'id')
+    # 如果没有配置，使用默认值（仅用于JavaScript兼容）
+    our_units_list = list(our_companies.values_list('company_name', flat=True))
     if not our_units_list:
         our_units_list = [
             '四川维海科技有限公司',
@@ -5085,7 +5089,7 @@ def contract_create(request):
             '禾间成都建筑设计咨询有限公司',
             '成都宏天升荣科技有限公司',
         ]
-    # 转换为JSON字符串供JavaScript使用
+    # 转换为JSON字符串供JavaScript使用（兼容旧代码）
     our_units = json.dumps(our_units_list, ensure_ascii=False)
     # 从后台引入服务内容相关选项
     from backend.apps.production_management.models import BusinessType, ServiceType, DesignStage, ServiceProfession, SettlementNodeType, AfterSalesNodeType
@@ -5104,11 +5108,7 @@ def contract_create(request):
     from backend.apps.settlement_center.models import SettlementMethod
     settlement_methods = SettlementMethod.objects.filter(is_active=True).order_by('sort_order', 'name')
     
-    # 获取已有的服务内容项（创建时为空）
-    from backend.apps.production_management.models import ContractServiceContent
-    existing_service_contents = ContractServiceContent.objects.none()
-    
-    # 约定管辖选项
+    # 定义约定管辖选项
     GOVERNING_LAW_CHOICES = [
         ('party_a_location', '甲方所在地'),
         ('party_b_location', '乙方所在地'),
@@ -5116,25 +5116,29 @@ def contract_create(request):
         ('not_specified', '未约定'),
         ('legal_default', '法定管辖'),
     ]
-        # 获取客户数据（用于自动填充客户方信息）
-    from backend.apps.customer_management.models import Client, ClientContact
-    clients = Client.objects.filter(is_active=True).select_related().prefetch_related('contacts').order_by('name')
     
-    # 获取我方签约主体、项目负责人、商务负责人数据
+    # 获取客户列表（用于自动填充客户方信息）
+    from backend.apps.customer_management.models import Client
+    clients = Client.objects.filter(is_active=True).select_related('created_by', 'responsible_user', 'responsible_user__department').prefetch_related('contacts')
+    # 应用权限过滤
+    clients = _filter_clients_by_permission(clients, request.user, permission_set)
+    clients = clients.order_by('name')
+    
+    # 获取项目经理列表
     from backend.apps.system_management.models import User
-    # 我方签约主体（从配置中获取，已在our_units中）
-    # 项目负责人（所有活跃用户）
     project_managers = User.objects.filter(is_active=True).order_by('username')
-    # 商务负责人（默认当前用户）
+    
+    # 获取商务经理列表
     business_managers = User.objects.filter(is_active=True).order_by('username')
     
-
     base_context.update({
         'form': form,
-        'contract': None,  # 创建合同时contract为None
-        'authorization_letter': authorization_letter,
-        'current_year': datetime.now().year,
-        'our_units': our_units,
+        'clients': clients,
+        'project_managers': project_managers,
+        'business_managers': business_managers,
+        'governing_law_choices': GOVERNING_LAW_CHOICES,
+        'our_units': our_units,  # JSON字符串，用于JavaScript兼容
+        'our_companies': our_companies,  # OurCompany对象列表，用于模板渲染
         'business_types': business_types,
         'service_types': service_types,
         'design_stages': design_stages,
@@ -5143,11 +5147,6 @@ def contract_create(request):
         'after_sales_node_types': after_sales_node_types,
         'result_file_types': result_file_types,
         'settlement_methods': settlement_methods,
-        'existing_service_contents': existing_service_contents,
-                'clients': clients,
-                'project_managers': project_managers,
-        'business_managers': business_managers,
-        'governing_law_choices': GOVERNING_LAW_CHOICES,
     })
     
     return render(request, "customer_management/contract_form.html", base_context)
@@ -5192,74 +5191,7 @@ def contract_edit(request, contract_id):
                     contract = form.save(commit=False)
                 contract.save()
                 
-                # 处理服务内容项
-                from backend.apps.production_management.models import ContractServiceContent, ServiceType, DesignStage, BusinessType, ServiceProfession
-                # 删除旧的服务内容项
-                ContractServiceContent.objects.filter(contract=contract).delete()
-                # 保存新的服务内容项
-                service_contents_data = {}
-                service_professions_data = {}  # 存储每个服务内容项的专业ID列表
-                
-                for key, value in request.POST.items():
-                    if key.startswith('service_contents['):
-                        # 解析 service_contents[0][service_type] 格式
-                        import re
-                        match = re.match(r'service_contents\[(\d+)\]\[(\w+)\]', key)
-                        if match:
-                            index = int(match.group(1))
-                            field = match.group(2)
-                            if index not in service_contents_data:
-                                service_contents_data[index] = {}
-                            service_contents_data[index][field] = value
-                        # 解析服务专业复选框 service_contents[0][service_professions]
-                        match_profession = re.match(r'service_contents\[(\d+)\]\[service_professions\]', key)
-                        if match_profession:
-                            index = int(match_profession.group(1))
-                            if index not in service_professions_data:
-                                service_professions_data[index] = []
-                            if value:  # 复选框被选中
-                                try:
-                                    service_professions_data[index].append(int(value))
-                                except ValueError:
-                                    pass
-                
-                # 保存服务内容项
-                for index, content_data in service_contents_data.items():
-                    # 至少需要服务类型才保存
-                    if content_data.get('service_type'):
-                        try:
-                            service_type_id = int(content_data.get('service_type', 0)) or None
-                            design_stage_id = int(content_data.get('design_stage', 0)) or None if content_data.get('design_stage') else None
-                            business_type_id = int(content_data.get('business_type', 0)) or None if content_data.get('business_type') else None
-                            
-                            service_content = ContractServiceContent.objects.create(
-                                contract=contract,
-                                service_type_id=service_type_id,
-                                design_stage_id=design_stage_id,
-                                business_type_id=business_type_id,
-                                description=content_data.get('description', ''),
-                                order=index,
-                            )
-                            
-                            # 保存服务专业（多对多关系）
-                            if index in service_professions_data and service_professions_data[index]:
-                                profession_ids = service_professions_data[index]
-                                professions = ServiceProfession.objects.filter(id__in=profession_ids)
-                                service_content.service_professions.set(professions)
-                        except (ValueError, TypeError) as e:
-                            logger.warning(f'保存服务内容项失败: {str(e)}')
-                            continue
-                
-                try:
-                    from decimal import Decimal
-                    import re
-                    
-                    # 先删除所有旧的结算方案（重新创建）
-                    for key, value in request.POST.items():
-                        pass
-                except Exception as e:
-                    # 如果保存结算方案失败，记录错误但不影响合同更新
-                    logger.warning(f'保存结算方案失败: {str(e)}')
+                messages.success(request, f'合同 {contract.contract_number} 更新成功。')
                 
                 messages.success(request, f'合同 {contract.contract_number} 更新成功。')
                 return redirect('business_pages:contract_detail', contract_id=contract.id)
@@ -5295,10 +5227,11 @@ def contract_edit(request, contract_id):
     
     from datetime import datetime
     import json
-    # 从数据库获取我方单位列表
+    # 从数据库获取我方单位列表（用于下拉选择）
     from backend.apps.system_management.models import OurCompany
-    our_units_list = list(OurCompany.objects.filter(is_active=True).order_by('order', 'id').values_list('company_name', flat=True))
-    # 如果没有配置，使用默认值
+    our_companies = OurCompany.objects.filter(is_active=True).order_by('order', 'id')
+    # 如果没有配置，使用默认值（仅用于JavaScript兼容）
+    our_units_list = list(our_companies.values_list('company_name', flat=True))
     if not our_units_list:
         our_units_list = [
             '四川维海科技有限公司',
@@ -5308,7 +5241,7 @@ def contract_edit(request, contract_id):
             '禾间成都建筑设计咨询有限公司',
             '成都宏天升荣科技有限公司',
         ]
-    # 转换为JSON字符串供JavaScript使用
+    # 转换为JSON字符串供JavaScript使用（兼容旧代码）
     our_units = json.dumps(our_units_list, ensure_ascii=False)
     # 从后台引入服务内容相关选项
     from backend.apps.production_management.models import BusinessType, ServiceType, DesignStage, ServiceProfession, SettlementNodeType, AfterSalesNodeType
@@ -5319,30 +5252,54 @@ def contract_edit(request, contract_id):
     settlement_node_types = SettlementNodeType.objects.filter(is_active=True).order_by('order', 'id')
     after_sales_node_types = AfterSalesNodeType.objects.filter(is_active=True).order_by('order', 'id')
     
-    # 获取成果文件类型（用于生产阶段的节点）
-    # 使用交付信息中的文件类型映射（从服务类型获取）
-    delivery_file_types = []
+    # 获取成果文件类型（用于服务内容的成果清单）
+    from backend.apps.production_management.models import ResultFileType
+    result_file_types = ResultFileType.objects.filter(is_active=True).order_by('service_category', 'order', 'id')
     
-    # 获取已有的服务内容项
-    from backend.apps.production_management.models import ContractServiceContent
-    existing_service_contents = ContractServiceContent.objects.filter(
-        contract=contract
-    ).select_related('service_type', 'design_stage', 'business_type').prefetch_related('service_professions').order_by('order', 'id')
+    # 获取结算方式（用于价款信息）
+    from backend.apps.settlement_center.models import SettlementMethod
+    settlement_methods = SettlementMethod.objects.filter(is_active=True).order_by('sort_order', 'name')
     
+    # 定义约定管辖选项
+    GOVERNING_LAW_CHOICES = [
+        ('party_a_location', '甲方所在地'),
+        ('party_b_location', '乙方所在地'),
+        ('project_location', '项目所在地'),
+        ('not_specified', '未约定'),
+        ('legal_default', '法定管辖'),
+    ]
+    
+    # 获取客户列表（用于自动填充客户方信息）
+    from backend.apps.customer_management.models import Client
+    clients = Client.objects.filter(is_active=True).select_related('created_by', 'responsible_user', 'responsible_user__department').prefetch_related('contacts')
+    # 应用权限过滤
+    clients = _filter_clients_by_permission(clients, request.user, permission_set)
+    clients = clients.order_by('name')
+    
+    # 获取项目经理列表
+    from backend.apps.system_management.models import User
+    project_managers = User.objects.filter(is_active=True).order_by('username')
+    
+    # 获取商务经理列表
+    business_managers = User.objects.filter(is_active=True).order_by('username')
     
     base_context.update({
         'form': form,
         'contract': contract,
-        'current_year': datetime.now().year,
-        'our_units': our_units,
+        'clients': clients,
+        'project_managers': project_managers,
+        'business_managers': business_managers,
+        'governing_law_choices': GOVERNING_LAW_CHOICES,
+        'our_units': our_units,  # JSON字符串，用于JavaScript兼容
+        'our_companies': our_companies,  # OurCompany对象列表，用于模板渲染
         'business_types': business_types,
         'service_types': service_types,
         'design_stages': design_stages,
         'service_professions': service_professions,
         'settlement_node_types': settlement_node_types,
         'after_sales_node_types': after_sales_node_types,
-        'delivery_file_types': delivery_file_types,
-        'existing_service_contents': existing_service_contents,
+        'result_file_types': result_file_types,
+        'settlement_methods': settlement_methods,
     })
     
     return render(request, "customer_management/contract_form.html", base_context)
@@ -6081,64 +6038,6 @@ def contract_finalize_create(request):
                 else:
                     contract.save()
                     messages.success(request, f'合同定稿创建成功，已进入定稿状态。')
-                
-                # 处理服务内容项（与contract_create保持一致）
-                from backend.apps.production_management.models import ContractServiceContent, ServiceType, DesignStage, BusinessType, ServiceProfession
-                # 删除旧的服务内容项
-                ContractServiceContent.objects.filter(contract=contract).delete()
-                # 保存新的服务内容项
-                service_contents_data = {}
-                service_professions_data = {}  # 存储每个服务内容项的专业ID列表
-                
-                for key, value in request.POST.items():
-                    if key.startswith('service_contents['):
-                        # 解析 service_contents[0][service_type] 格式
-                        import re
-                        match = re.match(r'service_contents\[(\d+)\]\[(\w+)\]', key)
-                        if match:
-                            index = int(match.group(1))
-                            field = match.group(2)
-                            if index not in service_contents_data:
-                                service_contents_data[index] = {}
-                            service_contents_data[index][field] = value
-                        # 解析服务专业复选框 service_contents[0][service_professions]
-                        match_profession = re.match(r'service_contents\[(\d+)\]\[service_professions\]', key)
-                        if match_profession:
-                            index = int(match_profession.group(1))
-                            if index not in service_professions_data:
-                                service_professions_data[index] = []
-                            if value:  # 复选框被选中
-                                try:
-                                    service_professions_data[index].append(int(value))
-                                except ValueError:
-                                    pass
-                
-                # 保存服务内容项
-                for index, content_data in service_contents_data.items():
-                    # 至少需要服务类型才保存
-                    if content_data.get('service_type'):
-                        try:
-                            service_type_id = int(content_data.get('service_type', 0)) or None
-                            design_stage_id = int(content_data.get('design_stage', 0)) or None if content_data.get('design_stage') else None
-                            business_type_id = int(content_data.get('business_type', 0)) or None if content_data.get('business_type') else None
-                            
-                            service_content = ContractServiceContent.objects.create(
-                                contract=contract,
-                                service_type_id=service_type_id,
-                                design_stage_id=design_stage_id,
-                                business_type_id=business_type_id,
-                                description=content_data.get('description', ''),
-                                order=index,
-                            )
-                            
-                            # 保存服务专业（多对多关系）
-                            if index in service_professions_data and service_professions_data[index]:
-                                profession_ids = service_professions_data[index]
-                                professions = ServiceProfession.objects.filter(id__in=profession_ids)
-                                service_content.service_professions.set(professions)
-                        except (ValueError, TypeError) as e:
-                            logger.warning(f'保存服务内容项失败: {str(e)}')
-                            continue
                 
                 try:
                     from decimal import Decimal
@@ -10502,3 +10401,391 @@ def authorization_letter_template_file_download(request, template_id):
         logger.exception('下载模板文件失败: %s', str(e))
         messages.error(request, f'下载文件失败：{str(e)}')
         return redirect('business_pages:authorization_letter_template_edit', template_id=template_id)
+
+
+# ==================== 商机导入功能 ====================
+
+@login_required
+def opportunity_import(request):
+    """商机批量导入功能"""
+    from django.http import HttpResponse
+    from django.db import transaction
+    from backend.apps.system_management.models import User
+    
+    permission_set = get_user_permission_codes(request.user)
+    
+    # 检查权限：需要商机管理权限
+    if not _permission_granted('customer_management.opportunity.view', permission_set):
+        messages.error(request, '您没有权限执行商机导入操作')
+        return redirect('business_pages:opportunity_management')
+    
+    # 下载模板
+    if request.GET.get('download') == 'template':
+        service_type_sample_obj = ServiceType.objects.order_by('id').first()
+        design_stage_sample_obj = DesignStage.objects.filter(is_active=True).order_by('order', 'id').first()
+        design_stage_sample_label = design_stage_sample_obj.name if design_stage_sample_obj else ''
+        status_label_map = dict(BusinessOpportunity.STATUS_CHOICES)
+        status_sample_label = status_label_map.get('potential', '潜在客户')
+        urgency_label_map = dict(BusinessOpportunity.URGENCY_CHOICES)
+        urgency_sample_label = urgency_label_map.get('normal', '普通')
+        opportunity_type_label_map = dict(BusinessOpportunity.OPPORTUNITY_TYPE_CHOICES)
+        opportunity_type_sample_label = opportunity_type_label_map.get('project_cooperation', '项目合作')
+        
+        columns = [
+            '商机编号（可留空自动生成）',
+            '商机名称',
+            '客户名称（必填）',
+            '负责商务手机号（必填）',
+            '商机类型',
+            '服务类型（可填编码或名称）',
+            '项目名称',
+            '项目地址',
+            '项目业态',
+            '建筑面积（平方米）',
+            '图纸阶段（可填编码或名称）',
+            '预计金额（万元）',
+            '成功概率（%）',
+            '商机状态',
+            '紧急程度',
+            '预计签约时间（YYYY-MM-DD）',
+            '商机描述',
+            '备注',
+        ]
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="opportunity_import_template.csv"'
+        writer = csv.writer(response)
+        writer.writerow(columns)
+        writer.writerow([
+            '',
+            '锦城天府综合体一期商机',
+            '成都锦城房地产开发有限公司',
+            '13800000005',
+            opportunity_type_sample_label,
+            service_type_sample_obj.name if service_type_sample_obj else '',
+            '锦城天府综合体一期',
+            '成都市天府新区',
+            '住宅',
+            '50000',
+            design_stage_sample_label,
+            '500',
+            '30',
+            status_sample_label,
+            urgency_sample_label,
+            '2025-12-31',
+            '这是一个示例商机',
+            '备注信息',
+        ])
+        return response
+    
+    # 准备上下文数据
+    design_stages = DesignStage.objects.filter(is_active=True).order_by('order', 'id')
+    context = {
+        'service_types': ServiceType.objects.order_by('order', 'id'),
+        'design_stages': design_stages,
+        'status_choices': BusinessOpportunity.STATUS_CHOICES,
+        'urgency_choices': BusinessOpportunity.URGENCY_CHOICES,
+        'opportunity_type_choices': BusinessOpportunity.OPPORTUNITY_TYPE_CHOICES,
+        'import_results': None,
+    }
+    
+    if request.method == 'POST':
+        upload = request.FILES.get('import_file')
+        if not upload:
+            messages.error(request, '请上传 CSV 或 Excel 文件。')
+        else:
+            filename = upload.name.lower()
+            is_excel = filename.endswith(('.xlsx', '.xls'))
+            is_csv = filename.endswith('.csv')
+            
+            if not (is_csv or is_excel):
+                messages.error(request, '仅支持 CSV 或 Excel 文件（.csv, .xlsx, .xls）。')
+            elif upload.size > 10 * 1024 * 1024:  # 10MB
+                messages.error(request, '文件过大，请控制在 10MB 以内。')
+            else:
+                try:
+                    upload.seek(0)
+                except Exception:
+                    pass
+                
+                # 处理Excel文件
+                if is_excel:
+                    try:
+                        import pandas as pd
+                        # 尝试读取Excel文件
+                        df = pd.read_excel(upload, engine='openpyxl' if filename.endswith('.xlsx') else None)
+                        # 转换为CSV格式的字符串
+                        csv_buffer = io.StringIO()
+                        df.to_csv(csv_buffer, index=False, encoding='utf-8')
+                        decoded_text = csv_buffer.getvalue()
+                    except ImportError:
+                        messages.error(request, '系统未安装 pandas 库，无法处理 Excel 文件。请使用 CSV 格式。')
+                        decoded_text = None
+                    except Exception as e:
+                        messages.error(request, f'Excel 文件解析失败：{str(e)}')
+                        decoded_text = None
+                else:
+                    # 处理CSV文件
+                    raw_bytes = upload.read()
+                    decoded_text = None
+                    for enc in ('utf-8-sig', 'utf-8', 'gbk', 'gb2312'):
+                        try:
+                            decoded_text = raw_bytes.decode(enc)
+                            break
+                        except UnicodeDecodeError:
+                            continue
+                
+                if decoded_text is None:
+                    messages.error(request, '文件解析失败，请确认编码为 UTF-8 或 GBK（CSV），或使用标准 Excel 格式。')
+                else:
+                    text_io = io.StringIO(decoded_text)
+                    reader = csv.DictReader(text_io)
+                    
+                    field_aliases = {
+                        'opportunity_number': {'商机编号（可留空自动生成）', '商机编号', 'opportunity_number'},
+                        'name': {'商机名称', 'name'},
+                        'client_name': {'客户名称（必填）', '客户名称', 'client_name'},
+                        'business_manager_phone': {'负责商务手机号（必填）', '负责商务手机号', '商务经理手机号', 'business_manager_phone'},
+                        'opportunity_type': {'商机类型', 'opportunity_type'},
+                        'service_type': {'服务类型（可填编码或名称）', '服务类型', 'service_type'},
+                        'project_name': {'项目名称', 'project_name'},
+                        'project_address': {'项目地址', 'project_address'},
+                        'project_type': {'项目业态', 'project_type'},
+                        'building_area': {'建筑面积（平方米）', '建筑面积', 'building_area'},
+                        'drawing_stage': {'图纸阶段（可填编码或名称）', '图纸阶段', 'drawing_stage'},
+                        'estimated_amount': {'预计金额（万元）', '预计金额', 'estimated_amount'},
+                        'success_probability': {'成功概率（%）', '成功概率', 'success_probability'},
+                        'status': {'商机状态', 'status'},
+                        'urgency': {'紧急程度', 'urgency'},
+                        'expected_sign_date': {'预计签约时间（YYYY-MM-DD）', '预计签约时间', 'expected_sign_date'},
+                        'description': {'商机描述', 'description'},
+                        'notes': {'备注', 'notes'},
+                    }
+                    
+                    required_fields = {
+                        'name',
+                        'client_name',
+                        'business_manager_phone',
+                    }
+                    
+                    missing_labels = []
+                    headers = set(reader.fieldnames or [])
+                    for field in required_fields:
+                        if not any(alias in headers for alias in field_aliases[field]):
+                            missing_labels.append(next(iter(field_aliases[field])))
+                    
+                    if missing_labels:
+                        messages.error(request, f'CSV 缺少必要字段：{", ".join(missing_labels)}。')
+                    else:
+                        def get_value(row, field):
+                            for alias in field_aliases[field]:
+                                if alias in row and row[alias] is not None:
+                                    value = str(row.get(alias, '')).strip()
+                                    if value:
+                                        return value
+                            return ''
+                        
+                        # 构建查找映射
+                        service_type_lookup = {st.code: st for st in ServiceType.objects.all()}
+                        service_type_name_lookup = {(st.name or '').strip(): st for st in ServiceType.objects.all()}
+                        
+                        design_stage_objects = DesignStage.objects.filter(is_active=True)
+                        design_stage_id_map = {str(ds.id): ds for ds in design_stage_objects}
+                        design_stage_code_map = {ds.code: ds for ds in design_stage_objects if ds.code}
+                        design_stage_name_map = {ds.name: ds for ds in design_stage_objects}
+                        
+                        status_codes = {code for code, _ in BusinessOpportunity.STATUS_CHOICES}
+                        status_label_map = {(label or '').strip(): code for code, label in BusinessOpportunity.STATUS_CHOICES}
+                        
+                        urgency_codes = {code for code, _ in BusinessOpportunity.URGENCY_CHOICES}
+                        urgency_label_map = {(label or '').strip(): code for code, label in BusinessOpportunity.URGENCY_CHOICES}
+                        
+                        opportunity_type_codes = {code for code, _ in BusinessOpportunity.OPPORTUNITY_TYPE_CHOICES}
+                        opportunity_type_label_map = {(label or '').strip(): code for code, label in BusinessOpportunity.OPPORTUNITY_TYPE_CHOICES}
+                        
+                        results = []
+                        success_count = 0
+                        failure_count = 0
+                        
+                        for row_index, row in enumerate(reader, start=2):
+                            row_result = {'row': row_index, 'status': 'success', 'message': ''}
+                            try:
+                                with transaction.atomic():
+                                    # 必填字段验证
+                                    opportunity_name = get_value(row, 'name')
+                                    if not opportunity_name:
+                                        raise ValueError('商机名称不能为空')
+                                    
+                                    client_name = get_value(row, 'client_name')
+                                    if not client_name:
+                                        raise ValueError('客户名称不能为空')
+                                    
+                                    # 查找或创建客户
+                                    client = Client.objects.filter(name=client_name).first()
+                                    if not client:
+                                        # 如果客户不存在，尝试创建（需要客户类型）
+                                        client_type = ClientType.objects.first()
+                                        if not client_type:
+                                            raise ValueError(f'客户"{client_name}"不存在，且系统未配置客户类型，无法自动创建')
+                                        client = Client.objects.create(
+                                            name=client_name,
+                                            client_type=client_type,
+                                            created_by=request.user,
+                                        )
+                                    
+                                    business_manager_phone = get_value(row, 'business_manager_phone')
+                                    if not business_manager_phone:
+                                        raise ValueError('负责商务手机号不能为空')
+                                    business_manager = User.objects.filter(username=business_manager_phone).first()
+                                    if not business_manager:
+                                        raise ValueError(f'未找到对应的商务经理手机号：{business_manager_phone}')
+                                    
+                                    # 可选字段处理
+                                    opportunity_number = get_value(row, 'opportunity_number')
+                                    if opportunity_number and BusinessOpportunity.objects.filter(opportunity_number=opportunity_number).exists():
+                                        raise ValueError(f'商机编号重复：{opportunity_number}')
+                                    
+                                    opportunity_type_raw = get_value(row, 'opportunity_type')
+                                    opportunity_type = None
+                                    if opportunity_type_raw:
+                                        if opportunity_type_raw in opportunity_type_codes:
+                                            opportunity_type = opportunity_type_raw
+                                        else:
+                                            opportunity_type = opportunity_type_label_map.get(opportunity_type_raw)
+                                        if not opportunity_type:
+                                            raise ValueError(f'商机类型取值无效：{opportunity_type_raw}')
+                                    
+                                    service_type_key = get_value(row, 'service_type')
+                                    service_type = None
+                                    if service_type_key:
+                                        service_type = service_type_lookup.get(service_type_key)
+                                        if not service_type:
+                                            service_type = service_type_name_lookup.get(service_type_key)
+                                        if not service_type:
+                                            raise ValueError(f'服务类型取值无效：{service_type_key}')
+                                    
+                                    project_name = get_value(row, 'project_name') or None
+                                    project_address = get_value(row, 'project_address') or None
+                                    project_type = get_value(row, 'project_type') or None
+                                    
+                                    building_area_str = get_value(row, 'building_area')
+                                    building_area = None
+                                    if building_area_str:
+                                        try:
+                                            building_area = Decimal(building_area_str)
+                                        except (ValueError, InvalidOperation):
+                                            raise ValueError(f'建筑面积格式无效：{building_area_str}')
+                                    
+                                    drawing_stage_raw = get_value(row, 'drawing_stage')
+                                    drawing_stage = None
+                                    if drawing_stage_raw:
+                                        if drawing_stage_raw in design_stage_id_map:
+                                            drawing_stage = design_stage_id_map[drawing_stage_raw]
+                                        elif drawing_stage_raw in design_stage_code_map:
+                                            drawing_stage = design_stage_code_map[drawing_stage_raw]
+                                        elif drawing_stage_raw in design_stage_name_map:
+                                            drawing_stage = design_stage_name_map[drawing_stage_raw]
+                                        if not drawing_stage:
+                                            raise ValueError(f'图纸阶段取值无效：{drawing_stage_raw}')
+                                    
+                                    estimated_amount_str = get_value(row, 'estimated_amount')
+                                    estimated_amount = Decimal('0')
+                                    if estimated_amount_str:
+                                        try:
+                                            estimated_amount = Decimal(estimated_amount_str)
+                                        except (ValueError, InvalidOperation):
+                                            raise ValueError(f'预计金额格式无效：{estimated_amount_str}')
+                                    
+                                    success_probability_str = get_value(row, 'success_probability')
+                                    success_probability = 10  # 默认值
+                                    if success_probability_str:
+                                        try:
+                                            success_probability = int(success_probability_str)
+                                            if success_probability not in [10, 30, 50, 70, 90]:
+                                                raise ValueError(f'成功概率必须是 10、30、50、70 或 90，当前值：{success_probability}')
+                                        except ValueError as e:
+                                            if '必须是' in str(e):
+                                                raise
+                                            raise ValueError(f'成功概率格式无效：{success_probability_str}')
+                                    
+                                    status_raw = get_value(row, 'status') or 'potential'
+                                    status = status_raw
+                                    if status not in status_codes:
+                                        status = status_label_map.get(status_raw)
+                                    if not status or status not in status_codes:
+                                        raise ValueError(f'商机状态取值无效：{status_raw}')
+                                    
+                                    urgency_raw = get_value(row, 'urgency') or 'normal'
+                                    urgency = urgency_raw
+                                    if urgency not in urgency_codes:
+                                        urgency = urgency_label_map.get(urgency_raw)
+                                    if not urgency or urgency not in urgency_codes:
+                                        raise ValueError(f'紧急程度取值无效：{urgency_raw}')
+                                    
+                                    expected_sign_date_str = get_value(row, 'expected_sign_date')
+                                    expected_sign_date = None
+                                    if expected_sign_date_str:
+                                        try:
+                                            from datetime import datetime
+                                            expected_sign_date = datetime.strptime(expected_sign_date_str, '%Y-%m-%d').date()
+                                        except ValueError:
+                                            raise ValueError(f'预计签约时间格式无效，应为 YYYY-MM-DD：{expected_sign_date_str}')
+                                    
+                                    description = get_value(row, 'description') or ''
+                                    notes = get_value(row, 'notes') or ''
+                                    
+                                    # 创建商机
+                                    opportunity = BusinessOpportunity(
+                                        opportunity_number=opportunity_number or None,
+                                        name=opportunity_name,
+                                        client=client,
+                                        business_manager=business_manager,
+                                        opportunity_type=opportunity_type or '',
+                                        service_type=service_type,
+                                        project_name=project_name or '',
+                                        project_address=project_address or '',
+                                        project_type=project_type or '',
+                                        building_area=building_area,
+                                        drawing_stage=drawing_stage,
+                                        estimated_amount=estimated_amount,
+                                        success_probability=success_probability,
+                                        status=status,
+                                        urgency=urgency,
+                                        expected_sign_date=expected_sign_date,
+                                        description=description,
+                                        notes=notes,
+                                        created_by=request.user,
+                                    )
+                                    opportunity.save()
+                                    
+                                    success_count += 1
+                                    row_result['message'] = f'导入成功，商机编号：{opportunity.opportunity_number}'
+                            except Exception as exc:
+                                failure_count += 1
+                                row_result['status'] = 'failed'
+                                row_result['message'] = str(exc)
+                            results.append(row_result)
+                        
+                        context['import_results'] = {
+                            'total': success_count + failure_count,
+                            'success': success_count,
+                            'failed': failure_count,
+                            'rows': results,
+                        }
+                        if success_count:
+                            messages.success(request, f'成功导入 {success_count} 条商机。')
+                        if failure_count:
+                            messages.warning(request, f'{failure_count} 条记录导入失败，请查看结果列表。')
+    
+    # 生成左侧菜单
+    menu = _build_opportunity_management_menu(permission_set, 'opportunity_import')
+    
+    return render(
+        request,
+        'customer_management/opportunity_import.html',
+        {
+            **context,
+            'menu': menu,
+            'page_title': '商机批量导入',
+            'page_description': '通过上传 CSV 或 Excel 文件批量导入商机数据',
+        }
+    )

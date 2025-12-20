@@ -172,11 +172,6 @@
     color: var(--vh-text);
 }
 
-.breadcrumb-separator {
-    color: var(--vh-text-light);
-    font-size: var(--font-size-sm);
-}
-
 /* 面包屑导航容器 - 统一间距控制 */
 .breadcrumb-nav {
     margin-bottom: var(--spacing-md);

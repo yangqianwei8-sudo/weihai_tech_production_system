@@ -1279,7 +1279,7 @@ class BusinessContract(models.Model):
     
     # 基本信息
     contract_number = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name='合同编号', help_text='唯一标识，留空将自动生成（格式：VIH-CON-YYYY-NNNN）')
-    project_number = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name='项目编号', help_text='自动生成：HT-YYYY-NNNN，不可修改。如果关联的商机已有业务委托书，则继承其项目编号')
+    project_number = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name='项目编号', help_text='自动生成：YYYYMMDD-0000，可手动修改。项目编号须保持唯一性')
     contract_name = models.CharField(max_length=200, blank=True, verbose_name='合同名称', help_text='如未填写，将使用合同编号')
     contract_type = models.CharField(max_length=20, choices=CONTRACT_TYPE_CHOICES, default='project', verbose_name='合同类型')
     status = models.CharField(max_length=20, choices=CONTRACT_STATUS_CHOICES, default='draft', verbose_name='合同状态')
@@ -1936,32 +1936,36 @@ class BusinessPaymentPlan(models.Model):
         return f"{self.contract_id} - {self.phase_name}"
 
 
-class ContractServiceContent(models.Model):
-    """合同服务内容"""
-    contract = models.ForeignKey(BusinessContract, on_delete=models.CASCADE, related_name='service_contents', verbose_name='合同')
-    service_type = models.ForeignKey(ServiceType, on_delete=models.SET_NULL, null=True, blank=True, related_name='contract_service_contents', verbose_name='服务类型')
-    design_stage = models.ForeignKey(DesignStage, on_delete=models.SET_NULL, null=True, blank=True, related_name='contract_service_contents', verbose_name='图纸阶段')
-    building_area = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='建筑面积（㎡）')
-    business_type = models.ForeignKey(BusinessType, on_delete=models.SET_NULL, null=True, blank=True, related_name='contract_service_contents', verbose_name='项目业态')
-    service_professions = models.ManyToManyField(ServiceProfession, blank=True, related_name='contract_service_contents', verbose_name='服务专业')
-    description = models.TextField(blank=True, verbose_name='服务内容描述')
-    order = models.IntegerField(default=0, verbose_name='排序', help_text='数字越小越靠前')
-    is_active = models.BooleanField(default=True, verbose_name='是否启用')
-    created_time = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
-    updated_time = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-    
-    class Meta:
-        db_table = 'contract_service_content'
-        verbose_name = '合同服务内容'
-        verbose_name_plural = verbose_name
-        ordering = ['order', 'id']
-        indexes = [
-            models.Index(fields=['contract', 'is_active']),
-        ]
-    
-    def __str__(self):
-        service_type_name = self.service_type.name if self.service_type else '未设置'
-        return f"{self.contract.contract_number or self.contract.id} - {service_type_name}"
+# ========== 服务信息功能已删除（作为备份保留）==========
+# 以下ContractServiceContent模型定义已注释，数据库表保留
+# 
+# class ContractServiceContent(models.Model):
+#     """合同服务内容"""
+#     contract = models.ForeignKey(BusinessContract, on_delete=models.CASCADE, related_name='service_contents', verbose_name='合同')
+#     service_type = models.ForeignKey(ServiceType, on_delete=models.SET_NULL, null=True, blank=True, related_name='contract_service_contents', verbose_name='服务类型')
+#     design_stage = models.ForeignKey(DesignStage, on_delete=models.SET_NULL, null=True, blank=True, related_name='contract_service_contents', verbose_name='图纸阶段')
+#     building_area = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='建筑面积（㎡）')
+#     business_type = models.ForeignKey(BusinessType, on_delete=models.SET_NULL, null=True, blank=True, related_name='contract_service_contents', verbose_name='项目业态')
+#     service_professions = models.ManyToManyField(ServiceProfession, blank=True, related_name='contract_service_contents', verbose_name='服务专业')
+#     description = models.TextField(blank=True, verbose_name='服务内容描述')
+#     order = models.IntegerField(default=0, verbose_name='排序', help_text='数字越小越靠前')
+#     is_active = models.BooleanField(default=True, verbose_name='是否启用')
+#     created_time = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
+#     updated_time = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+#     
+#     class Meta:
+#         db_table = 'contract_service_content'
+#         verbose_name = '合同服务内容'
+#         verbose_name_plural = verbose_name
+#         ordering = ['order', 'id']
+#         indexes = [
+#             models.Index(fields=['contract', 'is_active']),
+#         ]
+#     
+#     def __str__(self):
+#         service_type_name = self.service_type.name if self.service_type else '未设置'
+#         return f"{self.contract.contract_number or self.contract.id} - {service_type_name}"
+# ========== 服务信息功能删除结束 ==========
 
 
 class ContractParty(models.Model):

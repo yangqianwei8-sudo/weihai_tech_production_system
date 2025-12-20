@@ -124,6 +124,7 @@ urlpatterns = [
     
     # 商机管理（根据总体设计方案）
     path("opportunities/", views_pages.opportunity_management, name="opportunity_management"),
+    path("opportunities/import/", views_pages.opportunity_import, name="opportunity_import"),
     path("opportunities/create/", views_pages.opportunity_create, name="opportunity_create"),
     path("opportunities/<int:opportunity_id>/", views_pages.opportunity_detail, name="opportunity_detail"),
     path("opportunities/<int:opportunity_id>/edit/", views_pages.opportunity_edit, name="opportunity_edit"),

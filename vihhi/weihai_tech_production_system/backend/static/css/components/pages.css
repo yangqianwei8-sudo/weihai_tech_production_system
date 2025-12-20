@@ -15,6 +15,26 @@
    ============================================ */
 /* center-hero 样式已移除 - 不再在统一样式模板中定义 */
 
+/* 表单页面标题样式 */
+.form-page-title {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--vh-primary);
+}
+
+.form-page-title h1 {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--vh-text);
+    margin: 0 0 var(--spacing-xs) 0;
+}
+
+.form-page-title p {
+    font-size: var(--font-size-base);
+    color: var(--vh-text-muted);
+    margin: 0;
+}
+
 /* ============================================
    统计卡片
    ============================================ */

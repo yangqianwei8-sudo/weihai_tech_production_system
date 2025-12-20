@@ -2,6 +2,13 @@
 
 {% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
 
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item"><a href="{% url 'business_pages:contract_management_list' %}">合同管理</a></li>
+    <li class="breadcrumb-item active" aria-current="page">合同详情</li>
+{% endblock %}
+
+
+
 {% block extra_css %}
 <style>
     .contract-detail-nav {
@@ -191,7 +198,7 @@
 </style>
 {% endblock %}
 
-{% block contract_content %}
+{% block content %}
 <!-- DEBUG_MARKER_START_合同详情模板已加载 -->
 <div class="container-fluid py-4">
     <!-- 页面标题区域 -->

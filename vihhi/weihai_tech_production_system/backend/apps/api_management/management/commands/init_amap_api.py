@@ -51,7 +51,6 @@ class Command(BaseCommand):
         # 从环境变量获取API配置
         api_key = getattr(settings, 'AMAP_API_KEY', '')
         base_url = getattr(settings, 'AMAP_API_BASE_URL', 'https://restapi.amap.com/v3')
-        timeout = getattr(settings, 'AMAP_API_TIMEOUT', 10)
         
         # 检查是否已存在高德地图系统
         amap_system, created = ExternalSystem.objects.get_or_create(
@@ -84,97 +83,6 @@ class Command(BaseCommand):
         api_interfaces = [
             {
                 'code': 'AMAP-00001',
-                'name': '地理编码 API',
-                'url': '/geocode/geo',
-                'method': 'GET',
-                'auth_type': 'api_key',
-                'auth_config': {
-                    'api_key': api_key if api_key else '请在后台配置AMAP_API_KEY',
-                    'key_param': 'key',
-                    'description': '高德地图API使用Key作为查询参数进行认证'
-                },
-                'request_headers': {
-                    'Content-Type': 'application/json'
-                },
-                'request_params': {
-                    'key': '高德地图API Key（必填）',
-                    'address': '地址字符串，如"北京市朝阳区阜通东大街6号"（必填）',
-                    'city': '城市名称或城市编码，限制搜索范围，提高准确性（可选）',
-                    'output': '返回格式，默认json'
-                },
-                'response_schema': {
-                    'status': '状态码（1表示成功）',
-                    'info': '状态信息',
-                    'count': '结果数量',
-                    'geocodes': [
-                        {
-                            'formatted_address': '格式化地址',
-                            'province': '省份',
-                            'city': '城市',
-                            'district': '区县',
-                            'township': '街道',
-                            'neighborhood': '社区',
-                            'building': '建筑',
-                            'adcode': '区域编码',
-                            'location': '经纬度坐标（经度,纬度）',
-                            'level': '地址级别'
-                        }
-                    ]
-                },
-                'description': '地理编码API，将地址字符串转换为经纬度坐标。支持通过地址查询获取精确的地理位置坐标。',
-                'timeout': timeout,
-                'retry_count': 1,
-                'version': '3.0',
-            },
-            {
-                'code': 'AMAP-00002',
-                'name': '逆地理编码 API',
-                'url': '/geocode/regeo',
-                'method': 'GET',
-                'auth_type': 'api_key',
-                'auth_config': {
-                    'api_key': api_key if api_key else '请在后台配置AMAP_API_KEY',
-                    'key_param': 'key',
-                    'description': '高德地图API使用Key作为查询参数进行认证'
-                },
-                'request_headers': {
-                    'Content-Type': 'application/json'
-                },
-                'request_params': {
-                    'key': '高德地图API Key（必填）',
-                    'location': '经纬度坐标，格式：经度,纬度（必填）',
-                    'extensions': '返回结果控制，base：返回基本信息；all：返回全部信息（可选，默认base）',
-                    'output': '返回格式，默认json'
-                },
-                'response_schema': {
-                    'status': '状态码（1表示成功）',
-                    'info': '状态信息',
-                    'regeocode': {
-                        'formatted_address': '格式化地址',
-                        'addressComponent': {
-                            'province': '省份',
-                            'city': '城市',
-                            'district': '区县',
-                            'township': '街道',
-                            'street': '街道名称',
-                            'streetNumber': '街道门牌号'
-                        },
-                        'adcode': '区域编码',
-                        'neighborhood': {
-                            'name': '社区名称'
-                        },
-                        'building': {
-                            'name': '建筑名称'
-                        }
-                    }
-                },
-                'description': '逆地理编码API，将经纬度坐标转换为地址信息。支持通过坐标查询获取详细的地址信息，包括省市区、街道、社区等。',
-                'timeout': timeout,
-                'retry_count': 1,
-                'version': '3.0',
-            },
-            {
-                'code': 'AMAP-00003',
                 'name': '行政区域查询 API',
                 'url': '/config/district',
                 'method': 'GET',
@@ -182,38 +90,133 @@ class Command(BaseCommand):
                 'auth_config': {
                     'api_key': api_key if api_key else '请在后台配置AMAP_API_KEY',
                     'key_param': 'key',
-                    'description': '高德地图API使用Key作为查询参数进行认证'
-                },
-                'request_headers': {
-                    'Content-Type': 'application/json'
                 },
                 'request_params': {
-                    'key': '高德地图API Key（必填）',
+                    'key': 'API Key（必填）',
                     'keywords': '查询关键字，支持：行政区名称、citycode、adcode（可选）',
-                    'subdistrict': '子级行政区，0：不返回下级行政区；1：返回下一级行政区；2：返回下两级行政区；3：返回下三级行政区（可选，默认0）',
+                    'subdistrict': '子级行政区，0：不返回下级行政区；1：返回下一级行政区；2：返回下两级行政区；3：返回下三级行政区（默认1）',
                     'level': '查询行政级别，可选值：country、province、city、district、street（可选）',
-                    'extensions': '返回结果控制，base：返回基本信息；all：返回全部信息（可选，默认base）',
-                    'output': '返回格式，默认json'
+                    'extensions': '返回结果控制，base：返回基本信息；all：返回全部信息（默认base）',
+                    'offset': '单次返回记录数，最大值为20（默认20）',
+                    'page': '当前页数，最大值为100（默认1）',
+                    'filter': '根据区划过滤，多个区划用逗号分隔（可选）',
+                    'callback': '回调函数（可选）',
                 },
                 'response_schema': {
-                    'status': '状态码（1表示成功）',
-                    'info': '状态信息',
-                    'count': '结果数量',
+                    'status': '返回结果状态值，0：请求失败；1：请求成功',
+                    'info': '返回状态说明',
+                    'infocode': '返回状态说明，10000：正确；其他：错误',
+                    'count': '返回结果总数目',
                     'districts': [
                         {
                             'name': '行政区名称',
                             'adcode': '区域编码',
                             'citycode': '城市编码',
-                            'level': '行政级别',
-                            'center': '中心点坐标（经度,纬度）',
+                            'level': '行政区级别',
+                            'center': '区域中心点坐标',
                             'districts': '下级行政区列表'
                         }
                     ]
                 },
-                'description': '行政区域查询API，查询省、市、区县信息。支持按关键字、级别查询，可返回多级行政区划数据。',
-                'timeout': timeout,
+                'description': '行政区域查询API，用于根据关键词和级别获取省市区数据。支持查询所有省份、特定省份下的城市、特定城市下的区县等。',
+                'timeout': 10,
                 'retry_count': 1,
-                'version': '3.0',
+                'version': 'v3',
+            },
+            {
+                'code': 'AMAP-00002',
+                'name': '地理编码 API',
+                'url': '/geocode/geo',
+                'method': 'GET',
+                'auth_type': 'api_key',
+                'auth_config': {
+                    'api_key': api_key if api_key else '请在后台配置AMAP_API_KEY',
+                    'key_param': 'key',
+                },
+                'request_params': {
+                    'key': 'API Key（必填）',
+                    'address': '地址（必填）',
+                    'city': '城市（可选）',
+                    'batch': '批量查询控制，true：批量；false：单条（默认false）',
+                    'output': '返回格式，JSON或XML（默认JSON）',
+                    'callback': '回调函数（可选）',
+                },
+                'response_schema': {
+                    'status': '返回结果状态值，0：请求失败；1：请求成功',
+                    'info': '返回状态说明',
+                    'infocode': '返回状态说明，10000：正确；其他：错误',
+                    'count': '返回结果总数目',
+                    'geocodes': [
+                        {
+                            'formatted_address': '结构化地址信息',
+                            'country': '国家',
+                            'province': '省/直辖市',
+                            'city': '市',
+                            'district': '区',
+                            'township': '街道',
+                            'neighborhood': '社区',
+                            'building': '建筑',
+                            'citycode': '城市编码',
+                            'adcode': '区域编码',
+                            'level': '匹配级别',
+                            'location': '坐标点'
+                        }
+                    ]
+                },
+                'description': '地理编码API，用于将地址转换为经纬度坐标。支持单个地址和批量地址查询。',
+                'timeout': 10,
+                'retry_count': 1,
+                'version': 'v3',
+            },
+            {
+                'code': 'AMAP-00003',
+                'name': '逆地理编码 API',
+                'url': '/geocode/regeo',
+                'method': 'GET',
+                'auth_type': 'api_key',
+                'auth_config': {
+                    'api_key': api_key if api_key else '请在后台配置AMAP_API_KEY',
+                    'key_param': 'key',
+                },
+                'request_params': {
+                    'key': 'API Key（必填）',
+                    'location': '经纬度坐标（必填），格式：经度,纬度',
+                    'poitype': '返回附近POI类型（可选）',
+                    'radius': '搜索半径（可选，单位：米，最大3000）',
+                    'extensions': '返回结果控制，base：返回基本信息；all：返回全部信息（默认base）',
+                    'batch': '批量查询控制，true：批量；false：单条（默认false）',
+                    'roadlevel': '道路等级（可选）',
+                    'output': '返回格式，JSON或XML（默认JSON）',
+                    'callback': '回调函数（可选）',
+                },
+                'response_schema': {
+                    'status': '返回结果状态值，0：请求失败；1：请求成功',
+                    'info': '返回状态说明',
+                    'infocode': '返回状态说明，10000：正确；其他：错误',
+                    'regeocodes': [
+                        {
+                            'formatted_address': '结构化地址信息',
+                            'country': '国家',
+                            'province': '省/直辖市',
+                            'city': '市',
+                            'district': '区',
+                            'township': '街道',
+                            'neighborhood': '社区',
+                            'building': '建筑',
+                            'citycode': '城市编码',
+                            'adcode': '区域编码',
+                            'level': '匹配级别',
+                            'addressComponent': '地址组成要素',
+                            'roads': '道路信息',
+                            'pois': 'POI信息',
+                            'aois': 'AOI信息'
+                        }
+                    ]
+                },
+                'description': '逆地理编码API，用于将经纬度坐标转换为地址信息。支持单个坐标和批量坐标查询。',
+                'timeout': 10,
+                'retry_count': 1,
+                'version': 'v3',
             },
             {
                 'code': 'AMAP-00004',
@@ -224,28 +227,26 @@ class Command(BaseCommand):
                 'auth_config': {
                     'api_key': api_key if api_key else '请在后台配置AMAP_API_KEY',
                     'key_param': 'key',
-                    'description': '高德地图API使用Key作为查询参数进行认证'
-                },
-                'request_headers': {
-                    'Content-Type': 'application/json'
                 },
                 'request_params': {
-                    'key': '高德地图API Key（必填）',
-                    'ip': 'IP地址，不传则使用请求IP（可选）',
-                    'output': '返回格式，默认json'
+                    'key': 'API Key（必填）',
+                    'ip': 'IP地址（可选，不填则使用请求IP）',
+                    'output': '返回格式，JSON或XML（默认JSON）',
+                    'callback': '回调函数（可选）',
                 },
                 'response_schema': {
-                    'status': '状态码（1表示成功）',
-                    'info': '状态信息',
+                    'status': '返回结果状态值，0：请求失败；1：请求成功',
+                    'info': '返回状态说明',
+                    'infocode': '返回状态说明，10000：正确；其他：错误',
                     'province': '省份',
                     'city': '城市',
                     'adcode': '区域编码',
-                    'rectangle': '边界坐标（min_lon,min_lat;max_lon,max_lat）'
+                    'rectangle': '所在城市矩形区域范围'
                 },
-                'description': 'IP定位API，根据IP地址获取位置信息。支持通过IP地址查询获取城市级别的定位信息。',
-                'timeout': timeout,
+                'description': 'IP定位API，用于根据IP地址获取地理位置信息。',
+                'timeout': 10,
                 'retry_count': 1,
-                'version': '3.0',
+                'version': 'v3',
             },
             {
                 'code': 'AMAP-00005',
@@ -256,76 +257,38 @@ class Command(BaseCommand):
                 'auth_config': {
                     'api_key': api_key if api_key else '请在后台配置AMAP_API_KEY',
                     'key_param': 'key',
-                    'description': '高德地图API使用Key作为查询参数进行认证'
-                },
-                'request_headers': {
-                    'Content-Type': 'application/json'
                 },
                 'request_params': {
-                    'key': '高德地图API Key（必填）',
-                    'keywords': '查询关键词（必填）',
-                    'city': '城市名称或城市编码，限制搜索范围（可选）',
-                    'location': '经纬度坐标，格式：经度,纬度，用于排序（可选）',
-                    'datatype': '返回数据类型，all：返回所有类型；poi：仅返回POI；bus：仅返回公交站；busline：仅返回公交线路（可选，默认all）',
-                    'output': '返回格式，默认json'
+                    'key': 'API Key（必填）',
+                    'keywords': '查询关键字（必填）',
+                    'type': 'POI分类（可选）',
+                    'location': '中心点坐标（可选），格式：经度,纬度',
+                    'city': '城市（可选）',
+                    'citylimit': '是否限制城市，true：限制；false：不限制（默认false）',
+                    'datatype': '返回的数据类型，all：全部；poi：POI；bus：公交站；busline：公交线路（默认all）',
+                    'output': '返回格式，JSON或XML（默认JSON）',
+                    'callback': '回调函数（可选）',
                 },
                 'response_schema': {
-                    'status': '状态码（1表示成功）',
-                    'info': '状态信息',
-                    'count': '结果数量',
+                    'status': '返回结果状态值，0：请求失败；1：请求成功',
+                    'info': '返回状态说明',
+                    'infocode': '返回状态说明，10000：正确；其他：错误',
+                    'count': '返回结果总数目',
                     'tips': [
                         {
                             'name': '名称',
-                            'district': '区县',
+                            'district': '所属区域',
                             'adcode': '区域编码',
-                            'location': '经纬度坐标（经度,纬度）',
-                            'type': '类型'
+                            'location': '坐标点',
+                            'address': '地址',
+                            'typecode': '类型编码'
                         }
                     ]
                 },
-                'description': '输入提示API，根据关键词获取搜索建议。支持地址、POI、公交站、公交线路等类型的搜索建议。',
-                'timeout': timeout,
+                'description': '输入提示API，用于根据输入的关键字提供搜索建议。支持POI、公交站、公交线路等类型的搜索建议。',
+                'timeout': 10,
                 'retry_count': 1,
-                'version': '3.0',
-            },
-            {
-                'code': 'AMAP-00006',
-                'name': '距离测量 API',
-                'url': '/distance',
-                'method': 'GET',
-                'auth_type': 'api_key',
-                'auth_config': {
-                    'api_key': api_key if api_key else '请在后台配置AMAP_API_KEY',
-                    'key_param': 'key',
-                    'description': '高德地图API使用Key作为查询参数进行认证'
-                },
-                'request_headers': {
-                    'Content-Type': 'application/json'
-                },
-                'request_params': {
-                    'key': '高德地图API Key（必填）',
-                    'origins': '起点坐标，格式：经度,纬度，多个点用|分隔（必填）',
-                    'destination': '终点坐标，格式：经度,纬度，多个点用|分隔（必填）',
-                    'type': '计算类型，1：直线距离；0：驾车距离（需要路径规划服务）（可选，默认1）',
-                    'output': '返回格式，默认json'
-                },
-                'response_schema': {
-                    'status': '状态码（1表示成功）',
-                    'info': '状态信息',
-                    'count': '结果数量',
-                    'results': [
-                        {
-                            'origin_id': '起点ID',
-                            'dest_id': '终点ID',
-                            'distance': '距离（米）',
-                            'duration': '时间（秒，仅驾车距离有）'
-                        }
-                    ]
-                },
-                'description': '距离测量API，计算两点或多点之间的距离。支持直线距离和驾车距离计算。',
-                'timeout': timeout,
-                'retry_count': 1,
-                'version': '3.0',
+                'version': 'v3',
             },
         ]
         
@@ -342,7 +305,6 @@ class Command(BaseCommand):
                     'method': api_data['method'],
                     'auth_type': api_data['auth_type'],
                     'auth_config': api_data['auth_config'],
-                    'request_headers': api_data['request_headers'],
                     'request_params': api_data['request_params'],
                     'response_schema': api_data['response_schema'],
                     'description': api_data['description'],
@@ -365,7 +327,6 @@ class Command(BaseCommand):
                 api_interface.method = api_data['method']
                 api_interface.auth_type = api_data['auth_type']
                 api_interface.auth_config = api_data['auth_config']
-                api_interface.request_headers = api_data['request_headers']
                 api_interface.request_params = api_data['request_params']
                 api_interface.response_schema = api_data['response_schema']
                 api_interface.description = api_data['description']
@@ -398,4 +359,3 @@ class Command(BaseCommand):
         self.stdout.write('已添加的API接口:')
         for api_data in api_interfaces:
             self.stdout.write(f'  - {api_data["name"]} ({api_data["code"]})')
-

@@ -95,7 +95,7 @@
                 showSuccessAlert: true,
                 
                 // 调试模式
-                debug: false
+                debug: true  // 启用调试模式，便于排查API调用问题
             };
 
             // 合并用户配置
@@ -233,6 +233,9 @@
 
             // 至少需要N个字符才触发搜索
             if (keyword.length < this.config.minSearchLength) {
+                if (this.config.debug) {
+                    console.log(`⏸️ 字符数不足，需要至少${this.config.minSearchLength}个字符，当前: ${keyword.length}`);
+                }
                 this._hideDropdown();
                 return;
             }
@@ -240,10 +243,19 @@
             // 清除之前的搜索定时器
             if (this.searchTimeout) {
                 clearTimeout(this.searchTimeout);
+                if (this.config.debug) {
+                    console.log('🔄 清除之前的搜索定时器');
+                }
             }
 
             // 延迟搜索
+            if (this.config.debug) {
+                console.log(`⏱️ 将在 ${this.config.searchDelay}ms 后开始搜索`);
+            }
             this.searchTimeout = setTimeout(() => {
+                if (this.config.debug) {
+                    console.log('🚀 开始执行搜索，关键词:', keyword);
+                }
                 this._searchCompany(keyword);
             }, this.config.searchDelay);
         }
@@ -302,22 +314,46 @@
             const url = `${this.config.searchApiUrl}?keyword=${encodeURIComponent(keyword)}&match_type=ename`;
 
             // 发送请求
+            if (this.config.debug) {
+                console.log('🌐 发送API请求:', url);
+            }
+            
             fetch(url, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
                 credentials: 'same-origin'
             })
             .then(response => {
+                if (this.config.debug) {
+                    console.log('📥 API响应状态:', response.status, response.statusText);
+                }
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    // 尝试获取错误信息
+                    return response.text().then(text => {
+                        try {
+                            const errorData = JSON.parse(text);
+                            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                        } catch (e) {
+                            throw new Error(`HTTP error! status: ${response.status}, message: ${text || response.statusText}`);
+                        }
+                    });
                 }
                 return response.json();
             })
             .then(data => {
+                if (this.config.debug) {
+                    console.log('📦 API响应数据:', data);
+                }
+                
                 if (!data || !data.success) {
                     const errorMsg = data ? (data.message || '未知错误') : '响应数据为空';
+                    if (this.config.debug) {
+                        console.error('❌ API返回错误:', errorMsg);
+                    }
                     this._showError(errorMsg);
                     return;
                 }

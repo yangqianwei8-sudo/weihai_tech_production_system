@@ -42,6 +42,7 @@
             this.filterFields = [];
             this.draggedRow = null;
             this.eventListeners = []; // 用于跟踪事件监听器，便于清理
+            this.isApplyingSettings = false; // 标志：是否正在应用设置，防止循环更新
             
             // 绑定方法上下文
             this.handleDragStart = this.handleDragStart.bind(this);
@@ -188,15 +189,18 @@
                     }
                 });
                 
-                // 如果有相关变化，防抖后更新
-                if (shouldUpdate) {
+                // 如果有相关变化，防抖后更新（但不在应用设置期间触发，避免循环）
+                if (shouldUpdate && !this.isApplyingSettings) {
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => {
-                        console.log('检测到筛选字段变化，自动同步字段列表');
-                        // 重新初始化字段列表
-                        this.initFilterFieldsList();
-                        // 重新应用设置
-                        this.applySettings();
+                        // 再次检查，防止在延迟期间已经开始应用设置
+                        if (!this.isApplyingSettings) {
+                            console.log('检测到筛选字段变化，自动同步字段列表');
+                            // 重新初始化字段列表
+                            this.initFilterFieldsList();
+                            // 重新应用设置
+                            this.applySettings();
+                        }
                     }, debounceDelay);
                 }
             });
@@ -479,11 +483,25 @@
          * 注意：此方法会检测DOM中的新字段并自动添加到字段列表
          */
         applySettings() {
+            // 防止重复调用导致的循环更新
+            if (this.isApplyingSettings) {
+                return;
+            }
+            
+            this.isApplyingSettings = true;
+            
+            let container = null;
+            
             try {
-                const container = document.getElementById(this.config.containerId);
+                container = document.getElementById(this.config.containerId);
                 if (!container) {
                     console.warn(`筛选条件容器 ${this.config.containerId} 未找到`);
                     return;
+                }
+                
+                // 临时断开 MutationObserver，避免触发循环更新
+                if (this.mutationObserver) {
+                    this.mutationObserver.disconnect();
                 }
 
                 // 获取所有筛选行（重新从DOM抓取，支持动态添加的字段）
@@ -577,6 +595,18 @@
                 });
             } catch (e) {
                 console.error('应用筛选字段设置失败:', e);
+            } finally {
+                // 重新连接 MutationObserver
+                if (this.mutationObserver && container) {
+                    this.mutationObserver.observe(container, {
+                        childList: true,
+                        subtree: true,
+                        attributes: true,
+                        attributeFilter: ['data-filter-key', 'class']
+                    });
+                }
+                // 重置标志
+                this.isApplyingSettings = false;
             }
         }
 

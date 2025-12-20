@@ -160,8 +160,7 @@ class AdministrativeArchiveForm(forms.ModelForm):
         widget=forms.FileInput(attrs={
             'class': 'form-control',
             'accept': '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.zip,.rar',
-            'multiple': True,
-            'title': '支持多文件上传，支持PDF、Word、Excel、图片等格式'
+            'title': '支持PDF、Word、Excel、图片等格式'
         })
     )
     
