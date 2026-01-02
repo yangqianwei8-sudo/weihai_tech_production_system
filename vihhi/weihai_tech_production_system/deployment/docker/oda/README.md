@@ -6,8 +6,12 @@
 
 1. 访问 ODA 官网：https://www.opendesign.com/guestfiles
 2. 注册账号并登录
-3. 下载 Linux 版本的 ODA File Converter
-4. 文件格式：`ODAFileConverter_*.tar.gz`（例如：`ODAFileConverter_24.12.0_Linux.tar.gz`）
+3. 下载 **Linux 64位** 版本的 ODA File Converter
+4. **版本选择**：
+   - **推荐**：下载最新稳定版本（通常是最新发布的版本）
+   - 文件格式：`ODAFileConverter_<版本号>_Linux.tar.gz`
+   - 例如：`ODAFileConverter_24.12.0_Linux.tar.gz` 或 `ODAFileConverter_25.1.0_Linux.tar.gz`
+   - 确保选择 **Linux x64** 平台版本
 
 ### 步骤2：放置安装包
 
