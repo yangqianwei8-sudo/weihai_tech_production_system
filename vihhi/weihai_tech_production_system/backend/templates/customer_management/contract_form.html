@@ -268,7 +268,7 @@
             </div>
             <div style="margin-top: 16px; text-align: left;">
                 <button type="button" class="btn btn-sm btn-primary" id="add-service-content-btn">
-                    <i class="bi bi-plus-circle"></i> 添加服务信息
+                    <i class="bi bi-plus-circle"></i> 增加新行
                 </button>
             </div>
         </div>
@@ -1237,6 +1237,12 @@
 {% block extra_js %}
 <script src="{% static 'js/dynamic-table.js' %}"></script>
 <script>
+    // ========== 页面加载测试 ==========
+    console.log('🚀🚀🚀 合同表单页面JavaScript开始加载 🚀🚀🚀');
+    console.log('🚀 当前URL:', window.location.href);
+    console.log('🚀 DynamicTableManager是否已加载:', typeof DynamicTableManager !== 'undefined');
+    console.log('🚀 document.readyState:', document.readyState);
+    
     // ========== 金额自动计算功能 ==========
     (function() {
         function calculateAmountFields() {
@@ -1529,45 +1535,32 @@
         });
     }
     
-    // 更新所有行的联系人下拉框 - 全局作用域
-        function updateAllContactSelects(contacts) {
-        selects.forEach(select => {
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">请选择联系人</option>';
-            
-            contacts.forEach(contact => {
-                const option = document.createElement('option');
-                option.value = party.party_name;  // 使用单位名称作为值
-                option.textContent = party.party_name;
-                option.setAttribute('data-contact-id', contact.id);
-                option.setAttribute('data-contact-phone', contact.phone || '');
-                option.setAttribute('data-contact-email', contact.email || '');
-                option.setAttribute('data-contact-address', contact.office_address || '');
-                select.appendChild(option);
-            });
-            
-            // 恢复之前选中的值
-            if (currentValue) {
-                select.value = currentValue;
-            }
-        });
-    }
-    
     // 监听关联客户的变化 - 全局作用域
     let clientContactListenerAttached = false;
-    function );
+    function attachClientContactListener() {
+        if (!clientContactListenerAttached) {
+            // 监听客户选择变化，更新联系人列表
+            const clientSelect = document.querySelector('[name="client"]');
+            if (clientSelect) {
+                clientSelect.addEventListener('change', function() {
+                    const clientId = this.value;
+                    if (clientId) {
+                        loadContactsByClientId(clientId, function(contacts) {
+                            updateAllContactSelects(contacts);
+                        });
+                    } else {
+                        // 清空所有联系人下拉框
+                        updateAllContactSelects([]);
+                    }
+                });
+            }
             clientContactListenerAttached = true;
         }
     }
 
     // ========== 签约主体表格管理（使用DynamicTableManager） ==========
     (function() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initPartiesTable);
-        } else {
-            initPartiesTable();
-        }
-
+        function initPartiesTable() {
             // 加载现有数据（编辑模式）
             {% if form.instance and form.instance.pk %}
                 const existingParties = [
@@ -1605,77 +1598,93 @@
                 // 创建模式：添加一行默认空行
                 partiesTableManager.addRow();
             {% endif %}
-        // 等待DOM加载完成
-
-        // 联系人列表缓存（按客户ID）- 提升到全局作用域
-        const contactCache = {};
-        // 加载联系人列表的函数 - 提升到全局作用域
-        function loadContactsByClientId(clientId, callback) {
             
-            // 如果缓存中有，直接使用
-                return;
+            // 联系人列表缓存（按客户ID）
+            const contactCache = {};
+            
+            // 加载联系人列表的函数
+            function loadContactsByClientId(clientId, callback) {
+                // 如果缓存中有，直接使用
+                if (contactCache[clientId]) {
+                    if (callback) callback(contactCache[clientId]);
+                    return;
+                }
+                
+                // 从API获取联系人列表
+                fetch(`/api/customer-management/get-contacts-by-client-id/?client_id=${clientId}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('联系人API响应:', data);
+                    if (data.success && data.contacts) {
+                        contactCache[clientId] = data.contacts;
+                        if (callback) callback(data.contacts);
+                    } else {
+                        console.warn('联系人API返回失败或空数据:', data);
+                        if (callback) callback([]);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取联系人列表失败:', error);
+                    if (callback) callback([]);
+                });
             }
             
-            // 从API获取联系人列表
-            fetch(`/api/customer-management/get-contacts-by-client-id/?client_id=${clientId}`, {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('联系人API响应:', data);
-                if (data.success && data.contacts) {
-                    if (callback) callback(data.contacts);
-                } else {
-                    console.warn('联系人API返回失败或空数据:', data);
-                    if (callback) callback([]);
-                }
-            })
-            .catch(error => {
-                console.error('获取联系人列表失败:', error);
-                if (callback) callback([]);
-            });
-        
-        // 更新所有行的联系人下拉框 - 提升到全局作用域
-        function updateAllContactSelects(contacts) {
-            selects.forEach(select => {
-                const currentValue = select.value;
-                select.innerHTML = '<option value="">请选择联系人</option>';
-                
-                contacts.forEach(contact => {
-                    const option = document.createElement('option');
-                    option.value = party.party_name;  // 使用单位名称作为值
-                    option.textContent = party.party_name;
-                    option.setAttribute('data-contact-id', contact.id);
-                    option.setAttribute('data-contact-phone', contact.phone || '');
-                    option.setAttribute('data-contact-email', contact.email || '');
-                    option.setAttribute('data-contact-address', contact.office_address || '');
-                    select.appendChild(option);
+            // 更新所有行的联系人下拉框
+            function updateAllContactSelects(contacts) {
+                const selects = document.querySelectorAll('select[name*="[party_contact]"]');
+                selects.forEach(select => {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">请选择联系人</option>';
+                    
+                    contacts.forEach(contact => {
+                        const option = document.createElement('option');
+                        option.value = contact.name || '';
+                        option.textContent = contact.name || '';
+                        option.setAttribute('data-contact-id', contact.id);
+                        option.setAttribute('data-contact-phone', contact.phone || '');
+                        option.setAttribute('data-contact-email', contact.email || '');
+                        option.setAttribute('data-contact-address', contact.office_address || '');
+                        select.appendChild(option);
+                    });
+                    
+                    // 恢复之前选中的值
+                    if (currentValue) {
+                        select.value = currentValue;
+                    }
                 });
-                
-                // 恢复之前选中的值
-                if (currentValue) {
-                    select.value = currentValue;
+            }
+            
+            // 监听关联客户的变化
+            let clientContactListenerAttached = false;
+            function attachClientContactListener() {
+                if (!clientContactListenerAttached) {
+                    const clientSelect = document.querySelector('[name="client"]');
+                    if (clientSelect) {
+                        clientSelect.addEventListener('change', function() {
+                            const clientId = this.value;
+                            if (clientId) {
+                                loadContactsByClientId(clientId, function(contacts) {
+                                    updateAllContactSelects(contacts);
+                                });
+                            } else {
+                                updateAllContactSelects([]);
+                            }
+                        });
+                    }
+                    clientContactListenerAttached = true;
                 }
-            });
-        }
-        
-        // 监听关联客户的变化 - 提升到全局作用域
-        let clientContactListenerAttached = false;
-        function attachClientContactListener() {
-                        // 清空所有联系人下拉框
-                        
-                });
-                clientContactListenerAttached = true;
+            }
 
-        function initPartiesTable() {
             // 检查DynamicTableManager是否已加载
             if (typeof DynamicTableManager === 'undefined') {
                 console.error('DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
@@ -1759,43 +1768,78 @@
 
             // 监听联系人选择变化，自动填充联系方式
             document.addEventListener('change', function(e) {
-                    const select = e.target;
-                    const selectedOption = select.options[select.selectedIndex];
-                    const row = select.closest('tr');
+                const select = e.target;
+                const selectedOption = select.options[select.selectedIndex];
+                const row = select.closest('tr');
+                
+                if (selectedOption && selectedOption.value) {
+                    // 自动填充联系电话
+                    const phoneInput = row.querySelector('input[name*="[contact_phone]"]');
+                    if (phoneInput && selectedOption.getAttribute('data-contact-phone')) {
+                        phoneInput.value = selectedOption.getAttribute('data-contact-phone');
+                    }
                     
-                    if (selectedOption && selectedOption.value) {
-                        // 自动填充联系电话
-                        const phoneInput = row.querySelector('input[name*="[contact_phone]"]');
-                        if (phoneInput && selectedOption.getAttribute('data-contact-phone')) {
-                            phoneInput.value = selectedOption.getAttribute('data-contact-phone');
-                        }
-                        
-                        // 自动填充联系邮箱
-                        const emailInput = row.querySelector('input[name*="[contact_email]"]');
-                        if (emailInput && selectedOption.getAttribute('data-contact-email')) {
-                            emailInput.value = selectedOption.getAttribute('data-contact-email');
-                        }
-                        
-                        // 自动填充办公地址
-                        const addressInput = row.querySelector('input[name*="[address]"]');
-                        if (addressInput && selectedOption.getAttribute('data-contact-address')) {
-                            addressInput.value = selectedOption.getAttribute('data-contact-address');
-                        }
+                    // 自动填充联系邮箱
+                    const emailInput = row.querySelector('input[name*="[contact_email]"]');
+                    if (emailInput && selectedOption.getAttribute('data-contact-email')) {
+                        emailInput.value = selectedOption.getAttribute('data-contact-email');
+                    }
+                    
+                    // 自动填充办公地址
+                    const addressInput = row.querySelector('input[name*="[address]"]');
+                    if (addressInput && selectedOption.getAttribute('data-contact-address')) {
+                        addressInput.value = selectedOption.getAttribute('data-contact-address');
                     }
                 }
             });
+            
+            // 调用attachClientContactListener
+            attachClientContactListener();
+        }
+        
+        // 等待DOM加载完成
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPartiesTable);
+        } else {
+            initPartiesTable();
+        }
     })();
-// ========== 服务信息表格管理（使用DynamicTableManager） ==========
-        (function() {
-            function initServiceContentsTable() {
-                // 检查DynamicTableManager是否已加载
-                if (typeof DynamicTableManager === 'undefined') {
-                    console.error('DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
-                    return;
-                }
+
+    // ========== 服务信息表格管理（使用DynamicTableManager） ==========
+    console.log('🔵 开始加载服务信息表格管理代码...');
+    (function() {
+        console.log('🔵 服务信息表格管理 IIFE 开始执行');
+        function initServiceContentsTable() {
+            console.log('🔵 initServiceContentsTable 函数开始执行');
+            
+            // 检查DynamicTableManager是否已加载
+            if (typeof DynamicTableManager === 'undefined') {
+                console.error('❌ DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
+                alert('DynamicTableManager 未加载，请检查 dynamic-table.js 文件');
+                return;
+            }
+            console.log('✅ DynamicTableManager 已加载');
+            
+            // 检查容器是否存在
+            const container = document.getElementById('service-contents-container');
+            if (!container) {
+                console.error('❌ 服务信息容器 service-contents-container 未找到');
+                alert('服务信息容器未找到');
+                return;
+            }
+            console.log('✅ 服务信息容器已找到:', container);
+            
+            // 检查按钮是否存在
+            const addButton = document.getElementById('add-service-content-btn');
+            if (!addButton) {
+                console.error('❌ 添加按钮 add-service-content-btn 未找到');
+                alert('添加按钮未找到');
+                return;
+            }
+            console.log('✅ 添加按钮已找到:', addButton);
     
-                // 服务信息数据（从后端传入）
-                const serviceTypesData = [
+            // 服务信息数据（从后端传入）
+            const serviceTypesData = [
                     {% for st in service_types %}
                     { id: {{ st.id }}, name: "{{ st.name|escapejs }}" }{% if not forloop.last %},{% endif %}
                     {% empty %}
@@ -1803,29 +1847,30 @@
                     {% endfor %}
                 ];
                 
-                const designStagesData = [
-                    {% for ds in design_stages %}
-                    { id: {{ ds.id }}, name: "{{ ds.name|escapejs }}" }{% if not forloop.last %},{% endif %}
-                    {% empty %}
-                    // 无图纸阶段数据
-                    {% endfor %}
-                ];
+            const designStagesData = [
+                {% for ds in design_stages %}
+                { id: {{ ds.id }}, name: "{{ ds.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+                {% empty %}
+                // 无图纸阶段数据
+                {% endfor %}
+            ];
                 
-                const businessTypesData = [
-                    {% for bt in business_types %}
-                    { id: {{ bt.id }}, name: "{{ bt.name|escapejs }}" }{% if not forloop.last %},{% endif %}
-                    {% empty %}
-                    // 无项目业态数据
-                    {% endfor %}
-                ];
+            const businessTypesData = [
+                {% for bt in business_types %}
+                { id: {{ bt.id }}, name: "{{ bt.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+                {% empty %}
+                // 无项目业态数据
+                {% endfor %}
+            ];
                 
-                const serviceProfessionsData = [
-                    {% for sp in service_professions %}
-                    { id: {{ sp.id }}, name: "{{ sp.name|escapejs }}", service_type_id: {{ sp.service_type_id|default:"null" }} }{% if not forloop.last %},{% endif %}
-                    {% empty %}
-                    // 无服务专业数据
-                    {% endfor %}
-                ];
+            const serviceProfessionsData = [
+                {% for sp in service_professions %}
+                { id: {{ sp.id }}, name: "{{ sp.name|escapejs }}", service_type_id: {{ sp.service_type_id|default:"null" }} }{% if not forloop.last %},{% endif %}
+                {% empty %}
+                // 无服务专业数据
+                {% endfor %}
+            ];
+                
             // 填充下拉选项的函数
             function populateSelectOptions(row, serviceTypeId, designStageId, businessTypeId, professionIds) {
                 if (!row) return;
@@ -1885,6 +1930,7 @@
                         // 如果指定了服务类型，只显示匹配的专业
                         if (selectedServiceTypeId && sp.service_type_id && String(sp.service_type_id) !== String(selectedServiceTypeId)) {
                             return;
+                        }
                         const option = document.createElement('option');
                         option.value = sp.id;
                         option.textContent = sp.name;
@@ -1914,15 +1960,8 @@
                     });
                 }
             }
-            // 等待DOM加载完成
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initServiceContentsTable);
-            } else {
-                initServiceContentsTable();
-            }
-    
-    
-// 行模板函数
+                
+            // 行模板函数
             function serviceContentRowTemplate(index, data) {
                 const service = data || {};
                 const serviceTypeId = service.service_type_id || service.service_type || '';
@@ -1967,56 +2006,85 @@
                 `;
             }
 
+            // 再次确认按钮存在（在创建DynamicTableManager之前）
+            const addButtonCheck = document.getElementById('add-service-content-btn');
+            if (!addButtonCheck) {
+                console.error('创建DynamicTableManager前检查：添加按钮 add-service-content-btn 未找到');
+                return;
+            }
+            console.log('按钮已找到，准备创建DynamicTableManager');
+            
             // 初始化DynamicTableManager
             const serviceContentsTableManager = new DynamicTableManager({
-                containerId: 'service-contents-container',
-                rowClass: 'service-content-row',
-                addButtonId: 'add-service-content-btn',
-                removeButtonClass: 'remove-service-content-btn',
-                minRows: 1,
-                rowTemplate: serviceContentRowTemplate,
-                autoUpdateNumbers: true,
-                numberCellSelector: 'td:first-child',
-                onAdd: function(row, index) {
-                    // 添加行后填充下拉选项
-                    populateSelectOptions(row, null, null, null, []);
-                    console.log('添加了服务信息行，索引:', index);
-                },
-                onRemove: function(row, index) {
-                    // 删除行前的回调
-                    console.log('删除了服务信息行，索引:', index);
-                    return true; // 返回true允许删除
-                }
-            });
-
-            // 监听联系人选择变化，自动填充联系方式
-            document.addEventListener('change', function(e) {
-                    const select = e.target;
-                    const selectedOption = select.options[select.selectedIndex];
-                    const row = select.closest('tr');
-                    
-                    if (selectedOption && selectedOption.value) {
-                        // 自动填充联系电话
-                        const phoneInput = row.querySelector('input[name*="[contact_phone]"]');
-                        if (phoneInput && selectedOption.getAttribute('data-contact-phone')) {
-                            phoneInput.value = selectedOption.getAttribute('data-contact-phone');
-                        }
-                        
-                        // 自动填充联系邮箱
-                        const emailInput = row.querySelector('input[name*="[contact_email]"]');
-                        if (emailInput && selectedOption.getAttribute('data-contact-email')) {
-                            emailInput.value = selectedOption.getAttribute('data-contact-email');
-                        }
-                        
-                        // 自动填充办公地址
-                        const addressInput = row.querySelector('input[name*="[address]"]');
-                        if (addressInput && selectedOption.getAttribute('data-contact-address')) {
-                            addressInput.value = selectedOption.getAttribute('data-contact-address');
-                        }
+                    containerId: 'service-contents-container',
+                    rowClass: 'service-content-row',
+                    addButtonId: 'add-service-content-btn',
+                    removeButtonClass: 'remove-service-content-btn',
+                    minRows: 1,
+                    rowTemplate: serviceContentRowTemplate,
+                    autoUpdateNumbers: true,
+                    numberCellSelector: 'td:first-child',
+                    onAdd: function(row, index) {
+                        // 添加行后填充下拉选项
+                        populateSelectOptions(row, null, null, null, []);
+                        console.log('添加了服务信息行，索引:', index);
+                    },
+                    onRemove: function(row, index) {
+                        // 删除行前的回调
+                        console.log('删除了服务信息行，索引:', index);
+                        return true; // 返回true允许删除
                     }
-                }
             });
-
+            
+            // 导出到全局作用域，方便调试
+            window.serviceContentsTableManager = serviceContentsTableManager;
+            console.log('serviceContentsTableManager已导出到全局');
+            
+            // 验证按钮是否已绑定事件 - 使用多种方式确保事件能够触发
+            // 方式1: 直接在按钮上添加onclick属性（最简单直接）
+            const addButtonDirect = document.getElementById('add-service-content-btn');
+            if (addButtonDirect) {
+                console.log('🔵 找到按钮，准备绑定事件');
+                console.log('🔵 按钮HTML:', addButtonDirect.outerHTML);
+                
+                // 直接设置onclick属性（这种方式最可靠）
+                addButtonDirect.onclick = function(e) {
+                    console.log('✅✅✅ 按钮onclick事件触发 ✅✅✅');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (window.serviceContentsTableManager) {
+                        console.log('🔵 调用 serviceContentsTableManager.addRow()');
+                        try {
+                            const newRow = window.serviceContentsTableManager.addRow();
+                            if (newRow) {
+                                console.log('✅✅✅ 添加行成功！');
+                            } else {
+                                console.error('❌ 添加行失败，返回null');
+                                alert('添加行失败');
+                            }
+                        } catch (error) {
+                            console.error('❌ 调用addRow时出错:', error);
+                            alert('错误: ' + error.message);
+                        }
+                    } else {
+                        console.error('❌ serviceContentsTableManager未找到');
+                        alert('表格管理器未找到');
+                    }
+                    return false;
+                };
+                console.log('✅ 已设置按钮onclick属性');
+                
+                // 方式2: 也添加addEventListener作为备用
+                addButtonDirect.addEventListener('click', function(e) {
+                    console.log('✅✅✅ 按钮addEventListener事件触发 ✅✅✅');
+                    // 这里不阻止默认行为，让onclick先执行
+                });
+                console.log('✅ 已添加addEventListener事件监听器');
+            } else {
+                console.error('❌ 按钮 add-service-content-btn 未找到');
+            }
+            
             // 加载现有数据（编辑模式）
             {% if form.instance and form.instance.pk %}
                 const existingServiceContents = [
@@ -2026,13 +2094,17 @@
                         design_stage_id: {{ service.design_stage_id|default:"null" }},
                         business_type_id: {{ service.business_type_id|default:"null" }},
                         building_area: {{ service.building_area|default:"0" }},
-                        service_profession_ids: [{% for sp in service.service_professions.all %}{{ sp.id }}{% if not forloop.last %}, {% endif %}{% empty %}{% endfor %}]
+                        service_profession_ids: [
+                            {% for sp in service.service_professions.all %}
+                            {{ sp.id }}{% if not forloop.last %},{% endif %}
+                            {% empty %}
+                            {% endfor %}
+                        ]
                     }{% if not forloop.last %},{% endif %}
                     {% endfor %}
                 ];
 
                 // 清空容器（如果有默认行）
-                const container = document.getElementById('service-contents-container');
                 if (container) {
                     container.innerHTML = '';
                 }
@@ -2066,63 +2138,34 @@
                     populateSelectOptions(defaultRow, null, null, null, []);
                 }
             {% endif %}
+            
+            console.log('✅ 服务信息表格初始化完成');
         }
-    })();
-
-    // ========== 回款信息表格管理（使用DynamicTableManager） ==========
-    (function() {
-            initPaymentInfoTable();
-        }
-
-            // 加载现有数据（编辑模式）
-            {% if form.instance and form.instance.pk %}
-                const existingPaymentPlans = [
-                    {% for plan in form.instance.payment_plans.all %}
-                    {
-                        phase_name: '{{ plan.phase_name|escapejs }}',
-                        trigger_condition: '{{ plan.trigger_condition|escapejs }}',
-                        payment_method: '{{ plan.payment_method|escapejs }}',
-                        planned_amount: '{{ plan.planned_amount|default:"" }}',
-                        condition_detail: '{{ plan.condition_detail|escapejs }}'
-                    }{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ];
-
-                // 清空容器（如果有默认行）
-                const container = document.getElementById('payment-info-container');
-                if (container) {
-                    container.innerHTML = '';
-                }
-
-                // 添加现有数据行
-                existingPaymentPlans.forEach(function(paymentData) {
-                    paymentInfoTableManager.addRow(paymentData);
-                });
-                // 如果没有现有数据，至少添加一行空行
-                if (existingPaymentPlans.length === 0) {
-                    paymentInfoTableManager.addRow();
-                }
-                // 更新索引计数器
-                paymentInfoTableManager.updateIndexCounter();
-            {% else %}
-                // 创建模式：添加一行默认空行
-                paymentInfoTableManager.addRow();
-            {% endif %}
-        }
+        
         // 等待DOM加载完成
+        console.log('🔵 当前 document.readyState:', document.readyState);
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initPaymentInfoTable);
+            console.log('🔵 等待 DOMContentLoaded 事件...');
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('🔵 DOMContentLoaded 事件触发，开始初始化');
+                initServiceContentsTable();
+            });
         } else {
-
+            console.log('🔵 DOM 已加载，立即初始化');
+            initServiceContentsTable();
+        }
     })();
+    console.log('🔵 服务信息表格管理 IIFE 执行完成');
 
     // 页面加载完成后测试函数是否可用
     (function() {
         function testContactFunctions() {
-            console.log('
+            console.log('测试联系人函数');
             
             // 尝试查找联系人下拉框
-            const contactSelects = document.querySelectorAll('
+            const contactSelects = document.querySelectorAll('select[name*="[party_contact]"]');
+            console.log('找到联系人下拉框数量:', contactSelects.length);
+        }
         
         // 在DOM加载完成后执行测试
         if (document.readyState === 'loading') {
@@ -2132,6 +2175,10 @@
         } else {
             setTimeout(testContactFunctions, 1000);
         }
+    })();
+
+    // ========== 回款信息表格管理（使用DynamicTableManager） ==========
+    (function() {
         function initPaymentInfoTable() {
             // 检查DynamicTableManager是否已加载
             if (typeof DynamicTableManager === 'undefined') {
@@ -2194,33 +2241,51 @@
                 }
             });
 
-            // 监听联系人选择变化，自动填充联系方式
-            document.addEventListener('change', function(e) {
-                    const select = e.target;
-                    const selectedOption = select.options[select.selectedIndex];
-                    const row = select.closest('tr');
-                    
-                    if (selectedOption && selectedOption.value) {
-                        // 自动填充联系电话
-                        const phoneInput = row.querySelector('input[name*="[contact_phone]"]');
-                        if (phoneInput && selectedOption.getAttribute('data-contact-phone')) {
-                            phoneInput.value = selectedOption.getAttribute('data-contact-phone');
-                        }
-                        
-                        // 自动填充联系邮箱
-                        const emailInput = row.querySelector('input[name*="[contact_email]"]');
-                        if (emailInput && selectedOption.getAttribute('data-contact-email')) {
-                            emailInput.value = selectedOption.getAttribute('data-contact-email');
-                        }
-                        
-                        // 自动填充办公地址
-                        const addressInput = row.querySelector('input[name*="[address]"]');
-                        if (addressInput && selectedOption.getAttribute('data-contact-address')) {
-                            addressInput.value = selectedOption.getAttribute('data-contact-address');
-                        }
-                    }
+            // 加载现有数据（编辑模式）
+            {% if form.instance and form.instance.pk %}
+                const existingPaymentPlans = [
+                    {% for plan in form.instance.payment_plans.all %}
+                    {
+                        phase_name: '{{ plan.phase_name|escapejs }}',
+                        trigger_condition: '{{ plan.trigger_condition|escapejs }}',
+                        payment_method: '{{ plan.payment_method|escapejs }}',
+                        planned_amount: '{{ plan.planned_amount|default:"" }}',
+                        condition_detail: '{{ plan.condition_detail|escapejs }}'
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ];
+
+                // 清空容器（如果有默认行）
+                const paymentContainer = document.getElementById('payment-info-container');
+                if (paymentContainer) {
+                    paymentContainer.innerHTML = '';
                 }
-            });
+
+                // 添加现有数据行
+                existingPaymentPlans.forEach(function(paymentData) {
+                    paymentInfoTableManager.addRow(paymentData);
+                });
+                // 如果没有现有数据，至少添加一行空行
+                if (existingPaymentPlans.length === 0) {
+                    paymentInfoTableManager.addRow();
+                }
+                // 更新索引计数器
+                paymentInfoTableManager.updateIndexCounter();
+            {% else %}
+                // 创建模式：添加一行默认空行
+                paymentInfoTableManager.addRow();
+            {% endif %}
+            
+            // 导出到全局作用域
+            window.paymentInfoTableManager = paymentInfoTableManager;
+        }
+        
+        // 等待DOM加载完成
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPaymentInfoTable);
+        } else {
+            initPaymentInfoTable();
+        }
     })();
 
 </script>
