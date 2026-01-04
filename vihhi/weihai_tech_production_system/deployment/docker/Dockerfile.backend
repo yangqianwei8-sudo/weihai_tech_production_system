@@ -6,7 +6,23 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-dev \
+    wget \
+    tar \
     && rm -rf /var/lib/apt/lists/*
+
+# 安装ODA File Converter
+# 注意：需要先将ODA File Converter安装包放在 deployment/docker/oda/ 目录下
+# 下载地址：https://www.opendesign.com/guestfiles
+# 版本要求：Linux x64 版本，推荐使用最新稳定版本
+COPY deployment/docker/oda/ODAFileConverter_*.tar.gz /tmp/oda.tar.gz
+RUN mkdir -p /opt/ODAFileConverter && \
+    tar -xzf /tmp/oda.tar.gz -C /opt/ODAFileConverter --strip-components=1 && \
+    chmod +x /opt/ODAFileConverter/bin/DWGConvert && \
+    ln -s /opt/ODAFileConverter/bin/DWGConvert /usr/local/bin/DWGConvert && \
+    rm -f /tmp/oda.tar.gz
+
+# 验证安装
+RUN DWGConvert --version || echo "ODA File Converter安装失败"
 
 # 复制依赖文件并安装
 COPY requirements.txt .
