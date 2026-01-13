@@ -35,3 +35,11 @@ LOGGING = {
         "level": "WARNING",  # 测试环境减少日志输出
     },
 }
+
+# 测试数据库配置：使用 SQLite 内存数据库（最快，无需清理）
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    }
+}
