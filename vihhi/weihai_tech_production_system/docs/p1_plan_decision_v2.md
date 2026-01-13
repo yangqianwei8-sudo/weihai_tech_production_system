@@ -146,6 +146,8 @@ curl -b /tmp/c.txt \
 
 **P1 v2 已启用 PlanDecision 裁决机制，以下旧接口已退役，统一返回 `410 Gone`：**
 
+> **证据文档：** 完整的 HTTP 410 响应证据已保存在 `docs/evidence/p1_legacy_410_proof.md`
+
 #### 8.1 PlanViewSet 退役接口
 
 - `POST /api/plan/plans/{id}/change-status/` - 手动状态变更
