@@ -66,6 +66,7 @@ urlpatterns = [
     path('api/delivery/', include(('backend.apps.delivery_customer.urls_api', 'delivery'), namespace='delivery_api')),
     path('api/settlement/', include(('backend.apps.settlement_center.urls', 'settlement'), namespace='settlement')),  # 结算中心API
     path('api/archive/', include(('backend.apps.archive_management.urls_api', 'archive'), namespace='archive_api')),
+    path('api/plan/', include(('backend.apps.plan_management.urls', 'plan'), namespace='plan')),  # 计划管理API
     
     # 页面路由
     path('production/', include(('backend.apps.production_management.urls', 'production'), namespace='production_pages')),  # 生产管理页面

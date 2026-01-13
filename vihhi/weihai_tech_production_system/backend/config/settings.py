@@ -13,6 +13,9 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 # Default allowed hosts includes Sealos deployment domain
 DEFAULT_ALLOWED_HOSTS = 'localhost,127.0.0.1,tivpdkrxyioz.sealosbja.site'
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', DEFAULT_ALLOWED_HOSTS).split(',') if h.strip()]
+# 开发环境：允许本地和测试客户端
+if DEBUG:
+    ALLOWED_HOSTS += ["127.0.0.1", "localhost", "testserver"]
 
 # CSRF trusted origins (must include scheme)
 # Default includes common Sealos deployment domains

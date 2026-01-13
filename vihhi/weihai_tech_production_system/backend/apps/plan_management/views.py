@@ -15,7 +15,15 @@ from datetime import timedelta
 from django.db.models import Q
 from backend.apps.plan_management.models import Plan, StrategicGoal, PlanStatusLog, PlanProgressRecord 
 from .serializers import PlanSerializer, StrategicGoalSerializer
-from backend.core.audit import AuditMixin
+# Optional dependency: AuditMixin (if available)
+try:
+    from backend.core.audit import AuditMixin
+except ImportError:
+    # 可选依赖：如果 audit 模块不存在，使用占位符
+    # 实际审计功能已通过 compat.py 中的 safe_audit_log() 实现
+    class AuditMixin:
+        """占位符：AuditMixin 功能已迁移到 compat.py 中的 safe_audit_log"""
+        pass
 from .compat import safe_audit_log, get_audit_action, legacy_api_gone
 from .services import recalc_plan_status
 from .services.plan_decisions import request_start, request_cancel, PlanDecisionError
