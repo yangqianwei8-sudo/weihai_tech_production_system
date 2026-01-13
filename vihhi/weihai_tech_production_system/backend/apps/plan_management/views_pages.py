@@ -13,7 +13,31 @@ from django.views.decorators.http import require_http_methods
 from decimal import Decimal, InvalidOperation
 from backend.apps.system_management.services import get_user_permission_codes
 from backend.apps.system_management.models import User, Department
-from backend.core.views import _permission_granted, _build_full_top_nav, _build_unified_sidebar_nav
+
+# P1: 兼容导入，避免 core.views 变更导致 plan_management 无法启动
+try:
+    from backend.core.views import _permission_granted, _build_full_top_nav, _build_unified_sidebar_nav
+except ImportError:
+    # Fallback: 如果 _build_unified_sidebar_nav 不存在，提供简单实现
+    from backend.core.views import _permission_granted, _build_full_top_nav
+    
+    def _build_unified_sidebar_nav(menu_structure, permission_set, active_id=None):
+        """Fallback: 简单的侧边栏菜单构建函数"""
+        nav = []
+        for item in menu_structure:
+            if item.get('permission'):
+                if not _permission_granted(item['permission'], permission_set):
+                    continue
+            nav_item = {
+                'label': item.get('label', ''),
+                'icon': item.get('icon', ''),
+                'url': item.get('url', '#'),
+                'active': item.get('id') == active_id if active_id else False,
+            }
+            if 'children' in item:
+                nav_item['children'] = _build_unified_sidebar_nav(item['children'], permission_set, active_id)
+            nav.append(nav_item)
+        return nav
 from .models import (
     StrategicGoal, GoalProgressRecord, GoalAdjustment, GoalStatusLog,
     Plan, PlanProgressRecord, PlanIssue, PlanStatusLog, PlanDecision

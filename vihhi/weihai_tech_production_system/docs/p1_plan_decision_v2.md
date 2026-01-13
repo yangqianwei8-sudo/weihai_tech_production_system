@@ -142,8 +142,52 @@ curl -b /tmp/c.txt \
 - ❌ **禁止在 `in_progress` 状态下发起 `start_request`**
 - ❌ **禁止在非 `in_progress` 状态下发起 `cancel_request`**
 
+### 8. Legacy Endpoints (Deprecated, returns 410 Gone)
+
+**P1 v2 已启用 PlanDecision 裁决机制，以下旧接口已退役，统一返回 `410 Gone`：**
+
+#### 8.1 PlanViewSet 退役接口
+
+- `POST /api/plan/plans/{id}/change-status/` - 手动状态变更
+- `POST /api/plan/plans/{id}/submit-approval/` - 提交审批
+- `POST /api/plan/plans/{id}/approve/` - 审批通过
+- `POST /api/plan/plans/{id}/reject/` - 审批驳回
+- `POST /api/plan/plans/{id}/cancel-approval/` - 取消审批
+
+#### 8.2 StrategicGoalViewSet 退役接口
+
+- `POST /api/plan/goals/{id}/submit-approval/` - 提交审批
+- `POST /api/plan/goals/{id}/approve/` - 审批通过
+- `POST /api/plan/goals/{id}/reject/` - 审批驳回
+- `POST /api/plan/goals/{id}/cancel-approval/` - 取消审批
+
+#### 8.3 响应格式
+
+**HTTP 状态码：** `410 Gone`
+
+**响应体：**
+```json
+{
+    "success": false,
+    "code": "LEGACY_ENDPOINT_GONE",
+    "message": "P1 v2 已启用 PlanDecision 裁决机制，旧审批/手动状态变更接口已退役。请使用 /start-request/ /cancel-request/ 与 /plan-decisions/{id}/decide/。"
+}
+```
+
+#### 8.4 迁移指南
+
+**旧接口 → 新接口映射：**
+
+| 旧接口 | 新接口 |
+|--------|--------|
+| `POST /plans/{id}/submit-approval/` | `POST /plans/{id}/start-request/` + `POST /plan-decisions/{id}/decide/` |
+| `POST /plans/{id}/approve/` | `POST /plan-decisions/{id}/decide/` (approve=true) |
+| `POST /plans/{id}/reject/` | `POST /plan-decisions/{id}/decide/` (approve=false) |
+| `POST /plans/{id}/cancel-approval/` | `POST /plans/{id}/cancel-request/` + `POST /plan-decisions/{id}/decide/` |
+| `POST /plans/{id}/change-status/` | 使用 `start-request` / `cancel-request` + `decide` |
+
 ---
 
-**最后更新：** 2026-01-12  
+**最后更新：** 2026-01-13  
 **版本：** P1 v2
 

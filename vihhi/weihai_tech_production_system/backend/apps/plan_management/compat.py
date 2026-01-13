@@ -66,3 +66,26 @@ def has_approval_notification() -> bool:
 def get_approval_notification_model():
     """获取 ApprovalNotification 模型类，如果不存在返回 None"""
     return _ApprovalNotification
+
+
+# ---- Legacy Endpoint Retirement (P1 v2) ----
+from rest_framework.response import Response
+from rest_framework import status as drf_status
+from django.http import HttpResponseGone
+
+LEGACY_GONE_PAYLOAD = {
+    "success": False,
+    "code": "LEGACY_ENDPOINT_GONE",
+    "message": (
+        "P1 v2 已启用 PlanDecision 裁决机制，旧审批/手动状态变更接口已退役。"
+        "请使用 /start-request/ /cancel-request/ 与 /plan-decisions/{id}/decide/。"
+    ),
+}
+
+def legacy_api_gone():
+    """返回 410 Gone 响应，用于退役的 API 接口"""
+    return Response(LEGACY_GONE_PAYLOAD, status=drf_status.HTTP_410_GONE)
+
+def legacy_page_gone():
+    """返回 410 Gone 响应，用于退役的页面接口"""
+    return HttpResponseGone(LEGACY_GONE_PAYLOAD["message"])

@@ -16,7 +16,7 @@ from django.db.models import Q
 from backend.apps.plan_management.models import Plan, StrategicGoal, PlanStatusLog, PlanProgressRecord 
 from .serializers import PlanSerializer, StrategicGoalSerializer
 from backend.core.audit import AuditMixin
-from .compat import safe_audit_log, get_audit_action
+from .compat import safe_audit_log, get_audit_action, legacy_api_gone
 from .services import recalc_plan_status
 from .services.plan_decisions import request_start, request_cancel, PlanDecisionError
 from .adjudicator import adjudicate_plan_status
@@ -287,17 +287,15 @@ class StrategicGoalViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='submit-approval')
     def submit_approval(self, request, pk=None):
         """
-        B3-2: 提交审批
+        P1 v2: 接口已废弃
         
-        POST /api/plan/goals/{id}/submit-approval/
-        Body: {
-            "comment": "申请说明（可选）"
-        }
-        
-        状态流转：draft → pending_approval
+        提交审批的功能已废弃，请使用 PlanDecision 裁决机制。
         """
-        # B2-1: 统一检查 change 权限
-        self._require_change_perm(request, "plan_management.change_strategicgoal")
+        return legacy_api_gone()
+        
+        # 以下代码已废弃，保留用于参考
+        # # B2-1: 统一检查 change 权限
+        # self._require_change_perm(request, "plan_management.change_strategicgoal")
         
         # B2-2: 使用 get_object() 确保只能操作本公司数据
         goal = self.get_object()
@@ -395,17 +393,15 @@ class StrategicGoalViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='approve')
     def approve(self, request, pk=None):
         """
-        B3-2: 审批通过
+        P1 v2: 接口已废弃
         
-        POST /api/plan/goals/{id}/approve/
-        Body: {
-            "comment": "审批意见（可选）"
-        }
-        
-        状态流转：pending_approval → published
+        审批通过的功能已废弃，请使用 PlanDecision 裁决机制。
         """
-        # B3-3: 检查审批权限
-        self._require_approve_perm(request, "plan_management.approve_strategicgoal")
+        return legacy_api_gone()
+        
+        # 以下代码已废弃，保留用于参考
+        # # B3-3: 检查审批权限
+        # self._require_approve_perm(request, "plan_management.approve_strategicgoal")
         
         # B2-2: 使用 get_object() 确保只能操作本公司数据
         goal = self.get_object()
@@ -499,17 +495,15 @@ class StrategicGoalViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='reject')
     def reject(self, request, pk=None):
         """
-        B3-2: 审批驳回
+        P1 v2: 接口已废弃
         
-        POST /api/plan/goals/{id}/reject/
-        Body: {
-            "reason": "驳回原因（可选）"
-        }
-        
-        状态流转：pending_approval → draft
+        审批驳回的功能已废弃，请使用 PlanDecision 裁决机制。
         """
-        # B3-3: 检查审批权限
-        self._require_approve_perm(request, "plan_management.approve_strategicgoal")
+        return legacy_api_gone()
+        
+        # 以下代码已废弃，保留用于参考
+        # # B3-3: 检查审批权限
+        # self._require_approve_perm(request, "plan_management.approve_strategicgoal")
         
         # B2-2: 使用 get_object() 确保只能操作本公司数据
         goal = self.get_object()
@@ -603,17 +597,15 @@ class StrategicGoalViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='cancel-approval')
     def cancel_approval(self, request, pk=None):
         """
-        B3-2: 取消审批
+        P1 v2: 接口已废弃
         
-        POST /api/plan/goals/{id}/cancel-approval/
-        Body: {
-            "reason": "取消原因（可选）"
-        }
-        
-        状态流转：pending_approval → draft
+        取消审批的功能已废弃，请使用 PlanDecision 裁决机制。
         """
-        # B2-1: 统一检查 change 权限
-        self._require_change_perm(request, "plan_management.change_strategicgoal")
+        return legacy_api_gone()
+        
+        # 以下代码已废弃，保留用于参考
+        # # B2-1: 统一检查 change 权限
+        # self._require_change_perm(request, "plan_management.change_strategicgoal")
         
         # B2-2: 使用 get_object() 确保只能操作本公司数据
         goal = self.get_object()
@@ -1051,11 +1043,7 @@ class PlanViewSet(AuditMixin, viewsets.ModelViewSet):
         - 取消计划：POST /api/plan/plans/{id}/cancel-request/ + POST /api/plan/plan-decisions/{id}/decide/
         - 完成计划：系统自动判定（progress >= 100）
         """
-        # P1 v2: 接口已废弃，返回 410 Gone
-        return Response({
-            "success": False,
-            "message": "接口已废弃：请使用 start-request/cancel-request + plan-decisions decide 进行状态变更"
-        }, status=status.HTTP_410_GONE)
+        return legacy_api_gone()
         
         # 以下代码已废弃，保留用于参考
         # # B2-1: 统一检查 change 权限
@@ -1148,11 +1136,7 @@ class PlanViewSet(AuditMixin, viewsets.ModelViewSet):
         提交审批的功能已废弃，请使用 PlanDecision 裁决机制：
         - 启动计划：POST /api/plan/plans/{id}/start-request/ + POST /api/plan/plan-decisions/{id}/decide/
         """
-        # P1 v2: 接口已废弃，返回 410 Gone
-        return Response({
-            "success": False,
-            "message": "接口已废弃：请使用 start-request + plan-decisions decide 进行启动审批"
-        }, status=status.HTTP_410_GONE)
+        return legacy_api_gone()
         
         # 以下代码已废弃，保留用于参考
         # # B2-1: 统一检查 change 权限
@@ -1261,11 +1245,7 @@ class PlanViewSet(AuditMixin, viewsets.ModelViewSet):
         审批通过的功能已废弃，请使用 PlanDecision 裁决机制：
         - 裁决启动请求：POST /api/plan/plan-decisions/{decision_id}/decide/ (approve=true)
         """
-        # P1 v2: 接口已废弃，返回 410 Gone
-        return Response({
-            "success": False,
-            "message": "接口已废弃：请使用 plan-decisions decide 进行裁决"
-        }, status=status.HTTP_410_GONE)
+        return legacy_api_gone()
         
         # 以下代码已废弃，保留用于参考
         # # B3-3: 检查审批权限
@@ -1378,11 +1358,7 @@ class PlanViewSet(AuditMixin, viewsets.ModelViewSet):
         审批驳回的功能已废弃，请使用 PlanDecision 裁决机制：
         - 裁决启动请求：POST /api/plan/plan-decisions/{decision_id}/decide/ (approve=false)
         """
-        # P1 v2: 接口已废弃，返回 410 Gone
-        return Response({
-            "success": False,
-            "message": "接口已废弃：请使用 plan-decisions decide 进行裁决"
-        }, status=status.HTTP_410_GONE)
+        return legacy_api_gone()
         
         # 以下代码已废弃，保留用于参考
         # # B3-3: 检查审批权限
@@ -1484,11 +1460,7 @@ class PlanViewSet(AuditMixin, viewsets.ModelViewSet):
         取消审批的功能已废弃，请使用 PlanDecision 裁决机制：
         - 取消计划：POST /api/plan/plans/{id}/cancel-request/ + POST /api/plan/plan-decisions/{id}/decide/
         """
-        # P1 v2: 接口已废弃，返回 410 Gone
-        return Response({
-            "success": False,
-            "message": "接口已废弃：请使用 cancel-request + plan-decisions decide 进行取消审批"
-        }, status=status.HTTP_410_GONE)
+        return legacy_api_gone()
         
         # 以下代码已废弃，保留用于参考
         # # B2-1: 统一检查 change 权限
