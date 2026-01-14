@@ -66,7 +66,7 @@
 
 {% block content %}
 <div class="list-page-container">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="list-page-header d-flex justify-content-between align-items-center">
         <div>
             <h4 class="mb-0">🚚 快递公司列表</h4>
@@ -81,7 +81,6 @@
         {% endif %}
     </div>
 
-    <!-- 搜索和筛选栏 -->
     <div class="list-page-filters mb-2">
         <form method="get" class="d-flex gap-2 align-items-end">
             <div class="flex-grow-1">
@@ -109,7 +108,6 @@
         </form>
     </div>
 
-    <!-- 数据表格 -->
     <div class="list-page-table">
         <div class="table-responsive">
             <table class="table table-hover table-bordered">
@@ -204,7 +202,6 @@
         </div>
     </div>
 
-    <!-- 分页 -->
     {% if companies.has_other_pages %}
     <nav aria-label="分页导航">
         <ul class="pagination justify-content-center mb-0">
@@ -242,4 +239,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

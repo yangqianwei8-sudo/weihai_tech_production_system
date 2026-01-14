@@ -99,14 +99,16 @@ if settings.DEBUG:
     # 开发环境：Django 开发服务器提供静态文件
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     
-    # 前端构建文件的静态资源路径（/js/, /css/, /img/等）
-    from django.views.static import serve
-    import os
-    frontend_dist = os.path.join(settings.BASE_DIR.parent, 'frontend', 'dist')
-    if os.path.exists(frontend_dist):
-        urlpatterns += [
-            path('js/<path:path>', serve, {'document_root': os.path.join(frontend_dist, 'js')}),
-            path('css/<path:path>', serve, {'document_root': os.path.join(frontend_dist, 'css')}),
-            path('img/<path:path>', serve, {'document_root': os.path.join(frontend_dist, 'img')}),
-            path('favicon.ico', serve, {'document_root': frontend_dist, 'path': 'favicon.ico'}),
-        ]
+    # P2: 已移除旧版 Vue SPA 静态资源服务
+    # 不再提供 frontend/dist 下的 js/css/img 等静态资源
+    # 旧版前端已彻底移除，所有请求应使用 Django 模板或返回 404
+    # from django.views.static import serve
+    # import os
+    # frontend_dist = os.path.join(settings.BASE_DIR.parent, 'frontend', 'dist')
+    # if os.path.exists(frontend_dist):
+    #     urlpatterns += [
+    #         path('js/<path:path>', serve, {'document_root': os.path.join(frontend_dist, 'js')}),
+    #         path('css/<path:path>', serve, {'document_root': os.path.join(frontend_dist, 'css')}),
+    #         path('img/<path:path>', serve, {'document_root': os.path.join(frontend_dist, 'img')}),
+    #         path('favicon.ico', serve, {'document_root': frontend_dist, 'path': 'favicon.ico'}),
+    #     ]

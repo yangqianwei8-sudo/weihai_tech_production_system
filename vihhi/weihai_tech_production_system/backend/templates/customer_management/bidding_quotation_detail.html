@@ -62,7 +62,7 @@
 
 {% block content %}
 <div class="workspace-content">
-    <!-- 页面标题 -->
+    
     <div class="center-hero mb-4">
         <div style="position: relative; z-index: 1;">
             <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">{{ page_title }}</h1>
@@ -70,7 +70,6 @@
         </div>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <div class="info-section">
             <h6>基本信息</h6>
@@ -252,7 +251,6 @@
         {% endif %}
     </div>
 
-    <!-- 操作按钮 -->
     <div class="d-flex justify-content-between align-items-center mt-4">
         <a href="{% url 'business_pages:opportunity_bidding_quotation' %}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> 返回列表
@@ -265,4 +263,3 @@
     </div>
 </div>
 {% endblock %}
-

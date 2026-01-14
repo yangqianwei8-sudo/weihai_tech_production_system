@@ -579,7 +579,7 @@
 <body>
     <div class="login-wrapper">
         <div class="login-container">
-            <!-- Logo区域 -->
+            
             <div class="logo-section">
                 <div class="logo-icon">
                     <i class="bi bi-building"></i>
@@ -588,7 +588,6 @@
                 <div class="logo-subtitle">信息化管理平台</div>
             </div>
             
-            <!-- 消息提示 -->
             {% if messages %}
             <div class="messages">
                 {% for message in messages %}
@@ -600,7 +599,6 @@
             </div>
             {% endif %}
             
-            <!-- 登录表单 -->
             <form method="post" action="{% url 'login' %}" class="login-form" id="loginForm">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.GET.next|default:'home' }}">
@@ -662,7 +660,6 @@
                 </button>
             </form>
             
-            <!-- 链接区域 -->
             <div class="links-section">
                 <div class="links">
                     <a href="{% url 'home' %}">
@@ -680,7 +677,6 @@
                 </div>
             </div>
             
-            <!-- 页脚 -->
             <div class="footer">
                 <p>© 2025 维海科技 - 诚信创新，专业领先</p>
                 <p style="margin-top: 4px; font-size: 12px; color: var(--vh-text-light);">

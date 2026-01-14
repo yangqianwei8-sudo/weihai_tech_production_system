@@ -12,7 +12,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">{{ page_title }}</h2>
@@ -37,7 +37,6 @@
         </div>
     </div>
 
-    <!-- 审批状态 -->
     {% if approval_instance %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -80,7 +79,6 @@
     </div>
     {% endif %}
 
-    <!-- 基本信息 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -145,7 +143,6 @@
         </div>
     </div>
 
-    <!-- 发票信息 -->
     {% if expense.invoice_file %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -167,4 +164,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

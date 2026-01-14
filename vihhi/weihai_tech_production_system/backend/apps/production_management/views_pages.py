@@ -625,7 +625,6 @@ def build_project_create_context(form_data=None, selected_profession_ids=None):
     selected_service_type_id = form_dict.get('service_type', '') if form_dict else ''
 
     return {
-        'subsidiary_choices': Project.SUBSIDIARY_CHOICES,
         'service_types': service_types,
         'business_types': BusinessType.objects.filter(is_active=True).order_by('order', 'id'),
         'design_stages': Project.DESIGN_STAGES,
@@ -709,7 +708,6 @@ def build_project_edit_context(project, permission_set, form_data=None, user=Non
         service_type_value = project.service_type.id if hasattr(project.service_type, 'id') else ''
     
     initial_values = {
-        'subsidiary': _get_value('subsidiary', project.subsidiary),
         'name': _get_value('name', project.name),
         'alias': _get_value('alias', project.alias or ''),
         'description': _get_value('description', project.description or ''),
@@ -720,7 +718,6 @@ def build_project_edit_context(project, permission_set, form_data=None, user=Non
 
     context = {
         'project': project,
-        'subsidiary_choices': Project.SUBSIDIARY_CHOICES,
         'service_types': service_types,
         'business_types': BusinessType.objects.filter(is_active=True).order_by('order', 'id'),
         'design_stages': Project.DESIGN_STAGES,
@@ -1490,7 +1487,6 @@ def build_project_dashboard_payload(user, permission_set, query_params):
     projects = _filter_projects_for_user(projects, user, permission_set)
 
     project_id = query_params.get('project')
-    subsidiary = query_params.get('subsidiary')
     service_type_id = query_params.get('service_type')
     project_manager_id = query_params.get('project_manager')
     status_list = query_params.getlist('status') if hasattr(query_params, 'getlist') else query_params.get('status', [])
@@ -1499,8 +1495,6 @@ def build_project_dashboard_payload(user, permission_set, query_params):
 
     if project_id:
         projects = projects.filter(id=project_id)
-    if subsidiary:
-        projects = projects.filter(subsidiary=subsidiary)
     if service_type_id:
         projects = projects.filter(service_type_id=service_type_id)
     if project_manager_id:
@@ -1635,7 +1629,6 @@ def build_project_dashboard_payload(user, permission_set, query_params):
     selected_filters = {
         'project': project_id,
         'service_type': service_type_id,
-        'subsidiary': subsidiary,
         'project_manager': project_manager_id,
         'date_from': date_from,
         'date_to': date_to,
@@ -1758,7 +1751,6 @@ def project_create(request):
                 
                 # 处理合同金额（转换为 Decimal 类型）
                 project = Project.objects.create(
-                    subsidiary=request.POST.get('subsidiary', 'sichuan'),
                     project_number=project_number,
                     name=request.POST.get('name') or '未命名项目',
                     alias=request.POST.get('alias', ''),
@@ -1871,7 +1863,6 @@ def project_edit(request, project_id):
                         messages.error(request, '请选择至少一个服务专业')
                         return render(request, 'production_management/project_edit.html', build_project_edit_context(project, permission_set, request.POST, request.user))
 
-                project.subsidiary = request.POST.get('subsidiary', project.subsidiary)
                 project.name = request.POST.get('name') or project.name
                 project.alias = request.POST.get('alias', '')
                 project.description = request.POST.get('description', project.description)
@@ -4176,7 +4167,6 @@ def project_import_admin(request):
         return redirect('admin:index')
 
     if request.GET.get('download') == 'template':
-        subsidiary_sample_label = Project.SUBSIDIARY_CHOICES[0][1] if Project.SUBSIDIARY_CHOICES else ''
         service_type_sample_obj = ServiceType.objects.order_by('id').first()
         design_stage_sample_label = Project.DESIGN_STAGES[0][1] if Project.DESIGN_STAGES else ''
         status_label_map = dict(Project.PROJECT_STATUS)
@@ -4185,7 +4175,6 @@ def project_import_admin(request):
             '项目编号（可留空自动生成）',
             '项目名称',
             '项目别名',
-            '子公司（可填编码或名称）',
             '服务类型（可填编码或名称）',
             '项目业态',
             '图纸阶段（可填编码或名称）',
@@ -4201,7 +4190,6 @@ def project_import_admin(request):
             '',
             '锦城天府综合体一期',
             '天府一期',
-            subsidiary_sample_label,
             service_type_sample_obj.name if service_type_sample_obj else '',
             '住宅',
             design_stage_sample_label,
@@ -4212,7 +4200,6 @@ def project_import_admin(request):
         return response
 
     context = {
-        'allowed_subsidiaries': Project.SUBSIDIARY_CHOICES,
         'service_types': ServiceType.objects.order_by('order', 'id'),
         'design_stages': Project.DESIGN_STAGES,
         'business_types': BusinessType.objects.filter(is_active=True).order_by('order', 'id'),
@@ -4254,7 +4241,6 @@ def project_import_admin(request):
                         'project_number': {'项目编号（可留空自动生成）', '项目编号', 'project_number'},
                         'name': {'项目名称', 'name'},
                         'alias': {'项目别名', 'alias'},
-                        'subsidiary': {'子公司（可填编码或名称）', '子公司编码', 'subsidiary'},
                         'service_type': {'服务类型（可填编码或名称）', '服务类型编码', 'service_type_code'},
                         'business_type': {'项目业态', 'business_type'},
                         'design_stage': {'图纸阶段（可填编码或名称）', '图纸阶段编码', 'design_stage'},
@@ -4264,7 +4250,6 @@ def project_import_admin(request):
                     }
                     required_fields = {
                         'name',
-                        'subsidiary',
                         'service_type',
                         'business_type',
                         'design_stage',
@@ -4299,10 +4284,6 @@ def project_import_admin(request):
                             (bt.name or '').strip(): bt for bt in BusinessType.objects.filter(is_active=True)
                         }
                         status_codes = {code for code, _ in Project.PROJECT_STATUS}
-                        subsidiary_codes = {code for code, _ in Project.SUBSIDIARY_CHOICES}
-                        subsidiary_label_map = {
-                            (label or '').strip(): code for code, label in Project.SUBSIDIARY_CHOICES
-                        }
                         design_stage_codes = {code for code, _ in Project.DESIGN_STAGES}
                         design_stage_label_map = {
                             (label or '').strip(): code for code, label in Project.DESIGN_STAGES
@@ -4321,13 +4302,6 @@ def project_import_admin(request):
                                     project_name = get_value(row, 'name')
                                     if not project_name:
                                         raise ValueError('项目名称不能为空')
-
-                                    subsidiary_raw = get_value(row, 'subsidiary')
-                                    subsidiary = subsidiary_raw
-                                    if subsidiary not in subsidiary_codes:
-                                        subsidiary = subsidiary_label_map.get(subsidiary_raw)
-                                    if not subsidiary:
-                                        raise ValueError(f'子公司取值无效：{subsidiary_raw}')
 
                                     service_type_key = get_value(row, 'service_type')
                                     service_type = service_type_lookup.get(service_type_key)
@@ -4378,7 +4352,6 @@ def project_import_admin(request):
                                         project_number=project_number or None,
                                         name=project_name,
                                         alias=get_value(row, 'alias'),
-                                        subsidiary=subsidiary,
                                         service_type=service_type,
                                         business_type=business_type,
                                         design_stage=design_stage,

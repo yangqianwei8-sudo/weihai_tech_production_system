@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">➕ 新建档案分类</h2>
@@ -23,7 +23,6 @@
         </div>
     </div>
 
-    <!-- 表单卡片 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">分类信息</h5>
@@ -46,7 +45,7 @@
                 {% csrf_token %}
                 
                 <div class="row g-3">
-                    <!-- 分类名称 -->
+                    
                     <div class="col-md-6">
                         <label for="{{ form.name.id_for_label }}" class="form-label">
                             {{ form.name.label }} <span class="text-danger">*</span>
@@ -57,7 +56,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 分类代码 -->
                     <div class="col-md-6">
                         <label for="{{ form.code.id_for_label }}" class="form-label">
                             {{ form.code.label }} <span class="text-danger">*</span>
@@ -69,7 +67,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 分类类型 -->
                     <div class="col-md-6">
                         <label for="{{ form.category_type.id_for_label }}" class="form-label">
                             {{ form.category_type.label }} <span class="text-danger">*</span>
@@ -80,7 +77,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 上级分类 -->
                     <div class="col-md-6">
                         <label for="{{ form.parent.id_for_label }}" class="form-label">
                             {{ form.parent.label }}
@@ -92,7 +88,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 分类描述 -->
                     <div class="col-md-12">
                         <label for="{{ form.description.id_for_label }}" class="form-label">
                             {{ form.description.label }}
@@ -103,7 +98,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 排序 -->
                     <div class="col-md-3">
                         <label for="{{ form.order.id_for_label }}" class="form-label">
                             {{ form.order.label }}
@@ -115,7 +109,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 图标 -->
                     <div class="col-md-3">
                         <label for="{{ form.icon.id_for_label }}" class="form-label">
                             {{ form.icon.label }}
@@ -127,7 +120,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 保管期限 -->
                     <div class="col-md-3">
                         <label for="{{ form.storage_period.id_for_label }}" class="form-label">
                             {{ form.storage_period.label }}
@@ -139,7 +131,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 密级 -->
                     <div class="col-md-3">
                         <label for="{{ form.security_level.id_for_label }}" class="form-label">
                             {{ form.security_level.label }}
@@ -150,7 +141,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 是否启用 -->
                     <div class="col-md-12">
                         <div class="form-check">
                             {{ form.is_active }}
@@ -164,7 +154,6 @@
                     </div>
                 </div>
 
-                <!-- 提交按钮 -->
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="d-flex justify-content-end gap-2">
@@ -181,7 +170,6 @@
         </div>
     </div>
 
-    <!-- 创建说明 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">创建说明</h5>

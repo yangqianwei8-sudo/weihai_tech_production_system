@@ -12,7 +12,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">{{ page_title }}</h2>
@@ -32,7 +32,6 @@
         </div>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -69,7 +68,6 @@
         </div>
     </div>
 
-    <!-- 立案信息 -->
     {% if process.process_type == 'filing' %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -106,7 +104,6 @@
     </div>
     {% endif %}
 
-    <!-- 庭审信息 -->
     {% if process.process_type == 'trial' %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -149,7 +146,6 @@
     </div>
     {% endif %}
 
-    <!-- 判决信息 -->
     {% if process.process_type == 'judgment' %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -180,7 +176,6 @@
     </div>
     {% endif %}
 
-    <!-- 执行信息 -->
     {% if process.process_type == 'execution' %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -223,7 +218,6 @@
     </div>
     {% endif %}
 
-    <!-- 备注信息 -->
     {% if process.notes %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -236,4 +230,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

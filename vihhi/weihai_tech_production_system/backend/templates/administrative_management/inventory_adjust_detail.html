@@ -69,7 +69,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="page-title">{{ page_title }}</h1>
@@ -97,7 +97,6 @@
         </div>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -132,7 +131,6 @@
         </div>
     </div>
 
-    <!-- 调整明细 -->
     {% if items %}
     <div class="info-card">
         <div class="info-card-header">
@@ -175,7 +173,6 @@
     </div>
     {% endif %}
 
-    <!-- 审批信息 -->
     {% if adjust.approver %}
     <div class="info-card">
         <div class="info-card-header">
@@ -196,7 +193,6 @@
     </div>
     {% endif %}
 
-    <!-- 执行信息 -->
     {% if adjust.executed_by %}
     <div class="info-card">
         <div class="info-card-header">
@@ -217,7 +213,6 @@
     </div>
     {% endif %}
 
-    <!-- 备注 -->
     {% if adjust.notes %}
     <div class="info-card">
         <div class="info-card-header">
@@ -230,4 +225,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

@@ -74,7 +74,7 @@
 {% block content %}
 <div class="workspace-content">
     <div class="container-fluid py-4">
-        <!-- 操作按钮 -->
+        
         <div class="d-flex justify-content-end gap-2 mb-3">
             {% if can_edit %}
                 {% if current_step == 1 %}
@@ -86,7 +86,6 @@
             <a href="{% url 'business_pages:customer_visit' %}" class="btn btn-outline-secondary">返回列表</a>
         </div>
 
-        <!-- 步骤指示器 -->
         <div class="step-indicator">
             <div class="step-item {% if current_step >= 1 %}completed{% endif %} {% if current_step == 1 %}active{% endif %}">
                 <div class="step-number">1</div>
@@ -102,7 +101,6 @@
             </div>
         </div>
 
-        <!-- 第一步：创建计划 -->
         <div class="info-card mb-3">
             <div class="info-card-header">
                 <h5 class="info-card-title">
@@ -172,7 +170,6 @@
             </div>
         </div>
 
-        <!-- 第二步：拜访定位打卡 -->
         <div class="info-card mb-3">
             <div class="info-card-header">
                 <h5 class="info-card-title">
@@ -220,7 +217,6 @@
             </div>
         </div>
 
-        <!-- 第四步：拜访结果复盘 -->
         <div class="info-card mb-3">
             <div class="info-card-header">
                 <h5 class="info-card-title">

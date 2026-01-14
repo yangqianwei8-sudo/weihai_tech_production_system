@@ -223,7 +223,6 @@ class Project(models.Model):
     ]
     
     # 基础信息
-    subsidiary = models.CharField(max_length=50, choices=SUBSIDIARY_CHOICES, default='sichuan', verbose_name='子公司')
     project_number = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name='项目编号')
     name = models.CharField(max_length=200, verbose_name='项目名称')
     alias = models.CharField(max_length=200, blank=True, verbose_name='项目别名')

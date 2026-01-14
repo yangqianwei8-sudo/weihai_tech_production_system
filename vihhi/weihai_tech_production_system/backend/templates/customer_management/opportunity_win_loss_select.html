@@ -15,7 +15,7 @@
 {% block content %}
 <div class="workspace-content">
     <div class="list-page-container">
-        <!-- 页面标题区域 -->
+        
         <div class="list-page-header">
             <div>
                 <h2 class="mb-0">
@@ -30,7 +30,6 @@
             </div>
         </div>
 
-        <!-- 筛选栏区域 -->
         <div class="list-page-filters">
             <div class="list-page-filters-header">
                 <h6 class="list-page-filters-title">筛选条件</h6>
@@ -74,7 +73,6 @@
             </form>
         </div>
         
-        <!-- 数据表格区域 -->
         {% if page_obj %}
         <div class="list-page-table-container">
             <div class="list-page-table-wrapper">
@@ -133,7 +131,6 @@
             </div>
         </div>
 
-        <!-- 分页区域 -->
         {% if page_obj.has_other_pages %}
         <div class="list-page-pagination">
             <div class="list-page-pagination-info">
@@ -163,7 +160,7 @@
         </div>
         {% endif %}
         {% else %}
-        <!-- 空状态 -->
+        
         <div class="list-page-empty">
             <div class="list-page-empty-icon">📭</div>
             <p class="list-page-empty-text">暂无可以标记为{{ status_label }}的商机</p>
@@ -173,4 +170,3 @@
     </div>
 </div>
 {% endblock %}
-

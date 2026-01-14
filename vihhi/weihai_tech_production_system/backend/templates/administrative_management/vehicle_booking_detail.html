@@ -69,7 +69,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="page-title">{{ page_title }}</h1>
@@ -105,7 +105,6 @@
         </div>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -136,7 +135,6 @@
         </div>
     </div>
 
-    <!-- 车辆信息 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">车辆信息</h5>
@@ -155,7 +153,6 @@
         </div>
     </div>
 
-    <!-- 用车信息 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">用车信息</h5>
@@ -186,7 +183,6 @@
         </div>
     </div>
 
-    <!-- 费用信息 -->
     {% if booking.status == 'completed' %}
     <div class="info-card">
         <div class="info-card-header">
@@ -239,7 +235,6 @@
     </div>
     {% endif %}
 
-    <!-- 审批信息 -->
     {% if booking.approver %}
     <div class="info-card">
         <div class="info-card-header">
@@ -260,7 +255,6 @@
     </div>
     {% endif %}
 
-    <!-- 备注 -->
     {% if booking.notes %}
     <div class="info-card">
         <div class="info-card-header">
@@ -273,4 +267,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

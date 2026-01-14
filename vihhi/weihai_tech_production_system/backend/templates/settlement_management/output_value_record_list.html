@@ -67,7 +67,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="center-hero mb-4">
         <div style="position: relative; z-index: 1;">
             <h1 class="hero-title">产值管理</h1>
@@ -75,7 +75,6 @@
         </div>
     </div>
 
-    <!-- 顶部导航栏 -->
     <div class="output-value-nav">
         <div class="output-value-nav-tabs">
             <div class="output-value-nav-item">
@@ -97,7 +96,6 @@
         {% endfor %}
     </div>
 
-    <!-- 筛选区域 -->
     <div class="section-block mb-4">
         <form method="get" class="row g-3">
             <div class="col-md-4">
@@ -128,7 +126,6 @@
         </form>
     </div>
 
-    <!-- 产值记录表格 -->
     <div class="record-table">
         <table class="table table-hover">
             <thead>
@@ -180,7 +177,6 @@
         </table>
     </div>
 
-    <!-- 分页 -->
     {% if records.has_other_pages %}
     <nav class="mt-4">
         <ul class="pagination justify-content-center">

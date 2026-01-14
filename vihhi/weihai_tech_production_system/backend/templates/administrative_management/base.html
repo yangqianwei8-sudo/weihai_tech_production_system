@@ -33,20 +33,7 @@
         
         /* 分组菜单标题样式 */
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         /* 分组子菜单容器 */
-        
-        
         
     </style>
     {% block extra_css %}{% endblock %}
@@ -87,9 +74,9 @@
                     <div class="sidenav-section">
                         <div class="sidenav-links">
                                 {% if sidebar_menu %}
-        {# 行政管理布局 - 使用统一样式模板，带左侧菜单 #}
+        
         <div class="workspace workspace-two-column administrative-management-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
@@ -122,7 +109,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main administrative-content">
         {% else %}
         <div class="workspace-content">
@@ -200,4 +186,3 @@
     <script src="{% static 'js/sidebar.js' %}"></script>
 </body>
 </html>
-

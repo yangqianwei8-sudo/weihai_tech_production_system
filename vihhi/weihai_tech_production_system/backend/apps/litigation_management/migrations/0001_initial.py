@@ -11,7 +11,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('project_center', '0001_initial_squashed_0016_projectmeetingrecord_projectdesignreply'),
         ('customer_management', '0001_initial_squashed_0015_remove_client_blacklist_details_remove_client_code_and_more'),
         ('production_management', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -42,7 +41,7 @@ class Migration(migrations.Migration):
                 ('case_manager', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='managed_litigation_cases', to=settings.AUTH_USER_MODEL, verbose_name='案件负责人')),
                 ('client', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='litigation_cases', to='customer_management.client', verbose_name='关联客户')),
                 ('contract', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='litigation_cases', to='production_management.businesscontract', verbose_name='关联合同')),
-                ('project', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='litigation_cases', to='project_center.project', verbose_name='关联项目')),
+                ('project', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='litigation_cases', to='production_management.project', verbose_name='关联项目')),
                 ('registered_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='registered_litigation_cases', to=settings.AUTH_USER_MODEL, verbose_name='登记人')),
                 ('registered_department', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='litigation_cases', to='system_management.department', verbose_name='登记部门')),
             ],

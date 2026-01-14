@@ -30,9 +30,9 @@
             {% endfor %}
         </div>
         {% if production_management_menu %}
-        {# 项目中心布局 - 使用统一样式模板，带左侧菜单 #}
+        
         <div class="workspace workspace-two-column project-center-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
@@ -65,7 +65,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main project-center-content">
         {% else %}
         <div class="workspace-content">
@@ -81,7 +80,6 @@
         {% endif %}
         {% endif %}
 
-        {# 其他项目中心页面使用默认布局 #}
         {% block breadcrumb %}
         <nav aria-label="breadcrumb" class="breadcrumb-nav">
             <ol class="breadcrumb">
@@ -106,4 +104,3 @@
     <script src="{% static 'js/sidebar.js' %}"></script>
 </body>
 </html>
-

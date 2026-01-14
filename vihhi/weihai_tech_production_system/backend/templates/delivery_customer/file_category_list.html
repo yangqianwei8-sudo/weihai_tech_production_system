@@ -58,7 +58,7 @@
 
 {% block content %}
 <div class="list-page-container">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="list-page-header d-flex justify-content-between align-items-center">
         <div>
             <h4 class="mb-0">📂 文件分类维护 - {{ stage_name }}</h4>
@@ -73,7 +73,6 @@
         {% endif %}
     </div>
 
-    <!-- 搜索和筛选栏 -->
     <div class="list-page-filters mb-2">
         <form method="get" class="d-flex gap-2 align-items-end">
             <div class="flex-grow-1">
@@ -101,7 +100,6 @@
         </form>
     </div>
 
-    <!-- 数据表格 -->
     <div class="list-page-table">
         <div class="table-responsive">
             <table class="table table-hover table-bordered">
@@ -171,7 +169,6 @@
         </div>
     </div>
 
-    <!-- 分页 -->
     {% if categories.has_other_pages %}
     <div class="d-flex justify-content-center">
         <nav>
@@ -205,4 +202,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

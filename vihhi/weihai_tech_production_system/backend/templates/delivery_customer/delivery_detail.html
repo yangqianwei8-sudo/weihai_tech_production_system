@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">📋 交付详情</h2>
@@ -40,7 +40,6 @@
         </div>
     </div>
 
-    <!-- 基本信息卡片 -->
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -116,7 +115,6 @@
         </div>
     </div>
 
-    <!-- 关联信息卡片 -->
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
             <h5 class="info-card-title">关联信息</h5>
@@ -155,7 +153,6 @@
         </div>
     </div>
 
-    <!-- 收件人信息卡片 -->
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
             <h5 class="info-card-title">收件人信息</h5>
@@ -196,7 +193,6 @@
         </div>
     </div>
 
-    <!-- 邮件相关信息（仅邮件交付方式） -->
     {% if delivery.delivery_method == 'email' %}
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
@@ -233,7 +229,6 @@
     </div>
     {% endif %}
 
-    <!-- 快递相关信息（仅快递交付方式） -->
     {% if delivery.delivery_method == 'express' %}
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
@@ -269,7 +264,6 @@
     </div>
     {% endif %}
 
-    <!-- 送达相关信息（仅送达交付方式） -->
     {% if delivery.delivery_method == 'hand_delivery' %}
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
@@ -294,7 +288,6 @@
     </div>
     {% endif %}
             
-    <!-- 交付文件卡片 -->
             {% if delivery.files.exists %}
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
@@ -341,7 +334,6 @@
             </div>
             {% endif %}
             
-    <!-- 跟踪记录卡片 -->
             {% if delivery.tracking_records.exists %}
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
@@ -378,7 +370,6 @@
     </div>
     {% endif %}
 
-    <!-- 客户反馈卡片 -->
     {% if delivery.feedbacks.exists %}
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
@@ -407,7 +398,6 @@
     </div>
     {% endif %}
 
-    <!-- 时间线信息 -->
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
             <h5 class="info-card-title">时间线</h5>

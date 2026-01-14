@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">🔍 档案安全审计</h2>
@@ -30,7 +30,6 @@
         </div>
     </div>
 
-    <!-- 统计卡片 -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="info-card info-card-primary">
@@ -94,7 +93,6 @@
         </div>
     </div>
 
-    <!-- 审计规则列表 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">安全审计规则列表</h5>
@@ -103,7 +101,7 @@
             </div>
         </div>
         <div class="info-card-body">
-            <!-- 筛选器 -->
+            
             <form method="get" class="row g-3 mb-3">
                 <div class="col-md-3">
                     <label class="form-label">规则类型</label>
@@ -138,7 +136,6 @@
                 </div>
             </form>
 
-            <!-- 规则列表 -->
             {% if rules %}
             <div class="table-responsive">
                 <table class="table table-hover">
@@ -215,7 +212,6 @@
         </div>
     </div>
 
-    <!-- 最近审计记录 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">最近审计记录</h5>

@@ -1,6 +1,6 @@
 from django import forms
 from backend.apps.settlement_management.models import ProjectSettlement, ContractSettlement
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.production_management.models import BusinessContract
 from backend.apps.settlement_center.models import (
     ServiceFeeSettlementScheme,

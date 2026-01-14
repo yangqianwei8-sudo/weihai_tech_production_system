@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">📦 档案保管统计</h2>
@@ -19,7 +19,6 @@
         </div>
     </div>
 
-    <!-- 总体统计 -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="info-card info-card-primary">
@@ -83,7 +82,6 @@
         </div>
     </div>
 
-    <!-- 档案状态统计 -->
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="info-card">
@@ -182,7 +180,6 @@
         </div>
     </div>
 
-    <!-- 档案分类统计 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">档案分类统计</h5>
@@ -221,7 +218,6 @@
         </div>
     </div>
 
-    <!-- 库房使用统计 -->
     {% if storage_rooms %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -282,7 +278,6 @@
     </div>
     {% endif %}
 
-    <!-- 保管期限统计 -->
     {% if expired_count > 0 or expiring_soon_count > 0 %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -309,7 +304,6 @@
     </div>
     {% endif %}
 
-    <!-- 盘点统计 -->
     {% if inventory_total > 0 %}
     <div class="info-card mb-4">
         <div class="info-card-header">

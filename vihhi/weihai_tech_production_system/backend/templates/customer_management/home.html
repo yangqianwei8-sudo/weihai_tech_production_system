@@ -448,7 +448,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 精简标题区域 -->
+    
     <div class="page-header-compact">
         <div class="page-header-icon">{{ page_icon|default:"👥" }}</div>
         <div class="page-header-content">
@@ -459,7 +459,6 @@
         </div>
     </div>
 
-    <!-- 统计卡片区域（增强版） -->
     {% if summary_cards %}
     <div class="row g-3 mb-4">
         {% for card in summary_cards %}
@@ -534,7 +533,6 @@
     </div>
     {% endif %}
 
-    <!-- 快捷操作区域（置顶显示） -->
     {% for section in sections %}
         {% if section.title == "快速操作" %}
         <div class="section-block mb-4">
@@ -563,10 +561,9 @@
         {% endif %}
     {% endfor %}
 
-    <!-- 两栏布局：主内容区 + 侧边栏 -->
     <div class="home-layout">
         <div class="home-main-content">
-            <!-- 功能模块区域 -->
+            
             {% for section in sections %}
                 {% if section.title != "快速操作" %}
                 <div class="section-block">
@@ -603,7 +600,6 @@
             {% endfor %}
         </div>
 
-        <!-- 侧边栏：最近动态/提醒 -->
         {% if recent_notices %}
         <div class="home-sidebar">
             <div class="section-block">
@@ -628,7 +624,6 @@
         {% endif %}
     </div>
 
-    <!-- 空状态提示 -->
     {% if not summary_cards and not sections %}
     <div class="alert alert-info">
         <i class="bi bi-info-circle me-2"></i>

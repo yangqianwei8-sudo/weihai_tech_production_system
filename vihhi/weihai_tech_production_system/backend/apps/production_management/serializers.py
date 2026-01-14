@@ -132,7 +132,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'subsidiary', 'name', 'alias', 'description',
+            'name', 'alias', 'description',
             'service_type', 'business_type', 'design_stage', 'service_professions',
             'client_company_name', 'client_contact_person', 'client_phone',
             'client_email', 'client_address',

@@ -142,7 +142,7 @@
 
         <div class="project-create__layout">
             <div class="project-create__main">
-                <!-- 顶部流程导航（隐藏占位，保留脚本依赖的元素，防止内容被脚本影响） -->
+                
                 <div style="display:none">
                     <div class="stepper__status">
                         <span id="lastSaved"></span>
@@ -156,9 +156,8 @@
                     </div>
                 </div>
 
-                <!-- 步骤内容 -->
                 <div class="stepper__content">
-                    <!-- 基础信息 -->
+                    
                     <section class="step-card card shadow-sm" data-step-content="0">
                         <div class="card-header">
                             <h5 class="mb-0">基础信息</h5>
@@ -238,7 +237,6 @@
                         </div>
                     </section>
 
-                    <!-- 服务信息（与基础信息同页展示） -->
                     <section class="step-card card shadow-sm" data-step-content="1">
                         <div class="card-header">
                             <h5 class="mb-0">服务配置</h5>
@@ -284,14 +282,11 @@
                         </div>
                     </section>
 
-
                 </div>
             </div>
 
-            <!-- 右侧辅助面板（按需移除） -->
         </div>
 
-        <!-- 底部操作栏 -->
         <div class="project-create__footer">
             <div class="project-create__footer-left">
                 <button type="button" class="btn btn-light" onclick="history.back()">取消创建</button>
@@ -303,7 +298,7 @@
                 <button type="button" class="btn btn-success" id="submitBtn" onclick="submitForm()"><i class="bi bi-check-circle"></i> 提交申请</button>
             </div>
         </div>
-        <!-- 右下角浮动提交按钮 -->
+        
         <button type="button" class="btn btn-success floating-submit" onclick="submitForm()">
             <i class="bi bi-check-circle"></i> 提交申请
         </button>
@@ -802,7 +797,6 @@ if(serviceTypeSelect){ updateProfessionOptions(serviceTypeSelect.value); }
 .upload-progress .progress{height:10px;background:var(--vh-border);border-radius:999px;overflow:hidden;}
 .upload-progress .progress-bar{background:linear-gradient(90deg,var(--primary-light),var(--accent));font-size:11px;color:#fff;display:flex;align-items:center;justify-content:center;transition:width .2s ease;}
 .upload-progress .small{margin-top:8px;color:var(--muted);}
-
 
 .validation-list{list-style:none;padding-left:0;margin:0;display:flex;flex-direction:column;gap:8px;font-size:13px;}
 .validation-list li{display:flex;justify-content:space-between;align-items:center;}

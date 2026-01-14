@@ -10,16 +10,19 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-weihai-tech-production-sys
 
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Default allowed hosts includes Sealos deployment domain
-DEFAULT_ALLOWED_HOSTS = 'localhost,127.0.0.1,tivpdkrxyioz.sealosbja.site'
+# Default allowed hosts - 生产环境只允许公网域名
+# 重要：生产环境必须通过环境变量 ALLOWED_HOSTS 设置，只包含公网域名
+DEFAULT_ALLOWED_HOSTS = 'hrozezgtxwhk.sealosbja.site'
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', DEFAULT_ALLOWED_HOSTS).split(',') if h.strip()]
 # 开发环境：允许本地和测试客户端
 if DEBUG:
     ALLOWED_HOSTS += ["127.0.0.1", "localhost", "testserver"]
 
 # CSRF trusted origins (must include scheme)
-# Default includes common Sealos deployment domains
-DEFAULT_CSRF_ORIGINS = 'https://tivpdkrxyioz.sealosbja.site,http://tivpdkrxyioz.sealosbja.site,http://localhost:8001,http://127.0.0.1:8001,http://localhost:8000,http://127.0.0.1:8000'
+# 生产环境只允许公网域名，开发环境允许本地访问
+DEFAULT_CSRF_ORIGINS = 'https://hrozezgtxwhk.sealosbja.site,http://hrozezgtxwhk.sealosbja.site'
+if DEBUG:
+    DEFAULT_CSRF_ORIGINS += ',http://localhost:8001,http://127.0.0.1:8001,http://localhost:8000,http://127.0.0.1:8000'
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', DEFAULT_CSRF_ORIGINS).split(',') if o.strip()]
 
 # Application definition
@@ -41,7 +44,7 @@ INSTALLED_APPS = [
     'backend.apps.permission_management.apps.PermissionManagementConfig',  # 必须在 system_management 之前
     'backend.apps.system_management.apps.SystemManagementConfig',
     'backend.apps.production_management.apps.ProductionManagementConfig',  # 生产管理（原项目中心）
-    'backend.apps.project_center.apps.ProjectCenterConfig',  # 暂时保留：迁移文件依赖
+    # 'backend.apps.project_center.apps.ProjectCenterConfig',  # 暂时保留：迁移文件依赖（临时注释：镜像中缺少此模块）
     'backend.apps.customer_management.apps.CustomerManagementConfig',  # 客户管理（从customer_success迁移）
     'backend.apps.resource_standard',
     'backend.apps.task_collaboration',
@@ -68,6 +71,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # Host 守卫中间件 - 必须在 SecurityMiddleware 之后，严格验证 Host 头
+    # 防止通过 Service IP、Pod IP、内部域名等方式绕过访问控制
+    'backend.config.middleware.HostGuardMiddleware',
     # Static files serving optimization in production
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -283,7 +289,8 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 AUTH_USER_MODEL = 'system_management.User'
 
 # Login settings
-LOGIN_URL = '/login/'
+# P2: 彻底移除旧版 Vue SPA，统一使用 Django Admin 登录
+LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/login/'
 

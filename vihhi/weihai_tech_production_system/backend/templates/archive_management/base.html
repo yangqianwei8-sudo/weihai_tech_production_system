@@ -278,22 +278,20 @@
         {% endblock %}
 
         <div class="archive-management-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="archive-sidebar">
                 <nav class="archive-nav">
                     <div class="archive-nav-links">
                         {% url 'archive_management:project_archive_list' as project_archive_list_url %}
                         
-                        <!-- 档案管理首页（项目归档列表） -->
                         <a class="archive-nav-link archive-nav-single {% if request.path == project_archive_list_url %}active{% endif %}" href="{{ project_archive_list_url }}">
                             <span class="nav-label">项目归档</span>
                         </a>
                         
-                        <!-- 动态菜单项 -->
                                 {% if archive_sidebar_nav %}
-        {# 档案管理布局 - 使用统一样式模板，带左侧菜单 #}
+        
         <div class="workspace workspace-two-column archive-management-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
@@ -326,7 +324,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main archive-content">
         {% else %}
         <div class="workspace-content">
@@ -379,4 +376,3 @@
     <script src="{% static 'js/sidebar.js' %}"></script>
 </body>
 </html>
-

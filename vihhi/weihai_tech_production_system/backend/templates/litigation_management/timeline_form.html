@@ -12,7 +12,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">{{ page_title }}</h2>
@@ -25,7 +25,6 @@
         </div>
     </div>
 
-    <!-- 表单 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">时间节点信息</h5>
@@ -34,7 +33,6 @@
             <form method="post" id="timelineForm">
                 {% csrf_token %}
                 
-                <!-- 基本信息 -->
                 <div class="row mb-4">
                     <div class="col-12">
                         <h6 class="border-bottom pb-2 mb-3">基本信息</h6>
@@ -93,7 +91,6 @@
                     </div>
                 </div>
 
-                <!-- 提交按钮 -->
                 <div class="row">
                     <div class="col-12">
                         <div class="d-flex justify-content-end gap-2">
@@ -111,4 +108,3 @@
     </div>
 </div>
 {% endblock %}
-

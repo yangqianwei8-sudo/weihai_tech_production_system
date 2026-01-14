@@ -12,7 +12,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">{{ page_title }}</h2>
@@ -37,7 +37,6 @@
         </div>
     </div>
 
-    <!-- 紧急提醒 -->
     {% if is_expiring_soon %}
     <div class="info-card info-card-danger mb-4">
         <div class="info-card-header">
@@ -58,7 +57,6 @@
     </div>
     {% endif %}
 
-    <!-- 基本信息 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -118,7 +116,6 @@
         </div>
     </div>
 
-    <!-- 法院信息 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">法院信息</h5>
@@ -147,7 +144,6 @@
         </div>
     </div>
 
-    <!-- 关联案件 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">关联案件</h5>
@@ -170,7 +166,6 @@
         </div>
     </div>
 
-    <!-- 备注信息 -->
     {% if seal.notes %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -183,4 +178,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

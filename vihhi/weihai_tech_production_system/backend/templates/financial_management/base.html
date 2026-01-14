@@ -159,9 +159,9 @@
             <div class="plan-sidebar">
                 <div class="plan-nav-links">
                             {% if financial_menu %}
-        {# 财务管理布局 - 使用统一样式模板，带左侧菜单 #}
+        
         <div class="workspace workspace-two-column financial-management-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
@@ -194,7 +194,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main financial-content">
         {% else %}
         <div class="workspace-content">
@@ -251,4 +250,3 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
-

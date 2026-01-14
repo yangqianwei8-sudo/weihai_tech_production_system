@@ -44,7 +44,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="page-title">{{ page_title }}</h1>
@@ -52,11 +52,9 @@
         </div>
     </div>
 
-    <!-- 表单 -->
     <form method="post">
         {% csrf_token %}
         
-        <!-- 基本信息 -->
         <div class="form-card">
             <h5>差旅信息</h5>
             <div class="row g-3">
@@ -106,7 +104,6 @@
             </div>
         </div>
 
-        <!-- 人员信息 -->
         <div class="form-card">
             <h5>人员信息</h5>
             <div class="row g-3">
@@ -128,7 +125,6 @@
             </div>
         </div>
 
-        <!-- 备注 -->
         <div class="form-card">
             <h5>备注</h5>
             <div class="row g-3">
@@ -142,14 +138,12 @@
             </div>
         </div>
 
-        <!-- 表单错误 -->
         {% if form.non_field_errors %}
         <div class="alert alert-danger">
             {{ form.non_field_errors }}
         </div>
         {% endif %}
 
-        <!-- 操作按钮 -->
         <div class="d-flex justify-content-between align-items-center mt-4">
             <a href="{% if is_create %}{% url 'admin_pages:travel_list' %}{% else %}{% url 'admin_pages:travel_detail' travel.id %}{% endif %}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> 取消
@@ -163,4 +157,3 @@
     </form>
 </div>
 {% endblock %}
-

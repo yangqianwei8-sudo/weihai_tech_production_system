@@ -69,7 +69,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="page-title">{{ page_title }}</h1>
@@ -92,7 +92,6 @@
         </div>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -147,7 +146,6 @@
         </div>
     </div>
 
-    <!-- 合同内容 -->
     {% if contract.contract_content %}
     <div class="info-card">
         <div class="info-card-header">
@@ -159,7 +157,6 @@
     </div>
     {% endif %}
 
-    <!-- 合同文件 -->
     {% if contract.contract_file %}
     <div class="info-card">
         <div class="info-card-header">
@@ -173,7 +170,6 @@
     </div>
     {% endif %}
 
-    <!-- 付款记录 -->
     {% if payments %}
     <div class="info-card">
         <div class="info-card-header">
@@ -222,7 +218,6 @@
     </div>
     {% endif %}
 
-    <!-- 备注 -->
     {% if contract.notes %}
     <div class="info-card">
         <div class="info-card-header">
@@ -235,4 +230,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

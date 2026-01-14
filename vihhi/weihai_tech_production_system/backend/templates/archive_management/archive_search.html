@@ -17,7 +17,7 @@
             </div>
         </div>
         <div class="card-body">
-            <!-- 搜索表单 -->
+            
             <div class="row mb-4">
                 <div class="col-md-12">
                     <form method="get" class="d-flex gap-2">
@@ -33,7 +33,6 @@
                 </div>
             </div>
 
-            <!-- 项目档案结果 -->
             {% if archive_type == 'project' or not archive_type %}
             {% if project_documents %}
             <div class="mb-4">
@@ -74,7 +73,6 @@
             {% endif %}
             {% endif %}
 
-            <!-- 行政档案结果 -->
             {% if archive_type == 'administrative' or not archive_type %}
             {% if administrative_archives %}
             <div class="mb-4">
@@ -115,7 +113,6 @@
             {% endif %}
             {% endif %}
 
-            <!-- 无结果提示 -->
             {% if not project_documents and not administrative_archives %}
             <div class="text-center text-muted py-5">
                 <p>暂无查询结果</p>
@@ -126,4 +123,3 @@
     </div>
 </div>
 {% endblock %}
-

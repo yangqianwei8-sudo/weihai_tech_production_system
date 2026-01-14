@@ -25,7 +25,7 @@
             <div class="sidenav-links">
                 {% for menu_item in menu_items %}
                     {% if menu_item.children %}
-                        <!-- 有子菜单的一级菜单项 -->
+                        
                         <div class="sidenav-item {% if menu_item.active or menu_item.expanded %}expanded{% endif %}">
                             <a class="sidenav-link" 
                                href="{{ menu_item.url|default:'#' }}" 
@@ -46,7 +46,7 @@
                             </div>
                         </div>
                     {% else %}
-                        <!-- 无子菜单的一级菜单项 -->
+                        
                         <a class="sidenav-link" 
                            href="{{ menu_item.url|default:'#' }}" 
                            {% if menu_item.active %}data-active="true"{% endif %}>

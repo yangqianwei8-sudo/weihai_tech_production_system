@@ -59,13 +59,12 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="center-hero">
         <h1 class="hero-title">{{ page_title }}</h1>
         <p class="hero-subtitle">{{ description }}</p>
     </div>
 
-    <!-- 操作按钮 -->
     <div class="text-end mb-4">
         <a href="{% url 'admin_pages:supplies_management' %}" class="btn btn-outline-secondary me-2">
             <i class="bi bi-arrow-left"></i> 返回列表
@@ -75,7 +74,6 @@
         </a>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <h5>基本信息</h5>
         <div class="info-row">
@@ -106,7 +104,6 @@
         </div>
     </div>
 
-    <!-- 库存信息 -->
     <div class="info-card">
         <h5>库存信息</h5>
         <div class="info-row">
@@ -151,7 +148,6 @@
         </div>
     </div>
 
-    <!-- 供应商信息 -->
     <div class="info-card">
         <h5>供应商信息</h5>
         <div class="info-row">
@@ -166,7 +162,6 @@
         </div>
     </div>
 
-    <!-- 描述信息 -->
     {% if supply.description %}
     <div class="info-card">
         <h5>描述说明</h5>
@@ -174,7 +169,6 @@
     </div>
     {% endif %}
 
-    <!-- 最近采购记录 -->
     {% if purchases %}
     <div class="info-card">
         <h5>最近采购记录 (最近10条)</h5>
@@ -199,7 +193,6 @@
     </div>
     {% endif %}
 
-    <!-- 最近领用记录 -->
     {% if requests %}
     <div class="info-card">
         <h5>最近领用记录 (最近10条)</h5>
@@ -224,7 +217,6 @@
     </div>
     {% endif %}
 
-    <!-- 其他信息 -->
     <div class="info-card">
         <h5>其他信息</h5>
         <div class="info-row">
@@ -244,4 +236,3 @@
     </div>
 </div>
 {% endblock %}
-

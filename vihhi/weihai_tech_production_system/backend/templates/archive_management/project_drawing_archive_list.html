@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">📐 图纸归档</h2>
@@ -23,7 +23,6 @@
         </div>
     </div>
 
-    <!-- 筛选和列表 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">图纸归档列表</h5>
@@ -32,7 +31,7 @@
             </div>
         </div>
         <div class="info-card-body">
-            <!-- 筛选器 -->
+            
             <form method="get" class="row g-3 mb-3">
                 <div class="col-md-3">
                     <label class="form-label">状态</label>
@@ -67,7 +66,6 @@
                 </div>
             </form>
 
-            <!-- 归档列表 -->
             {% if page.object_list %}
             <div class="table-responsive">
                 <table class="table table-hover">
@@ -114,7 +112,6 @@
                 </table>
             </div>
 
-            <!-- 分页 -->
             {% if page.has_other_pages %}
             <nav aria-label="分页导航">
                 <ul class="pagination justify-content-center">

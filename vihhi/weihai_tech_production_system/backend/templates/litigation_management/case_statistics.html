@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">{{ page_title }}</h2>
@@ -23,7 +23,6 @@
         </div>
     </div>
 
-    <!-- 统计卡片 -->
     {% if summary_cards %}
     <div class="info-card info-card-elevated mb-4">
         <div class="info-card-header">
@@ -45,7 +44,6 @@
     </div>
     {% endif %}
 
-    <!-- 筛选器 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">统计筛选</h5>
@@ -75,7 +73,6 @@
         </div>
     </div>
 
-    <!-- 案件类型统计 -->
     {% if stats_by_type %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -112,7 +109,6 @@
     </div>
     {% endif %}
 
-    <!-- 案件状态统计 -->
     {% if stats_by_status %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -153,7 +149,6 @@
     </div>
     {% endif %}
 
-    <!-- 案件性质统计 -->
     {% if stats_by_nature %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -190,7 +185,6 @@
     </div>
     {% endif %}
 
-    <!-- 优先级统计 -->
     {% if stats_by_priority %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -238,4 +232,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

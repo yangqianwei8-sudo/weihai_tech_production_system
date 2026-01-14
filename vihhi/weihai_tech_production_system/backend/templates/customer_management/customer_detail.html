@@ -16,7 +16,7 @@
 {% block content %}
 <div class="workspace-content">
     <div class="container-fluid py-4">
-        <!-- 操作按钮 -->
+        
         <div class="d-flex justify-content-end gap-2 mb-3">
             {% if can_edit %}
             <a href="{% url 'business_pages:customer_edit' client.id %}" class="btn btn-primary">编辑客户</a>
@@ -26,7 +26,6 @@
             {% endif %}
         </div>
         
-        <!-- 基本信息 -->
         <div class="info-card">
             <div class="info-card-header">
                 <h5 class="info-card-title">基本信息</h5>
@@ -45,7 +44,6 @@
             </div>
         </div>
         
-        <!-- 企业信息 -->
         <div class="info-card">
             <div class="info-card-header">
                 <h5 class="info-card-title">企业信息</h5>
@@ -76,7 +74,6 @@
             </div>
         </div>
         
-        <!-- 客户分类 -->
         <div class="info-card">
             <div class="info-card-header">
                 <h5 class="info-card-title">客户分类</h5>
@@ -115,7 +112,6 @@
             </div>
         </div>
         
-        <!-- 财务信息 -->
         <div class="info-card">
             <div class="info-card-header">
                 <h5 class="info-card-title">财务信息</h5>
@@ -142,7 +138,6 @@
             </div>
         </div>
         
-        <!-- 负责人信息 -->
         <div class="info-card">
             <div class="info-card-header">
                 <h5 class="info-card-title">负责人信息</h5>
@@ -173,7 +168,6 @@
             </div>
         </div>
         
-        <!-- 关联联系人 -->
         {% if contacts %}
         <div class="info-card">
             <div class="info-card-header">
@@ -212,7 +206,6 @@
         </div>
         {% endif %}
         
-        <!-- 被执行信息 -->
         <div class="info-card">
             <div class="info-card-header d-flex justify-content-between align-items-center">
                 <div>
@@ -270,7 +263,6 @@
             </div>
         </div>
         
-        <!-- 审批流程 -->
         {% if approval_instance %}
         <div class="info-card">
             <div class="info-card-header">
@@ -285,7 +277,7 @@
                 </div>
             </div>
             <div class="info-card-body">
-                <!-- 审批基本信息 -->
+                
                 <div class="mb-4">
                     <div class="info-grid info-grid-2">
                         <div class="info-item">
@@ -319,10 +311,8 @@
                     </div>
                 </div>
                 
-                <!-- 审批路径时间轴 -->
                 {% include 'customer_management/partials/approval_path_timeline.html' with approval_instance=approval_instance approval_path_nodes=approval_path_nodes %}
                 
-                <!-- 查看完整审批详情链接 -->
                 <div class="mt-3 text-center">
                     <a href="{% url 'workflow_engine:approval_detail' approval_instance.id %}" class="btn btn-sm btn-outline-primary" target="_blank">
                         <i class="bi bi-box-arrow-up-right"></i> 查看完整审批详情
@@ -466,4 +456,3 @@
 }
 </style>
 {% endblock %}
-

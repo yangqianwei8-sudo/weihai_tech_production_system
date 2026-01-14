@@ -1,0 +1,10 @@
+<div class="list-stats">
+  <div class="list-stat-card">
+    <div class="list-stat-label">启动请求</div>
+    <div class="list-stat-value">{{ pending_count|default:0 }}</div>
+  </div>
+  <div class="list-stat-card">
+    <div class="list-stat-label">取消请求</div>
+    <div class="list-stat-value">{{ cancel_count|default:0 }}</div>
+  </div>
+</div>

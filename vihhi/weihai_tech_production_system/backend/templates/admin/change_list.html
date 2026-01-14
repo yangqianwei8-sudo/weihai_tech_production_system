@@ -3,9 +3,9 @@
 
 {% block extrastyle %}
   {{ block.super }}
-  {# 所有样式已在 base_site.html 中定义，不再使用 Django 默认 CSS #}
+  
   {% if cl.formset or action_form %}
-    {# jsi18n 只在用户已登录时加载，避免返回HTML导致JS错误 #}
+    
     {% if user.is_authenticated %}
       <script src="{% url 'admin:jsi18n' %}"></script>
     {% endif %}
@@ -15,11 +15,11 @@
 
 {% block extrahead %}
 {{ block.super }}
-{# 只在用户已登录时加载media.js，避免返回HTML导致JS错误 #}
+
 {% if user.is_authenticated %}
 {{ media.js }}
 {% endif %}
-{# 筛选器功能通过 base_site.html 中的样式和 Django 模板标签实现，不再使用 Django 默认 JS #}
+
 <script>
 // 自定义筛选器交互（如果需要）
 (function() {
@@ -105,4 +105,3 @@
     </div>
   </div>
 {% endblock %}
-

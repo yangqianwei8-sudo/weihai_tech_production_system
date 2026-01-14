@@ -318,7 +318,7 @@ class ApprovalEngine:
         """发送审批通知"""
         try:
             from django.urls import reverse
-            from backend.apps.project_center.models import ProjectTeamNotification
+            from backend.apps.production_management.models import ProjectTeamNotification
             
             # 获取关联对象信息
             content_obj = instance.content_type.get_object_for_this_type(id=instance.object_id)
@@ -340,7 +340,7 @@ class ApprovalEngine:
             if hasattr(content_obj, 'project'):
                 project = content_obj.project
             elif instance.content_type.model == 'project':
-                from backend.apps.project_center.models import Project
+                from backend.apps.production_management.models import Project
                 try:
                     project = Project.objects.get(id=instance.object_id)
                 except:

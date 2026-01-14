@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">{{ page_title }}</h2>
@@ -47,7 +47,6 @@
     </div>
     {% endif %}
 
-    <!-- 筛选和列表 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">案件列表</h5>
@@ -56,7 +55,7 @@
             </div>
         </div>
         <div class="info-card-body">
-            <!-- 筛选器 -->
+            
             <form method="get" class="row g-3 mb-3">
                 <div class="col-md-2">
                     <label class="form-label">案件类型</label>
@@ -120,7 +119,6 @@
                 </div>
             </form>
 
-            <!-- 列表表格 -->
             {% if cases %}
             <div class="table-responsive">
                 <table class="table table-hover">
@@ -194,7 +192,6 @@
                 </table>
             </div>
 
-            <!-- 分页 -->
             {% if cases.has_other_pages %}
             <nav aria-label="案件列表分页">
                 <ul class="pagination justify-content-center">
@@ -238,7 +235,6 @@
         </div>
     </div>
     
-    <!-- 创建案件弹窗 -->
     {% if perms.litigation_management.case.create %}
     {% include "common/modal_create_form.html" with 
         modal_id="createCaseModal" 
@@ -253,7 +249,7 @@
     %}
     
     {% block modal_form_content %}
-    <!-- 基本信息 -->
+    
     <div class="modal-form-section">
         <h6 class="modal-form-section-title">基本信息</h6>
         <div class="row g-3">
@@ -343,7 +339,6 @@
         </div>
     </div>
     
-    <!-- 关联信息 -->
     <div class="modal-form-section">
         <h6 class="modal-form-section-title">关联信息</h6>
         <div class="row g-3">
@@ -383,7 +378,6 @@
         </div>
     </div>
     
-    <!-- 金额信息 -->
     <div class="modal-form-section">
         <h6 class="modal-form-section-title">金额信息</h6>
         <div class="row g-3">
@@ -485,4 +479,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-

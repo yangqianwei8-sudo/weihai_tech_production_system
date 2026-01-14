@@ -41,7 +41,6 @@
                 <form method="post" id="customerForm">
                     {% csrf_token %}
                     
-                    <!-- 基本信息 -->
                     <div class="info-section">
                         <h6 class="info-section-title">基本信息</h6>
                         <div class="info-grid info-grid-2">
@@ -90,7 +89,6 @@
                         </div>
                     </div>
                     
-                    <!-- 被执行信息 -->
                     <div class="info-section mt-4" id="executionSection" {% if not client %}style="display: none;"{% endif %}>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="info-section-title mb-0">
@@ -149,7 +147,6 @@
                         </div>
                     </div>
                     
-                    <!-- 分类信息 -->
                     <div class="info-section">
                         <h6 class="info-section-title">分类信息</h6>
                         <div class="info-grid info-grid-2">
@@ -201,7 +198,6 @@
                         </div>
                     </div>
                     
-                    <!-- 提交按钮 -->
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">保存</button>
                         <a href="{% if client %}{% url 'business_pages:customer_detail' client.id %}{% else %}{% url 'business_pages:customer_list' %}{% endif %}" class="btn btn-secondary">取消</a>
@@ -371,7 +367,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- 客户表单功能JS（包含重复检查） -->
 <script src="{% static 'js/customer_form.js' %}"></script>
 {% endblock %}
-

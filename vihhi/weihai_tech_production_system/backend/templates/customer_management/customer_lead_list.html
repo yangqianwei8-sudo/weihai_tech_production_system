@@ -149,7 +149,6 @@
         margin-right: var(--spacing-sm);
     }
     
-    
     .days-badge {
         padding: var(--spacing-xs) var(--spacing-sm);
         border-radius: var(--radius-sm);
@@ -313,7 +312,6 @@
 {% block content %}
 <div class="container-fluid py-4">
     
-    <!-- 标签页 -->
     <div class="lead-tabs">
         <a href="?tab=all{% if search %}&search={{ search }}{% endif %}" class="lead-tab {% if tab == 'all' %}active{% endif %}">
             全部客户线索
@@ -326,7 +324,6 @@
         </a>
     </div>
     
-    <!-- 筛选栏 -->
     <div class="lead-filters">
         <div class="d-flex justify-content-between align-items-center mb-2">
             <h6 class="mb-0">筛选条件</h6>
@@ -388,12 +385,11 @@
                     </select>
                 </div>
                 
-                <!-- 其他可选筛选字段（默认隐藏） -->
                 <div class="filter-item" data-filter-field="region" style="display: none;">
                     <label>地区:</label>
                     <select name="region" class="form-select form-select-sm" style="width: 150px;">
                         <option value="">全部</option>
-                        <!-- 地区选项待实现 -->
+                        
                     </select>
                 </div>
                 
@@ -430,7 +426,6 @@
         </form>
     </div>
     
-    <!-- 操作栏 -->
     <div class="lead-actions">
         <div class="lead-action-buttons">
             {% if can_create %}
@@ -478,7 +473,6 @@
         </div>
     </div>
     
-    <!-- 线索列表表格 -->
     {% if page_obj %}
     <div class="lead-table">
         <div class="table-responsive">
@@ -600,7 +594,6 @@
             </table>
         </div>
         
-        <!-- 自定义显示列模态框 -->
         <div class="modal fade" id="columnSettingsModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -625,14 +618,14 @@
                                 <div>
                                     <label class="form-label fw-bold">已选列</label>
                                     <div id="selectedColumns" class="column-list-container">
-                                        <!-- 已选列将通过JavaScript动态生成 -->
+                                        
                                     </div>
                                 </div>
                                 
                                 <div class="mt-4">
                                     <label class="form-label fw-bold">可用字段</label>
                                     <div id="availableColumns" class="column-list-container">
-                                        <!-- 可用字段将通过JavaScript动态生成 -->
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -651,7 +644,6 @@
             </div>
         </div>
         
-        <!-- 自定义筛选字段模态框 -->
         <div class="modal fade" id="filterFieldsModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -676,7 +668,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="filterFieldsList">
-                                    <!-- 筛选字段列表将通过JavaScript动态生成 -->
+                                    
                                 </tbody>
                             </table>
                         </div>
@@ -690,7 +682,6 @@
             </div>
         </div>
         
-        <!-- 批量操作模态框 -->
         <div class="modal fade" id="bulkActionModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -712,7 +703,6 @@
             </div>
         </div>
         
-        <!-- 分页 -->
         {% if page_obj.has_other_pages %}
         <div class="pagination-wrapper p-3">
             <div class="d-flex justify-content-between align-items-center">
@@ -773,7 +763,6 @@
     </div>
     {% endif %}
     
-    <!-- 统计图表区域 -->
     {% if follow_status_stats or lead_source_stats %}
     <div class="row g-2 mt-3 align-items-start">
         {% if follow_status_stats %}
@@ -824,7 +813,6 @@
             element.textContent = text;
         }
     }
-
 
     function getCsrfToken() {
         const token = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -1580,10 +1568,8 @@
     applyFilterFieldsVisibility();
 </script>
 
-<!-- 引入SortableJS用于拖拽排序 -->
 <script src="{% static 'js/lib/Sortable.min.js' %}"></script>
 
-<!-- 统计图表（使用 Chart.js） -->
 {% if follow_status_stats or lead_source_stats %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
@@ -1667,7 +1653,6 @@
         }
     });
 
-
     // 事件处理器: handle_onclick_1
     document.addEventListener('DOMContentLoaded', function() {
         const element = document.querySelector('.dropdown-item');
@@ -1677,7 +1662,6 @@
             });
         }
     });
-
 
     // 事件处理器: handle_onclick_2
     document.addEventListener('DOMContentLoaded', function() {
@@ -1689,7 +1673,6 @@
         }
     });
 
-
     // 事件处理器: handle_onchange_3
     document.addEventListener('DOMContentLoaded', function() {
         const element = document.querySelector('.form-select');
@@ -1700,7 +1683,6 @@
         }
     });
 
-
     // 事件处理器: handle_onclick_4
     document.addEventListener('DOMContentLoaded', function() {
         const element = document.querySelector('.remove-btn');
@@ -1710,7 +1692,6 @@
             });
         }
     });
-
 
     // 事件处理器: handle_onclick_5
     document.addEventListener('DOMContentLoaded', function() {

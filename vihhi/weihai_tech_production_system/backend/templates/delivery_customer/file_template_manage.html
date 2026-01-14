@@ -58,7 +58,7 @@
 
 {% block content %}
 <div class="list-page-container">
-    <!-- 页面标题 -->
+    
     <div class="list-page-header d-flex justify-content-between align-items-center">
         <div>
             <h4 class="mb-0">📄 文件模板维护</h4>
@@ -66,7 +66,6 @@
         </div>
     </div>
 
-    <!-- 阶段选择器 -->
     <div class="card mb-3">
         <div class="card-body">
             <form method="get" class="d-flex gap-2 align-items-center">
@@ -83,7 +82,6 @@
         </div>
     </div>
 
-    <!-- 新增按钮 -->
     {% if can_create %}
     <div class="mb-3">
         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
@@ -92,7 +90,6 @@
     </div>
     {% endif %}
 
-    <!-- 搜索和筛选栏 -->
     <div class="list-page-filters mb-2">
         <form method="get" class="d-flex gap-2 align-items-end">
             <input type="hidden" name="stage" value="{% if show_all %}all{% else %}{{ stage_code }}{% endif %}">
@@ -121,7 +118,6 @@
         </form>
     </div>
 
-    <!-- 数据表格 -->
     <div class="list-page-table">
         <div class="table-responsive">
             <table class="table table-hover table-bordered">
@@ -209,7 +205,6 @@
         </div>
     </div>
 
-    <!-- 分页 -->
     {% if templates.has_other_pages %}
     <div class="d-flex justify-content-center">
         <nav>
@@ -243,7 +238,6 @@
     {% endif %}
 </div>
 
-<!-- 新增模板弹窗 -->
 {% if can_create %}
 <div class="modal fade" id="createTemplateModal" tabindex="-1" aria-labelledby="createTemplateModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">

@@ -18,9 +18,7 @@
         
         /* 左侧菜单容器样式 */
         
-        
         /* 移除workspace-nav的margin-top和margin-bottom，让菜单顶住上下端 */
-        
         
         /* 调整workspace布局，让菜单可以延伸到底部 */
         .personnel-management-layout {
@@ -55,17 +53,16 @@
         </nav>
         {% endblock %}
         
-        {# 人事管理布局 - 使用与客户管理一致的格式 #}
         <div class="workspace workspace-two-column personnel-management-layout">
-            <!-- 左侧导航菜单 -->
+            
                         <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
                         <div class="sidenav-links">
                                 {% if personnel_sidebar_nav %}
-        {# 人事管理布局 - 使用统一样式模板，带左侧菜单 #}
+        
         <div class="workspace workspace-two-column personnel-management-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
@@ -98,7 +95,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main personnel-content">
         {% else %}
         <div class="workspace-content">
@@ -139,7 +135,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main customer-content">
             {% block personnel_content %}{% endblock %}
             </main>
@@ -147,9 +142,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- 导航栏折叠功能已由sidebar.js统一处理 -->
+    
     {% block extra_js %}{% endblock %}
     <script src="{% static 'js/sidebar.js' %}"></script>
 </body>
 </html>
-

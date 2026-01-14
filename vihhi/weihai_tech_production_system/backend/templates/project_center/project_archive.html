@@ -18,7 +18,6 @@
             <form method="post">
                 {% csrf_token %}
                 
-                <!-- 归档信息区域 -->
                 <div class="card mb-4">
                     <div class="card-header bg-light">
                         <h5 class="mb-0">归档信息</h5>
@@ -47,7 +46,6 @@
                     </div>
                 </div>
 
-                <!-- 归档内容区域 -->
                 <div class="card mb-4">
                     <div class="card-header bg-light">
                         <h5 class="mb-0">归档内容</h5>
@@ -96,7 +94,6 @@
                     </div>
                 </div>
 
-                <!-- 权限设置区域 -->
                 <div class="card mb-4">
                     <div class="card-header bg-light">
                         <h5 class="mb-0">权限设置</h5>
@@ -146,7 +143,6 @@
         </div>
     </div>
 
-    <!-- 历史归档记录 -->
     {% if archives %}
     <div class="card mt-4">
         <div class="card-header bg-light">
@@ -184,4 +180,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

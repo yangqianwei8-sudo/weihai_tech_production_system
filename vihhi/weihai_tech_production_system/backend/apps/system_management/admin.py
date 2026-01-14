@@ -145,7 +145,7 @@ class UserAdmin(DjangoUserAdmin):
         'is_superuser',
         'date_joined',
     )
-    list_filter = ('user_type', 'department', 'is_active', 'is_staff', 'is_superuser', 'roles', 'date_joined', 'profile_completed')
+    list_filter = ('user_type', 'department', 'is_active', 'is_staff', 'is_superuser', 'date_joined', 'profile_completed')
     search_fields = ('username', 'first_name', 'last_name', 'email', 'phone', 'position')
     ordering = ('-date_joined',)
     list_per_page = 50
@@ -253,14 +253,26 @@ class UserAdmin(DjangoUserAdmin):
         try:
             return super().changelist_view(request, extra_context)
         except ProgrammingError as e:
-            # 检查是否是表不存在的错误
+            # 检查是否是表或字段不存在的错误
             error_msg = str(e)
-            if ('settlement_management_payment_record' in error_msg or 'settlement_payment_record' in error_msg) and 'does not exist' in error_msg:
-                messages.error(
-                    request,
-                    '数据库表 settlement_payment_record 不存在。'
-                    '请运行迁移命令创建表：python manage.py migrate settlement_center'
-                )
+            if 'does not exist' in error_msg:
+                if 'settlement_management_payment_record' in error_msg or 'settlement_payment_record' in error_msg:
+                    messages.error(
+                        request,
+                        '数据库表 settlement_payment_record 不存在。'
+                        '请运行迁移命令创建表：python manage.py migrate settlement_center'
+                    )
+                elif 'system_role.description' in error_msg:
+                    messages.warning(
+                        request,
+                        '数据库表 system_role 缺少 description 字段。'
+                        '请运行迁移命令：python manage.py migrate system_management'
+                    )
+                else:
+                    messages.error(
+                        request,
+                        f'数据库错误：{error_msg[:200]}'
+                    )
                 # 返回一个空的响应，避免显示错误页面
                 from django.http import HttpResponseRedirect
                 from django.urls import reverse

@@ -52,7 +52,7 @@
 
 {% block personnel_content %}
 <div class="container-fluid py-4">
-    <!-- 操作按钮 -->
+    
     <div class="text-end mb-4">
         <a href="{% url 'personnel_pages:performance_management' %}" class="btn btn-outline-secondary me-2">
             <i class="bi bi-arrow-left"></i> 返回列表
@@ -62,7 +62,6 @@
         </a>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <h5>基本信息</h5>
         <div class="info-row">
@@ -125,7 +124,6 @@
         </div>
     </div>
 
-    <!-- 自评 -->
     {% if performance.self_assessment %}
     <div class="info-card">
         <h5>自评</h5>
@@ -133,7 +131,6 @@
     </div>
     {% endif %}
 
-    <!-- 上级评价 -->
     {% if performance.manager_comment %}
     <div class="info-card">
         <h5>上级评价</h5>
@@ -141,7 +138,6 @@
     </div>
     {% endif %}
 
-    <!-- HR评价 -->
     {% if performance.hr_comment %}
     <div class="info-card">
         <h5>HR评价</h5>
@@ -149,7 +145,6 @@
     </div>
     {% endif %}
 
-    <!-- 审批信息 -->
     <div class="info-card">
         <h5>审批信息</h5>
         <div class="info-row">
@@ -177,4 +172,3 @@
     </div>
 </div>
 {% endblock %}
-

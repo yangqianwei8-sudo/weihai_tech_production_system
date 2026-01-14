@@ -59,7 +59,6 @@
         <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         
-        <!-- 基本信息 -->
         <div class="form-card">
             <h5>档案信息</h5>
             <div class="row g-3">
@@ -117,7 +116,6 @@
             </div>
         </div>
 
-        <!-- 提交按钮 -->
         <div class="d-flex justify-content-end gap-3 mt-4">
             <a href="{% url 'personnel_pages:employee_archive_management' %}" class="btn btn-outline-secondary btn-submit">
                 <i class="bi bi-x-circle"></i> 取消
@@ -130,4 +128,3 @@
     </div>
 </div>
 {% endblock %}
-

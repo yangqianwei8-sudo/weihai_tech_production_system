@@ -11,7 +11,6 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('production_management', '0001_initial'),
-        ('project_center', '0018_add_project_tasks'),
         ('settlement_center', '0002_rename_settlement__project_c8d1e8_idx_settlement__project_3ae14d_idx_and_more'),
     ]
 
@@ -51,7 +50,7 @@ class Migration(migrations.Migration):
                 ('finance_reviewer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='finance_reviewed_settlements', to=settings.AUTH_USER_MODEL, verbose_name='财务审核人')),
                 ('general_manager_reviewer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='gm_reviewed_settlements', to=settings.AUTH_USER_MODEL, verbose_name='总经理')),
                 ('manager_reviewer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='manager_reviewed_settlements', to=settings.AUTH_USER_MODEL, verbose_name='部门经理')),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='settlements', to='project_center.project', verbose_name='关联项目')),
+                ('project', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='settlements', to='production_management.project', verbose_name='关联项目')),
                 ('submitted_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='submitted_settlements', to=settings.AUTH_USER_MODEL, verbose_name='提交人')),
             ],
             options={

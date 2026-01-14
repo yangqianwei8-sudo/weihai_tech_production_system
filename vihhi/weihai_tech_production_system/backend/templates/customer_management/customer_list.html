@@ -3,23 +3,6 @@
 
 {% block title %}{{ page_title }} - 维海科技信息化管理平台
     
-
-
-
-
-    
-
-    
-    
-    
-    
-    
-    
-
-
-
-
-
 {% endblock %}
 
 {% block extra_css %}
@@ -51,8 +34,6 @@
     margin-top: -16px !important;
     padding: 10px !important;
 }
-
-
 
 .list-page-table {
     margin-bottom: 6px !important;
@@ -230,50 +211,11 @@
 
 </style>
 
-    
-
-
-
-
-    
-
-    
-    
-    
-    
-    
-    
-
-
-
-
-
 {% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 
-    
-
-
-
-
-    
-
-    
-    
-    
-    
-    
-    
-
-
-
-
-
-
-
-<!-- 列设置模态框 -->
 <div class="modal fade" id="fieldsSettingsModal" tabindex="-1" aria-labelledby="fieldsSettingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -286,13 +228,13 @@
                     <div class="col-md-6">
                         <h6 class="mb-3">已显示的列</h6>
                         <div id="displayedFields" class="border rounded p-3" style="min-height: 200px; max-height: 400px; overflow-y: auto;">
-                            <!-- 动态生成 -->
+                            
                         </div>
                     </div>
                     <div class="col-md-6">
                         <h6 class="mb-3">可用的列</h6>
                         <div id="availableFields" class="border rounded p-3" style="min-height: 200px; max-height: 400px; overflow-y: auto;">
-                            <!-- 动态生成 -->
+                            
                         </div>
                     </div>
                 </div>
@@ -309,9 +251,9 @@
 
 {% block content %}
 <div class="workspace-content">
-    <!-- 使用列表页面布局模板 -->
+    
     <div class="list-page-container">
-        <!-- 页面标题 -->
+        
         <div class="list-page-header">
             <div>
                 <h2 class="mb-0">
@@ -327,7 +269,6 @@
             </div>
         </div>
         
-        <!-- 标签页 -->
         <ul class="nav nav-tabs mb-1 border-bottom" role="tablist" style="margin-bottom: 8px !important;">
             <li class="nav-item" role="presentation">
                 <a class="nav-link {% if tab == 'all' or not tab %}active{% endif %} border-0" href="?tab=all{% if search %}&search={{ search }}{% endif %}{% if search_field %}&search_field={{ search_field }}{% endif %}{% if client_level %}&client_level={{ client_level }}{% endif %}{% if relationship_stage %}&relationship_stage={{ relationship_stage }}{% endif %}{% if department %}&department={{ department }}{% endif %}{% if responsible_user_id %}&responsible_user={{ responsible_user_id }}{% endif %}{% if region %}&region={{ region }}{% endif %}{% if date_range %}&date_range={{ date_range }}{% endif %}{% if created_time_start %}&created_time_start={{ created_time_start }}{% endif %}{% if created_time_end %}&created_time_end={{ created_time_end }}{% endif %}{% if approval_status %}&approval_status={{ approval_status }}{% endif %}{% if company_email %}&company_email={{ company_email }}{% endif %}{% if legal_representative %}&legal_representative={{ legal_representative }}{% endif %}">
@@ -361,7 +302,6 @@
             </li>
                 </ul>
 
-        <!-- 统计卡片 -->
         {% if summary_cards %}
         <div class="info-card mb-3" style="margin-bottom: 12px !important;">
             <div class="info-card-body">
@@ -382,7 +322,6 @@
         </div>
         {% endif %}
 
-        <!-- 筛选栏区域 -->
         <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="mb-0 small fw-semibold">筛选条件</h6>
@@ -393,13 +332,13 @@
                 </div>
             </div>
             <form method="get" id="filterForm">
-                <!-- 保留标签页和搜索参数 -->
+                
                 {% if tab %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
                 {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
                 {% if search_field %}<input type="hidden" name="search_field" value="{{ search_field }}">{% endif %}
                 {% if page_obj.paginator.per_page %}<input type="hidden" name="page_size" value="{{ page_obj.paginator.per_page }}">{% endif %}
                 <div id="basicFilters" style="display: block;">
-                    <!-- 客户分类 -->
+                    
                     <div class="filter-row mb-3" data-filter-key="client_level">
                         <label class="filter-label">客户分类:</label>
                         <div class="filter-buttons">
@@ -415,7 +354,6 @@
     </div>
                     </div>
 
-                    <!-- 关系阶段 -->
                     <div class="filter-row mb-3" data-filter-key="relationship_stage">
                         <label class="filter-label">关系阶段:</label>
                         <div class="filter-buttons">
@@ -435,7 +373,6 @@
             </div>
         </div>
 
-                    <!-- 地区 -->
                     <div class="filter-row mb-3" data-filter-key="region">
                         <label class="filter-label">地区:</label>
                         <div class="filter-buttons">
@@ -449,14 +386,13 @@
                                     <option value="上海" {% if region == '上海' %}selected{% endif %}>上海</option>
                                     <option value="广东" {% if region == '广东' %}selected{% endif %}>广东</option>
                                     <option value="四川" {% if region == '四川' %}selected{% endif %}>四川</option>
-                                    <!-- 更多地区选项 -->
+                                    
                 </select>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" id="regionMultiSelect">多选</button>
             </div>
         </div>
     </div>
 
-                    <!-- 所属部门 -->
                     <div class="filter-row mb-3" data-filter-key="department">
                         <label class="filter-label">所属部门:</label>
                         <div class="filter-buttons">
@@ -475,7 +411,6 @@
                         </div>
                     </div>
 
-                    <!-- 负责人 -->
                     <div class="filter-row mb-3" data-filter-key="responsible_user">
                         <label class="filter-label">负责人:</label>
                         <div class="filter-buttons">
@@ -496,7 +431,6 @@
             </div>
             </div>
 
-                    <!-- 创建时间 -->
                     <div class="filter-row mb-3" data-filter-key="date_range">
                         <label class="filter-label">创建时间:</label>
                         <div class="filter-buttons">
@@ -535,7 +469,6 @@
                         </div>
                     </div>
 
-                    <!-- 客户分级 -->
                     <div class="filter-row mb-3" data-filter-key="grade">
                         <label class="filter-label">客户分级:</label>
                         <div class="filter-buttons">
@@ -551,7 +484,6 @@
                         </div>
                     </div>
 
-                    <!-- 信用等级 -->
                     <div class="filter-row mb-3" data-filter-key="credit_level">
                         <label class="filter-label">信用等级:</label>
                         <div class="filter-buttons">
@@ -567,7 +499,6 @@
                         </div>
                     </div>
 
-                    <!-- 客户类型 -->
                     <div class="filter-row mb-3" data-filter-key="client_type">
                         <label class="filter-label">客户类型:</label>
                         <div class="filter-buttons">
@@ -583,7 +514,6 @@
                         </div>
                     </div>
 
-                    <!-- 所属行业 -->
                     <div class="filter-row mb-3" data-filter-key="industry">
                         <label class="filter-label">所属行业:</label>
                         <div class="filter-buttons">
@@ -597,7 +527,6 @@
                         </div>
                     </div>
 
-                    <!-- 客户来源 -->
                     <div class="filter-row mb-3" data-filter-key="source">
                         <label class="filter-label">客户来源:</label>
                         <div class="filter-buttons">
@@ -613,7 +542,6 @@
                         </div>
                     </div>
 
-                    <!-- 法律风险等级 -->
                     <div class="filter-row mb-3" data-filter-key="legal_risk_level">
                         <label class="filter-label">法律风险等级:</label>
                         <div class="filter-buttons">
@@ -642,7 +570,6 @@
                         </div>
                     </div>
 
-                    <!-- 是否活跃 -->
                     <div class="filter-row mb-3" data-filter-key="is_active">
                         <label class="filter-label">是否活跃:</label>
                         <div class="filter-buttons">
@@ -659,7 +586,6 @@
                         </div>
                     </div>
 
-                    <!-- 审批状态 -->
                     <div class="filter-row mb-3" data-filter-key="approval_status">
                         <label class="filter-label">审批状态:</label>
                         <div class="filter-buttons">
@@ -677,7 +603,6 @@
                         </div>
                     </div>
 
-                    <!-- 邮箱 -->
                     <div class="filter-row mb-3" data-filter-key="company_email">
                         <label class="filter-label">邮箱:</label>
                         <div class="filter-buttons">
@@ -691,7 +616,6 @@
                         </div>
                     </div>
 
-                    <!-- 法定代表人 -->
                     <div class="filter-row mb-3" data-filter-key="legal_representative">
                         <label class="filter-label">法定代表人:</label>
                         <div class="filter-buttons">
@@ -707,9 +631,8 @@
         </form>
     </div>
     
-        <!-- 操作栏 -->
         <div class="list-page-action-bar d-flex justify-content-between align-items-center">
-            <!-- 左侧：批量操作 -->
+            
             <div class="d-flex align-items-center gap-3">
                 <span class="text-muted small">已选 <strong id="selectedCount" style="color: #ff6b35;">0</strong> 个</span>
                 <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="clearSelection" style="display: none;">
@@ -726,9 +649,8 @@
                 </div>
             </div>
             
-            <!-- 右侧：搜索/筛选控件 -->
             <div class="d-flex align-items-center gap-2">
-                <!-- 搜索控件 -->
+                
                 <div class="input-group input-group-sm" style="width: auto;">
                     <select class="form-select form-select-sm" name="search_field" id="searchFieldSelect" style="min-width: 100px; width: auto; font-size: 14px; color: #333; padding-right: 24px;">
                         <option value="name" {% if search_field == 'name' or not search_field %}selected{% endif %}>客户名称</option>
@@ -748,7 +670,6 @@
             </div>
         </div>
         
-        <!-- 隐藏的搜索表单 -->
         <form method="get" id="searchForm" style="display: none;">
             {% if tab %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
             <input type="hidden" name="search_field" id="searchFieldHidden">
@@ -768,7 +689,6 @@
             {% if page_obj.paginator.per_page %}<input type="hidden" name="page_size" value="{{ page_obj.paginator.per_page }}">{% endif %}
         </form>
     
-        <!-- 数据表格 -->
         <div class="list-page-table">
     {% if page_obj %}
         <div class="table-responsive">
@@ -896,7 +816,6 @@
             </table>
         </div>
         
-        <!-- 分页 -->
         {% if page_obj %}
             <div class="d-flex justify-content-between align-items-center" style="padding: 8px 12px; background: #fff; border-radius: 4px; margin-top: 8px;">
                 <div class="text-muted small">
@@ -990,8 +909,6 @@
 // 定义URL常量（从Django模板获取）
 const URLS = {    batchDelete: '{% url "business_pages:customer_batch_delete" %}',};
 
-
-
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化代码
 });
@@ -1044,15 +961,6 @@ document.addEventListener('change', function(e) {
         updateSelectAllState();
     }
 });
-
-
-    
-
-
-
-
-
-
 
 // 批量删除
 document.getElementById('batchDeleteBtn')?.addEventListener('click', function() {
@@ -2070,9 +1978,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% include "customer_management/includes/filter_fields_settings_modal.html" %}
 
-
-
-<!-- 引入筛选功能模块 -->
 <script src="{% static "js/list-filters.js" %}"></script>
 <script src="{% static "js/filter-fields-settings.js" %}"></script>
 
@@ -2113,9 +2018,5 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 </script>
-
-
-
-<!-- 筛选字段设置模态框 -->
 
 {% endblock %}

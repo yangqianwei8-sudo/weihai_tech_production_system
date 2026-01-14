@@ -1,0 +1,299 @@
+{% extends "plan_management/_base.html" %}
+{% load static %}
+
+{% block pm_title %}计划管理{% endblock %}
+{% block pm_subtitle %}<span class="pm-subtitle">管理工作计划和战略目标</span>{% endblock %}
+
+{% block extra_css %}
+<style>
+  
+  .pm-home-wrap { 
+    padding: 0;
+  }
+
+  .pm-summary-section {
+    margin-bottom: 24px;
+  }
+
+  .pm-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .pm-summary-card {
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 0;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .pm-summary-card:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .pm-summary-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .pm-summary-card-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F5;
+    border: 1px solid #E0E0E0;
+    border-radius: 0;
+    font-size: 18px;
+    color: #333333;
+    font-weight: normal;
+  }
+
+  .pm-summary-card-label {
+    font-size: 13px;
+    color: #666666;
+    font-weight: 400;
+  }
+
+  .pm-summary-card-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin: 8px 0 4px 0;
+    line-height: 1.2;
+  }
+
+  .pm-summary-card-subvalue {
+    font-size: 12px;
+    color: #666666;
+    margin-top: 4px;
+  }
+
+  .pm-section {
+    margin-bottom: 32px;
+  }
+
+  .pm-section-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E0E0E0;
+  }
+
+  .pm-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin: 0 0 4px 0;
+  }
+
+  .pm-section-description {
+    font-size: 13px;
+    color: #666666;
+    margin: 0;
+  }
+
+  .pm-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .pm-card {
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 0;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    min-height: 140px;
+  }
+
+  .pm-card:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .pm-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .pm-card-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F5;
+    border: 1px solid #E0E0E0;
+    border-radius: 0;
+    font-size: 16px;
+    color: #333333;
+    font-weight: normal;
+    flex-shrink: 0;
+  }
+
+  .pm-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin: 0;
+    flex: 1;
+    margin-left: 12px;
+  }
+
+  .pm-card-description {
+    font-size: 13px;
+    color: #666666;
+    line-height: 1.5;
+    margin: 0 0 16px 0;
+    flex: 1;
+  }
+
+  .pm-card-footer {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #F5F5F5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .pm-card-link {
+    font-size: 13px;
+    color: #333333;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .pm-card-link:hover {
+    color: #1A1A1A;
+    text-decoration: underline;
+  }
+
+  .pm-empty {
+    background: #FAFAFA;
+    border: 1px dashed #E0E0E0;
+    border-radius: 0;
+    padding: 40px 20px;
+    text-align: center;
+    color: #999999;
+    font-size: 14px;
+  }
+
+  @media (max-width: 768px) {
+    .pm-summary-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .pm-card-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block pm_content %}
+<div class="pm-home-wrap">
+  {% if summary_cards %}
+  <div class="pm-summary-section">
+    <div class="pm-summary-grid">
+      {% for card in summary_cards %}
+      <a href="{{ card.url }}" class="pm-summary-card">
+        <div class="pm-summary-card-header">
+          <div class="pm-summary-card-icon">{{ card.icon|default:"▢" }}</div>
+        </div>
+        <div class="pm-summary-card-label">{{ card.label }}</div>
+        <div class="pm-summary-card-value">{{ card.value }}</div>
+        {% if card.subvalue %}
+        <div class="pm-summary-card-subvalue">{{ card.subvalue }}</div>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if sections %}
+    {% for section in sections %}
+    <div class="pm-section">
+      <div class="pm-section-header">
+        <h2 class="pm-section-title">{{ section.title }}</h2>
+        {% if section.description %}
+        <p class="pm-section-description">{{ section.description }}</p>
+        {% endif %}
+      </div>
+
+      {% if section.items %}
+        {% if section.layout == 'grid' %}
+        <div class="pm-card-grid">
+          {% for item in section.items %}
+          <a href="{{ item.url }}" class="pm-card">
+            <div class="pm-card-header">
+              <div class="pm-card-icon">{{ item.icon|default:"▢" }}</div>
+              <h3 class="pm-card-title">{{ item.label }}</h3>
+            </div>
+            {% if item.description %}
+            <p class="pm-card-description">{{ item.description }}</p>
+            {% endif %}
+            {% if item.link_label %}
+            <div class="pm-card-footer">
+              <span class="pm-card-link">{{ item.link_label }}</span>
+            </div>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="pm-card-grid">
+          {% for item in section.items %}
+          <a href="{{ item.url }}" class="pm-card">
+            <div class="pm-card-header">
+              <div class="pm-card-icon">{{ item.icon|default:"▢" }}</div>
+              <h3 class="pm-card-title">{{ item.label }}</h3>
+            </div>
+            {% if item.description %}
+            <p class="pm-card-description">{{ item.description }}</p>
+            {% endif %}
+            {% if item.link_label %}
+            <div class="pm-card-footer">
+              <span class="pm-card-link">{{ item.link_label }}</span>
+            </div>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% else %}
+      <div class="pm-empty">
+        暂无{{ section.title }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="pm-empty">
+    暂无可用功能模块
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

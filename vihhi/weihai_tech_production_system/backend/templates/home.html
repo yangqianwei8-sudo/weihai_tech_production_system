@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>维海科技信息化管理平台 · 我的工作台</title>
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
-    <!-- SortableJS for drag and drop -->
+    
     <script src="{% static 'js/lib/Sortable.min.js' %}"></script>
-    <!-- Chart.js for data visualization -->
+    
     <script src="{% static 'js/lib/chart.umd.min.js' %}"></script>
     <style>
         :root {
@@ -1431,8 +1431,6 @@
             }
         }
         
-        
-
         /* 响应式 */
         @media (max-width: 1200px) {
             .workspace { grid-template-columns: 1fr; }
@@ -2104,7 +2102,7 @@
 <body>
 <div class="app-shell">
     <div class="main-area">
-        <!-- 欢迎卡片 -->
+        
         <div class="welcome-card">
             <div class="welcome-card-content">
                 <div class="welcome-card-left">
@@ -2168,11 +2166,11 @@
                         </div>
                     </div>
                 </nav>
-                            <!-- 管理后台入口 -->
+                            
                             <a class="sidenav-link" href="{% url 'admin:index' %}" style="border-top: 1px solid var(--vh-border); margin-top: var(--spacing-sm); padding-top: var(--spacing-sm);">
                                 <span>⚙️ 管理后台</span>
                             </a>
-                <!-- 待办事项 - 优化样式 -->
+                
                 <div class="info-card info-card-slide-up" data-card-id="todo-items" style="margin-top: var(--spacing-md);">
                     <div class="info-card-header">
                         <h5 class="info-card-title">待办事项</h5>
@@ -2182,14 +2180,13 @@
                     </div>
                     <div class="info-card-body">
                         <div class="info-grid info-grid-2">
-                            <!-- 待处理任务 -->
+                            
                             <div class="info-item" style="padding: var(--spacing-md); background: var(--vh-surface); border-radius: var(--radius-md); border-left: 4px solid var(--vh-primary);">
                                 <span class="info-label">待处理任务</span>
                                 <div class="info-value" style="font-size: var(--font-size-2xl); font-weight: 700; margin-top: var(--spacing-xs); color: var(--vh-primary);">{{ pending_counts.personal }}</div>
                                 <div class="text-muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-xs);">今日 {{ pending_counts.due_today }} · 逾期 <span style="color: var(--vh-error); font-weight: 600;">{{ pending_counts.overdue }}</span></div>
                             </div>
                             
-                            <!-- 待我审批 -->
                             {% if approval_stats.my_pending > 0 %}
                             <div class="info-item" style="padding: var(--spacing-md); background: var(--vh-error-soft); border-radius: var(--radius-md); border-left: 4px solid var(--vh-error);">
                                 <span class="info-label">✍️ 待我审批</span>
@@ -2204,7 +2201,6 @@
                             </div>
                             {% endif %}
                             
-                            <!-- 待接收事项 -->
                             {% if delivery_stats.pending > 0 %}
                             <div class="info-item" style="padding: var(--spacing-md); background: var(--vh-warning-soft); border-radius: var(--radius-md); border-left: 4px solid var(--vh-warning);">
                                 <span class="info-label">待接收事项</span>
@@ -2219,7 +2215,6 @@
                             </div>
                             {% endif %}
                             
-                            <!-- 待回复事项（预留，可根据实际业务扩展） -->
                             <div class="info-item" style="padding: var(--spacing-md); background: var(--vh-surface); border-radius: var(--radius-md); border-left: 4px solid var(--vh-info);">
                                 <span class="info-label">💬 待回复事项</span>
                                 <div class="info-value" style="font-size: var(--font-size-2xl); font-weight: 700; margin-top: var(--spacing-xs); color: var(--vh-info);">0</div>
@@ -2230,9 +2225,8 @@
                 </div>
             </aside>
 
-
             <section class="workspace-main" id="workspaceMain">
-                <!-- 统计卡片区域 - 使用统一样式优化 -->
+                
                 <div class="info-card info-card-elevated info-card-slide-up" data-card-id="data-overview">
                     <div class="info-card-header">
                         <h5 class="info-card-title">数据概览</h5>
@@ -2267,7 +2261,6 @@
                     </div>
                 </div>
 
-                <!-- 我的任务看板 - 优化视觉效果 -->
                 <div class="info-card info-card-slide-up" data-card-id="task-board">
                     <div class="info-card-header">
                         <h5 class="info-card-title">我的任务看板</h5>
@@ -2341,7 +2334,7 @@
                             {% endif %}
                         </div>
                         </div>
-                        <!-- 任务分布图 -->
+                        
                         {% if task_status_distribution.data and task_status_distribution.labels %}
                         <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--vh-border-light);">
                             <div style="font-size: var(--font-size-sm); color: var(--vh-text-muted); margin-bottom: var(--spacing-sm);">任务状态分布</div>
@@ -2351,7 +2344,6 @@
             </div>
         </div>
         
-                <!-- 我参与的项目 - 优化卡片样式 -->
                 <div class="info-card info-card-slide-up" data-card-id="my-projects">
                     <div class="info-card-header">
                         <h5 class="info-card-title">🏗️ 我参与的项目</h5>
@@ -2393,7 +2385,7 @@
                         {% endif %}
                     </div>
                     {% endif %}
-                    <!-- 项目进度分布图 -->
+                    
                     {% if project_status_distribution.data and project_status_distribution.labels %}
                     <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--vh-border-light);">
                         <div style="font-size: var(--font-size-sm); color: var(--vh-text-muted); margin-bottom: var(--spacing-sm);">项目状态分布</div>
@@ -2403,7 +2395,6 @@
                     </div>
                 </div>
                 
-                <!-- 客户线索快速统计 - 使用统一样式 -->
                 {% if customer_stats.leads.total > 0 or customer_stats.leads.my_leads > 0 %}
                 <div class="info-card info-card-slide-up" data-card-id="customer-leads">
                     <div class="info-card-header">
@@ -2442,7 +2433,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 商机快速统计 - 使用统一样式 -->
                 {% if customer_stats.opportunities.total > 0 %}
                 <div class="info-card info-card-slide-up" data-card-id="opportunities">
                     <div class="info-card-header">
@@ -2481,7 +2471,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 产值统计卡片 - 员工角色 -->
                 {% if user_role_level == 'employee' and output_value_stats.this_month > 0 %}
                 <div class="info-card info-card-slide-up" data-card-id="output-value">
                     <div class="info-card-header">
@@ -2526,7 +2515,7 @@
                                 <div class="text-muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-xs);">待确认</div>
                             </div>
                         </div>
-                        <!-- 产值趋势图 -->
+                        
                         {% if output_value_stats.trend_data and output_value_stats.trend_labels %}
                         <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--vh-border-light);">
                             <div style="font-size: var(--font-size-sm); color: var(--vh-text-muted); margin-bottom: var(--spacing-sm);">近6个月产值趋势</div>
@@ -2537,7 +2526,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 考勤统计卡片 - 员工角色 -->
                 {% if user_role_level == 'employee' and attendance_stats.has_data %}
                 <div class="info-card info-card-slide-up" data-card-id="attendance">
                     <div class="info-card-header">
@@ -2576,7 +2564,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 我的业务统计卡片 - 员工角色 -->
                 {% if user_role_level == 'employee' %}
                 <div class="info-card info-card-slide-up" data-card-id="my-business">
                     <div class="info-card-header">
@@ -2609,7 +2596,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 我的计划统计卡片 - 员工角色 -->
                 {% if user_role_level == 'employee' and plan_stats %}
                 <div class="info-card info-card-slide-up" data-card-id="my-plans">
                     <div class="info-card-header">
@@ -2643,7 +2629,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 部门风险预警卡片 - 部门经理角色 -->
                 {% if user_role_level == 'department_manager' and department_stats and department_stats.overdue_projects > 0 %}
                 <div class="info-card info-card-slide-up" data-card-id="department-risks" style="border-left: 4px solid var(--vh-error);">
                     <div class="info-card-header">
@@ -2667,7 +2652,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 部门人员排名卡片 - 部门经理角色 -->
                 {% if user_role_level == 'department_manager' and department_stats and department_stats.member_ranks %}
                 <div class="info-card info-card-slide-up" data-card-id="department-ranks">
                     <div class="info-card-header">
@@ -2694,7 +2678,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 部门统计卡片 - 部门经理角色 -->
                 {% if user_role_level == 'department_manager' and department_stats %}
                 <div class="info-card info-card-slide-up" data-card-id="department-stats">
                     <div class="info-card-header">
@@ -2732,7 +2715,6 @@
                     </div>
                 </div>
                 
-                <!-- 部门工作量分布卡片 - 部门经理角色 -->
                 {% if department_stats.workload_by_profession or department_stats.workload_by_member %}
                 <div class="info-card info-card-slide-up" data-card-id="department-workload">
                     <div class="info-card-header">
@@ -2775,7 +2757,6 @@
                 {% endif %}
                 {% endif %}
                 
-                <!-- 公司统计卡片 - 高管角色 -->
                 {% if user_role_level == 'general_manager' and company_stats %}
                 <div class="info-card info-card-slide-up" data-card-id="company-key-metrics">
                     <div class="info-card-header">
@@ -2847,7 +2828,6 @@
                     </div>
                 </div>
                 
-                <!-- 公司收入统计卡片 - 高管角色 -->
                 {% if user_role_level == 'general_manager' and company_stats %}
                 <div class="info-card info-card-slide-up" data-card-id="company-revenue">
                     <div class="info-card-header">
@@ -2885,7 +2865,6 @@
                     </div>
                 </div>
                 
-                <!-- 公司成本统计卡片 - 高管角色 -->
                 <div class="info-card info-card-slide-up" data-card-id="company-cost">
                     <div class="info-card-header">
                         <h5 class="info-card-title">💸 公司成本统计</h5>
@@ -2928,7 +2907,6 @@
                     </div>
                 </div>
                 
-                <!-- 公司利润分析卡片 - 高管角色 -->
                 <div class="info-card info-card-slide-up" data-card-id="company-profit">
                     <div class="info-card-header">
                         <h5 class="info-card-title">公司利润分析</h5>
@@ -2961,7 +2939,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 客户分析卡片 - 高管角色 -->
                 {% if user_role_level == 'general_manager' and company_stats and company_stats.customer_analysis %}
                 <div class="info-card info-card-slide-up" data-card-id="customer-analysis">
                     <div class="info-card-header">
@@ -3005,7 +2982,6 @@
                     </div>
                 </div>
                 
-                <!-- 商机分析卡片 - 高管角色 -->
                 {% if company_stats.opportunity_analysis %}
                 <div class="info-card info-card-slide-up" data-card-id="opportunity-analysis">
                     <div class="info-card-header">
@@ -3066,7 +3042,6 @@
                 {% endif %}
                 {% endif %}
                 
-                <!-- 人员分析卡片 - 高管角色 -->
                 {% if user_role_level == 'general_manager' and company_stats and company_stats.personnel_analysis %}
                 <div class="info-card info-card-slide-up" data-card-id="personnel-analysis">
                     <div class="info-card-header">
@@ -3104,7 +3079,6 @@
                     </div>
                 </div>
                 
-                <!-- 产值分析卡片 - 高管角色 -->
                 {% if company_stats.output_value_analysis %}
                 <div class="info-card info-card-slide-up" data-card-id="output-value-analysis">
                     <div class="info-card-header">
@@ -3153,7 +3127,6 @@
                 {% endif %}
                 {% endif %}
                 
-                <!-- 项目分析卡片 - 高管角色 -->
                 {% if user_role_level == 'general_manager' and company_stats and company_stats.project_analysis %}
                 <div class="info-card info-card-slide-up" data-card-id="project-analysis">
                     <div class="info-card-header">
@@ -3186,7 +3159,6 @@
                     </div>
                 </div>
                 
-                <!-- 计划分析卡片 - 高管角色 -->
                 {% if company_stats.plan_analysis %}
                 <div class="info-card info-card-slide-up" data-card-id="plan-analysis">
                     <div class="info-card-header">
@@ -3226,7 +3198,6 @@
                 {% endif %}
                 {% endif %}
                 
-                <!-- 战略目标概览卡片 - 高管角色 -->
                 {% if user_role_level == 'general_manager' and company_stats and company_stats.strategic_goals %}
                 <div class="info-card info-card-slide-up" data-card-id="strategic-goals">
                     <div class="info-card-header">
@@ -3275,7 +3246,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 公司风险预警卡片 - 高管角色 -->
                 {% if user_role_level == 'general_manager' and company_stats and company_stats.overdue_projects > 0 %}
                 <div class="info-card info-card-slide-up" data-card-id="company-risks" style="border-left: 4px solid var(--vh-error);">
                     <div class="info-card-header">
@@ -3307,16 +3277,15 @@
                 {% endif %}
                 {% endif %}
 
-                
             </section>
 
             <section class="workspace-side">
-                <!-- 通知中心 - 优化样式 -->
+                
                 <div class="info-card info-card-slide-up">
                     <div class="info-card-header">
                         <h5 class="info-card-title"><span style="letter-spacing: 0.3em;">🔔 通知中心</span></h5>
                         <div class="info-card-actions" style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                            <!-- 通知筛选 -->
+                            
                             <select id="notificationFilter" class="notification-filter" style="padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--vh-border); font-size: var(--font-size-xs); background: #fff; cursor: pointer;">
                                 <option value="all">全部</option>
                                 <option value="system">系统通知</option>
@@ -3324,7 +3293,7 @@
                                 <option value="approval">审批通知</option>
                                 <option value="business">业务通知</option>
                             </select>
-                            <!-- 通知搜索 -->
+                            
                             <input type="text" id="notificationSearch" placeholder="搜索通知..." class="notification-search" style="padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--vh-border); font-size: var(--font-size-xs); width: 120px;">
                             <a href="#" class="muted" style="font-size: var(--font-size-sm); text-decoration: none;">管理</a>
                     </div>
@@ -3377,7 +3346,6 @@
                     </div>
                 </div>
                 
-                <!-- 系统公告 - 优化样式 -->
                 <div class="info-card info-card-slide-up">
                     <div class="info-card-header">
                         <h5 class="info-card-title">📢 系统公告</h5>
@@ -3435,7 +3403,6 @@
         </div>
         </footer>
         
-        <!-- 回到顶部按钮 -->
         <div class="back-to-top" id="backToTop" onclick="scrollToTop()">
             ↑
         </div>
@@ -4916,7 +4883,6 @@
     });
 </script>
 
-    <!-- Django服务控制模态框 -->
     {% if is_superuser %}
     <div id="service-control-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
         <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">

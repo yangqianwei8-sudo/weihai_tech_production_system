@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">{{ page_title }}</h2>
@@ -29,7 +29,6 @@
         </div>
     </div>
 
-    <!-- 即将到期提醒 -->
     {% if expiring_soon %}
     <div class="info-card info-card-warning mb-4">
         <div class="info-card-header">
@@ -87,7 +86,6 @@
     </div>
     {% endif %}
 
-    <!-- 保全续封列表 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">保全续封列表</h5>
@@ -171,4 +169,3 @@
     </div>
 </div>
 {% endblock %}
-

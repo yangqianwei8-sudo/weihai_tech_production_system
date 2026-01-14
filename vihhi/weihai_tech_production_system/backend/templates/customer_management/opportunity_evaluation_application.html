@@ -14,14 +14,13 @@
 
 {% block content %}
 <div class="workspace-content">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>
             <i class="bi bi-file-earmark-text me-2"></i>评估申请
         </h2>
     </div>
     
-    <!-- 功能说明卡片 -->
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
             <h5 class="info-card-title">功能说明</h5>
@@ -37,11 +36,9 @@
         </div>
     </div>
     
-    <!-- 评估申请表单 -->
     <form method="post" enctype="multipart/form-data" id="evaluationApplicationForm">
         {% csrf_token %}
         
-        <!-- 基本信息卡片 -->
         <div class="info-card info-card-fade-in">
             <div class="info-card-header">
                 <h5 class="info-card-title">基本信息</h5>
@@ -70,7 +67,6 @@
             </div>
         </div>
         
-        <!-- 申请内容卡片 -->
         <div class="info-card info-card-fade-in">
             <div class="info-card-header">
                 <h5 class="info-card-title">申请内容</h5>
@@ -96,7 +92,6 @@
             </div>
         </div>
         
-        <!-- 图纸附件卡片 -->
         <div class="info-card info-card-fade-in">
             <div class="info-card-header">
                 <h5 class="info-card-title">图纸附件</h5>
@@ -119,7 +114,6 @@
             </div>
         </div>
         
-        <!-- 备注信息卡片 -->
         <div class="info-card info-card-fade-in">
             <div class="info-card-header">
                 <h5 class="info-card-title">备注信息</h5>
@@ -135,7 +129,6 @@
             </div>
         </div>
         
-        <!-- 操作按钮 -->
         <div class="d-flex justify-content-end gap-2 mt-4">
             <a href="{% url 'business_pages:opportunity_management' %}" class="btn btn-outline-secondary">取消</a>
             <button type="submit" class="btn btn-primary">
@@ -159,4 +152,3 @@
     </style>
 </div>
 {% endblock %}
-

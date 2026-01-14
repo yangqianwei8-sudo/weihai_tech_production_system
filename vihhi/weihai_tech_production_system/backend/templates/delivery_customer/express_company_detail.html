@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">🚚 快递公司详情</h2>
@@ -34,7 +34,6 @@
         </div>
     </div>
 
-    <!-- 基本信息卡片 -->
     <div class="info-card info-card-fade-in mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -88,7 +87,6 @@
         </div>
     </div>
 
-    <!-- 联系方式卡片 -->
     <div class="info-card info-card-fade-in mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">联系方式</h5>
@@ -126,7 +124,6 @@
         </div>
     </div>
 
-    <!-- 使用统计卡片 -->
     <div class="info-card info-card-fade-in mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">使用统计</h5>
@@ -143,7 +140,6 @@
         </div>
     </div>
 
-    <!-- 备注卡片 -->
     {% if company.notes %}
     <div class="info-card info-card-fade-in mb-4">
         <div class="info-card-header">
@@ -157,7 +153,6 @@
     </div>
     {% endif %}
 
-    <!-- 时间信息卡片 -->
     <div class="info-card info-card-fade-in">
         <div class="info-card-header">
             <h5 class="info-card-title">时间信息</h5>
@@ -183,4 +178,3 @@
     </div>
 </div>
 {% endblock %}
-

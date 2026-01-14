@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}维海科技信息化管理平台{% endblock %}</title>
     {% load static %}
-    <!-- Favicon -->
+    
     <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
-    <!-- Stylesheets -->
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
@@ -37,14 +37,14 @@
         {% endif %}
 
         <div class="litigation-management-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="litigation-sidebar">
                 <nav class="litigation-nav">
                     <div class="litigation-nav-links">
                                 {% if litigation_sidebar_nav %}
-        {# 诉讼管理布局 - 使用统一样式模板，带左侧菜单 #}
+        
         <div class="workspace workspace-two-column litigation-management-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
@@ -77,7 +77,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main litigation-content">
         {% else %}
         <div class="workspace-content">
@@ -103,20 +102,20 @@
                                 </div>
                             </div>
                             {% else %}
-                            <!-- 单个菜单项（如：案件管理、案件统计） - 不显示三角形 -->
+                            
                             <a class="litigation-nav-link litigation-nav-single {% if nav_item.active %}active{% endif %}" href="{{ nav_item.url|default:'#' }}">
                                 <span class="nav-label">{{ nav_item.label }}</span>
                             </a>
                             {% endif %}
                         {% empty %}
-                        <!-- 如果菜单为空，显示默认菜单 -->
+                        
                         {% url 'litigation_pages:case_list' as case_list_url %}
                         <a class="litigation-nav-link active" href="{{ case_list_url }}">
                             <span class="nav-label">案件管理</span>
                         </a>
                         {% endfor %}
                         {% else %}
-                        <!-- 默认菜单（如果sidebar_nav未定义） -->
+                        
                         {% url 'litigation_pages:case_list' as case_list_url %}
                         {% url 'litigation_pages:case_create' as case_create_url %}
                         {% url 'litigation_pages:case_statistics' as case_statistics_url %}
@@ -134,7 +133,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="litigation-content">
                 {% block breadcrumb %}
                 <nav aria-label="breadcrumb" class="breadcrumb-nav">
@@ -367,4 +365,3 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
-

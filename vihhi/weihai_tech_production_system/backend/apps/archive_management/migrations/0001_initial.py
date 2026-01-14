@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('project_center', '0001_initial_squashed_0016_projectmeetingrecord_projectdesignreply'),
+        ('production_management', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 ('applicant', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='applied_project_archives', to=settings.AUTH_USER_MODEL, verbose_name='归档申请人')),
                 ('confirmed_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='confirmed_project_archives', to=settings.AUTH_USER_MODEL, verbose_name='确认人')),
                 ('executor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='executed_project_archives', to=settings.AUTH_USER_MODEL, verbose_name='归档执行人')),
-                ('project', models.ForeignKey(db_constraint=True, on_delete=django.db.models.deletion.CASCADE, related_name='archive_records', to='project_center.project', verbose_name='关联项目')),
+                ('project', models.ForeignKey(db_constraint=True, on_delete=django.db.models.deletion.CASCADE, related_name='archive_records', to='production_management.project', verbose_name='关联项目')),
             ],
             options={
                 'verbose_name': '项目归档（档案管理）',

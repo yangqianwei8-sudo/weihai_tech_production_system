@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">📝 上传文件</h2>
@@ -24,11 +24,9 @@
         </div>
     </div>
 
-    <!-- 上传表单 - 使用样式模板 -->
     <form method="post" id="fileUploadForm" enctype="multipart/form-data">
         {% csrf_token %}
         
-        <!-- 基本信息 - 使用样式模板 -->
         <div class="info-card info-card-fade-in mb-4">
             <div class="info-card-header">
                 <h5 class="info-card-title">关联信息</h5>
@@ -64,7 +62,6 @@
             </div>
         </div>
 
-        <!-- 文件上传 - 使用样式模板 -->
         <div class="info-card mb-4">
             <div class="info-card-header">
                 <h5 class="info-card-title">文件上传</h5>
@@ -82,7 +79,6 @@
                     </div>
                 </div>
                 
-                <!-- 拖拽上传区域 -->
                 <div class="mt-4">
                     <div id="dropZone" class="border border-dashed rounded p-5 text-center" 
                          style="border-color: #dee2e6; background-color: #f8f9fa; cursor: pointer;">
@@ -94,7 +90,6 @@
             </div>
         </div>
 
-        <!-- 操作按钮 -->
         <div class="d-flex justify-content-end gap-2 mb-4">
             <a href="{% url 'delivery_pages:delivery_file_prep_list' %}" class="btn btn-outline-secondary">取消</a>
             <button type="submit" class="btn btn-primary">
@@ -195,4 +190,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-

@@ -14,7 +14,7 @@
 {% block content %}
 <div class="workspace-content">
     <div class="list-page-container">
-        <!-- 页面标题区域 -->
+        
         <div class="list-page-header">
             <div>
                 <h2 class="mb-0">
@@ -30,7 +30,6 @@
             </div>
         </div>
 
-        <!-- 筛选栏区域 -->
         <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
             <div class="list-page-filters-header">
                 <h6 class="list-page-filters-title">筛选条件</h6>
@@ -42,7 +41,7 @@
             </div>
             <form method="get" id="filterForm">
                 <div id="basicFilters" style="display: block;">
-                    <!-- 搜索 -->
+                    
                     <div class="filter-row mb-3" data-filter-key="search">
                         <label class="filter-label">搜索:</label>
                         <div class="filter-buttons">
@@ -53,7 +52,6 @@
                         </div>
                     </div>
 
-                    <!-- 客户 -->
                     <div class="filter-row mb-3" data-filter-key="client">
                         <label class="filter-label">客户:</label>
                         <div class="filter-buttons">
@@ -73,7 +71,6 @@
                         </div>
                     </div>
 
-                    <!-- 人员角色 -->
                     <div class="filter-row mb-3" data-filter-key="role">
                         <label class="filter-label">人员角色:</label>
                         <div class="filter-buttons">
@@ -93,7 +90,6 @@
                         </div>
                     </div>
 
-                    <!-- 关系等级 -->
                     <div class="filter-row mb-3" data-filter-key="relationship_level">
                         <label class="filter-label">关系等级:</label>
                         <div class="filter-buttons">
@@ -113,12 +109,10 @@
                         </div>
                     </div>
 
-                    
                 </div>
             </form>
         </div>
 
-        <!-- 操作栏 -->
         <div class="list-page-action-bar mb-3 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3">
                 <span class="text-muted small">已选 <strong id="selectedCount">0</strong> 个</span>
@@ -138,7 +132,6 @@
             </div>
         </div>
 
-        <!-- 数据表格 -->
         <div class="list-page-table">
             {% if page_obj %}
             <div class="table-responsive">
@@ -207,7 +200,6 @@
                 </table>
             </div>
 
-            <!-- 分页 -->
             {% if page_obj.has_other_pages %}
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small">
@@ -303,14 +295,12 @@ function updateSelectAllState() {
     }
 }
 
-
 // 初始化
 updateSelectedCount();
 </script>
 
         {% include "customer_management/includes/filter_fields_settings_modal.html" %}
 
-    <!-- 引入筛选字段设置功能模块 -->
     <script src="{% static 'js/filter-fields-settings.js' %}"></script>
     <script>
     window.listFiltersConfig = {

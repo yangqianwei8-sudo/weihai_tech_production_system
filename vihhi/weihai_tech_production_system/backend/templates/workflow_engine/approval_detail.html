@@ -15,7 +15,7 @@
 
     <div class="row">
         <div class="col-md-8">
-            <!-- 关联业务对象信息 -->
+            
             {% if content_object %}
             <div class="info-card mb-3">
                 <div class="info-card-header">
@@ -28,16 +28,16 @@
                 </div>
                 <div class="info-card-body">
                     {% if instance.content_type.model == 'client' %}
-                        <!-- 客户信息 -->
+                        
                         {% include 'workflow_engine/partials/client_content.html' with client=content_object %}
                     {% elif instance.content_type.model == 'businesscontract' %}
-                        <!-- 合同信息 -->
+                        
                         {% include 'workflow_engine/partials/contract_content.html' with contract=content_object %}
                     {% elif instance.content_type.model == 'businessopportunity' %}
-                        <!-- 商机信息 -->
+                        
                         {% include 'workflow_engine/partials/opportunity_content.html' with opportunity=content_object %}
                     {% else %}
-                        <!-- 通用业务对象信息 -->
+                        
                         <dl class="row mb-0">
                             <dt class="col-sm-3">对象类型：</dt>
                             <dd class="col-sm-9">{{ content_object_type_name|default:instance.content_type.model }}</dd>
@@ -213,7 +213,7 @@
                                 <label class="form-label">转交给</label>
                                 <select name="transferred_to" class="form-select" required>
                                     <option value="">请选择用户</option>
-                                    <!-- 这里应该列出可转交的用户列表 -->
+                                    
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -234,4 +234,3 @@
     </div>
 </div>
 {% endblock %}
-

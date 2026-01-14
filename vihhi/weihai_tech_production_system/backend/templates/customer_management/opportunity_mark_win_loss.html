@@ -71,7 +71,7 @@
                 <input type="hidden" name="target_status" value="{{ target_status }}">
                 
                 {% if target_status == 'won' %}
-                <!-- 赢单表单 -->
+                
                 <div class="form-group mb-3">
                     <label for="actual_amount" class="form-label">实际签约金额（万元）</label>
                     <input type="number" name="actual_amount" id="actual_amount" class="form-control" 
@@ -96,7 +96,7 @@
                               placeholder="请输入赢单原因分析（可选）">{{ opportunity.win_reason|default:'' }}</textarea>
                 </div>
                 {% else %}
-                <!-- 输单表单 -->
+                
                 <div class="form-group mb-3">
                     <label for="loss_reason" class="form-label">输单原因 <span class="text-danger">*</span></label>
                     <textarea name="loss_reason" id="loss_reason" class="form-control" rows="6" 
@@ -125,4 +125,3 @@
     </div>
 </div>
 {% endblock %}
-

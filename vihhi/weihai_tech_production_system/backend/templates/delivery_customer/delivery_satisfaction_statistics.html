@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">📊 满意度统计</h2>
@@ -24,7 +24,6 @@
         </div>
     </div>
 
-    <!-- 总体统计 - 使用样式模板 -->
     <div class="row mb-4">
         <div class="col-md-4">
             <div class="info-card info-card-info">
@@ -96,7 +95,6 @@
         </div>
     </div>
 
-    <!-- 评分分布 - 使用样式模板 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">评分分布</h5>
@@ -139,7 +137,6 @@
         </div>
     </div>
 
-    <!-- 最近评价记录 - 使用样式模板 -->
     {% if recent_ratings %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -225,4 +222,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

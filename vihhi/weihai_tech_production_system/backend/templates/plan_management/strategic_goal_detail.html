@@ -1,7 +1,7 @@
-{% extends "plan_management/base.html" %}
+{% extends "plan_management/_base.html" %}
 {% load static %}
 
-{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+{% block pm_title %}{{ page_title }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
@@ -77,9 +77,9 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block pm_content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题和操作 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-0">
@@ -111,9 +111,9 @@
     </div>
     
     <div class="row">
-        <!-- 左侧：基本信息 -->
+        
         <div class="col-md-8">
-            <!-- 基本信息 -->
+            
             <div class="info-card">
                 <h5>📋 基本信息</h5>
                 <div class="info-row">
@@ -142,7 +142,6 @@
                 </div>
             </div>
             
-            <!-- 目标指标 -->
             <div class="info-card">
                 <h5>📊 目标指标</h5>
                 <div class="info-row">
@@ -182,7 +181,6 @@
                 </div>
             </div>
             
-            <!-- 目标描述 -->
             <div class="info-card">
                 <h5>📝 目标描述</h5>
                 <div class="info-row">
@@ -203,7 +201,6 @@
                 {% endif %}
             </div>
             
-            <!-- 时间信息 -->
             <div class="info-card">
                 <h5>📅 时间信息</h5>
                 <div class="info-row">
@@ -221,9 +218,8 @@
             </div>
         </div>
         
-        <!-- 右侧：关联信息 -->
         <div class="col-md-4">
-            <!-- 责任人信息 -->
+            
             <div class="info-card">
                 <h5>👤 责任人信息</h5>
                 <div class="info-row">
@@ -250,7 +246,6 @@
                 {% endif %}
             </div>
             
-            <!-- 关联信息 -->
             <div class="info-card">
                 <h5>🔗 关联信息</h5>
                 {% if goal.parent_goal %}
@@ -292,7 +287,6 @@
                 {% endif %}
             </div>
             
-            <!-- 权重信息 -->
             <div class="info-card">
                 <h5>⚖️ 权重信息</h5>
                 <div class="info-row">
@@ -309,7 +303,6 @@
                 {% endif %}
             </div>
             
-            <!-- 系统信息 -->
             <div class="info-card">
                 <h5>ℹ️ 系统信息</h5>
                 <div class="info-row">
@@ -328,7 +321,6 @@
         </div>
     </div>
     
-    <!-- 进度记录 -->
     {% if progress_records %}
     <div class="info-card mt-4">
         <h5>📈 最近进度记录</h5>

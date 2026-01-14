@@ -11,6 +11,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from decimal import Decimal, InvalidOperation
+import logging
 from backend.apps.system_management.services import get_user_permission_codes
 from backend.apps.system_management.models import User, Department
 
@@ -20,22 +21,72 @@ try:
 except ImportError:
     # Fallback: 如果 _build_unified_sidebar_nav 不存在，提供简单实现
     from backend.core.views import _permission_granted, _build_full_top_nav
+    from django.urls import reverse, NoReverseMatch
     
     def _build_unified_sidebar_nav(menu_structure, permission_set, active_id=None):
-        """Fallback: 简单的侧边栏菜单构建函数"""
+        """Fallback: 简单的侧边栏菜单构建函数（支持 url_name 转换）"""
         nav = []
         for item in menu_structure:
             if item.get('permission'):
                 if not _permission_granted(item['permission'], permission_set):
                     continue
+            
+            # 处理 URL：优先使用 url_name 转换为真实 URL
+            url = '#'
+            url_name = item.get('url_name')
+            if url_name:
+                try:
+                    url = reverse(url_name)
+                except NoReverseMatch:
+                    url = item.get('url', '#')
+            else:
+                url = item.get('url', '#')
+            
             nav_item = {
                 'label': item.get('label', ''),
                 'icon': item.get('icon', ''),
-                'url': item.get('url', '#'),
+                'url': url,
                 'active': item.get('id') == active_id if active_id else False,
             }
+            
+            # 处理子菜单
             if 'children' in item:
-                nav_item['children'] = _build_unified_sidebar_nav(item['children'], permission_set, active_id)
+                children = []
+                for child in item['children']:
+                    # 检查子菜单权限
+                    if child.get('permission'):
+                        if not _permission_granted(child['permission'], permission_set):
+                            continue
+                    
+                    # 处理子菜单 URL
+                    child_url = '#'
+                    child_url_name = child.get('url_name')
+                    if child_url_name:
+                        try:
+                            child_url = reverse(child_url_name)
+                        except NoReverseMatch:
+                            child_url = child.get('url', '#')
+                    else:
+                        child_url = child.get('url', '#')
+                    
+                    children.append({
+                        'id': child.get('id'),
+                        'label': child.get('label', ''),
+                        'icon': child.get('icon', ''),
+                        'url': child_url,
+                        'active': child.get('id') == active_id if active_id else False,
+                    })
+                
+                if children:
+                    nav_item['children'] = children
+                    # 如果父菜单没有 url，使用第一个子菜单的 URL
+                    if nav_item['url'] == '#':
+                        nav_item['url'] = children[0].get('url', '#')
+                    # 如果任意子菜单激活，父菜单也激活
+                    if any(child.get('active') for child in children):
+                        nav_item['active'] = True
+                        nav_item['expanded'] = True
+            
             nav.append(nav_item)
         return nav
 from .models import (
@@ -224,8 +275,6 @@ PLAN_MANAGEMENT_MENU_STRUCTURE = [
             {'id': 'plan_list', 'label': '计划列表', 'icon': '📋', 'url_name': 'plan_pages:plan_list', 'permission': 'plan_management.view'},
             {'id': 'plan_create', 'label': '创建计划', 'icon': '➕', 'url_name': 'plan_pages:plan_create', 'permission': 'plan_management.create'},
             {'id': 'plan_approval', 'label': '计划审批', 'icon': '✅', 'url_name': 'plan_pages:plan_approval_list', 'permission': 'plan_management.approve'},
-            {'id': 'plan_execution', 'label': '计划执行', 'icon': '🏃', 'url_name': 'plan_pages:plan_execution_track', 'permission': 'plan_management.track_execution'},
-            {'id': 'plan_issues', 'label': '计划问题', 'icon': '❗', 'url_name': 'plan_pages:plan_issue_list', 'permission': 'plan_management.view_issues'},
         ]
     },
     {
@@ -313,7 +362,7 @@ def plan_management_home(request):
         
         summary_cards.append({
             'label': '计划总数',
-            'icon': '📅',
+            'icon': '▢',
             'value': str(total_plans),
             'subvalue': f'进行中 {active_plans} 个 · 逾期 {overdue_plans} 个',
             'url': reverse('plan_pages:plan_list'),
@@ -322,7 +371,7 @@ def plan_management_home(request):
         
         summary_cards.append({
             'label': '本月新增',
-            'icon': '➕',
+            'icon': '+',
             'value': str(this_month_plans),
             'subvalue': '本月创建计划',
             'url': reverse('plan_pages:plan_list'),
@@ -338,7 +387,7 @@ def plan_management_home(request):
             
             summary_cards.append({
                 'label': '战略目标',
-                'icon': '🎯',
+                'icon': '▣',
                 'value': str(total_goals),
                 'subvalue': f'进行中 {active_goals} 个',
                 'url': reverse('plan_pages:strategic_goal_list'),
@@ -358,7 +407,7 @@ def plan_management_home(request):
         try:
             quick_actions.append({
                 'label': '新建计划',
-                'icon': '➕',
+                'icon': '+',
                 'description': '创建新的工作计划',
                 'url': reverse('plan_pages:plan_create'),
                 'link_label': '创建计划 →'
@@ -370,7 +419,7 @@ def plan_management_home(request):
         try:
             quick_actions.append({
                 'label': '新建战略目标',
-                'icon': '🎯',
+                'icon': '▣',
                 'description': '创建新的战略目标',
                 'url': reverse('plan_pages:strategic_goal_create'),
                 'link_label': '创建目标 →'
@@ -385,7 +434,7 @@ def plan_management_home(request):
         try:
             module_entries.append({
                 'label': '计划列表',
-                'icon': '📋',
+                'icon': '▢',
                 'description': '查看和管理所有计划',
                 'url': reverse('plan_pages:plan_list'),
                 'link_label': '进入模块 →'
@@ -393,7 +442,7 @@ def plan_management_home(request):
             
             module_entries.append({
                 'label': '战略目标',
-                'icon': '🎯',
+                'icon': '▣',
                 'description': '管理战略目标',
                 'url': reverse('plan_pages:strategic_goal_list'),
                 'link_label': '进入模块 →'
@@ -430,12 +479,17 @@ def plan_management_home(request):
         request=request,
     )
     
+    # 添加 plan_menu（与左侧栏同源，确保对齐）
+    context['plan_menu'] = _build_plan_management_menu(permission_codes, active_id='plan_home')
+    
     return render(request, "plan_management/home.html", context)
 
 
 @login_required
 def plan_list(request):
     """计划列表页面"""
+    from django.template.loader import get_template
+    
     permission_set = get_user_permission_codes(request.user)
     
     # 权限检查
@@ -444,14 +498,14 @@ def plan_list(request):
         return redirect('admin:index')
     
     # 获取筛选参数
-    search = request.GET.get('search', '')
-    status_filter = request.GET.get('status', '')
-    plan_type_filter = request.GET.get('plan_type', '')
-    plan_period_filter = request.GET.get('plan_period', '')
-    related_goal_filter = request.GET.get('related_goal', '')
-    responsible_filter = request.GET.get('responsible', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
+    search = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    plan_type_filter = request.GET.get('plan_type', '').strip()
+    plan_period_filter = request.GET.get('plan_period', '').strip()
+    related_goal_filter = request.GET.get('related_goal', '').strip()
+    responsible_id = request.GET.get('responsible_person', '').strip() or request.GET.get('responsible', '').strip()  # 兼容旧参数名
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
     
     # 查询计划
     plans = Plan.objects.select_related(
@@ -480,8 +534,8 @@ def plan_list(request):
     if related_goal_filter:
         plans = plans.filter(related_goal_id=related_goal_filter)
     
-    if responsible_filter:
-        plans = plans.filter(responsible_person_id=responsible_filter)
+    if responsible_id:
+        plans = plans.filter(responsible_person_id=responsible_id)
     
     if date_from:
         plans = plans.filter(start_time__date__gte=date_from)
@@ -535,10 +589,21 @@ def plan_list(request):
         'plan_type_filter': plan_type_filter,
         'plan_period_filter': plan_period_filter,
         'related_goal_filter': related_goal_filter,
-        'responsible_filter': responsible_filter,
+        'responsible_filter': responsible_id,  # 保持向后兼容
         'date_from': date_from,
         'date_to': date_to,
+        # 用于筛选表单
+        'filters': {
+            'status': status_filter,
+            'responsible_person': responsible_id,
+        },
+        'status_options': Plan.STATUS_CHOICES,
+        'responsible_options': all_users,
     })
+    
+    from django.template.loader import get_template
+    tpl = get_template("plan_management/plan_list.html")
+    print("TEMPLATE_ORIGIN =", tpl.origin.name)
     
     return render(request, "plan_management/plan_list.html", context)
 
@@ -640,7 +705,7 @@ def strategic_goal_list(request):
         'date_to': date_to,
     })
     
-    return render(request, "plan_management/strategic_goal_list.html", context)
+    return render(request, "goal_management/goal_list.html", context)
 
 
 # ==================== 其他占位视图函数（待实现） ====================
@@ -670,12 +735,21 @@ def plan_create(request):
             return redirect('plan_pages:plan_detail', plan_id=plan.id)
         else:
             messages.error(request, '表单验证失败，请检查输入')
+            # 关键：无效就回渲染，不要 redirect
+            context = _context("创建计划", "➕", "创建新的工作计划", request=request)
+            context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='plan_create')
+            context['form'] = form
+            context['page_title'] = "创建计划"
+            context['submit_text'] = "创建"
+            return render(request, "plan_management/plan_form.html", context)
     else:
         form = PlanForm(user=request.user)
     
     context = _context("创建计划", "➕", "创建新的工作计划", request=request)
     context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='plan_create')
     context['form'] = form
+    context['page_title'] = "创建计划"
+    context['submit_text'] = "创建"
     return render(request, "plan_management/plan_form.html", context)
 
 
@@ -712,10 +786,43 @@ def plan_detail(request, plan_id):
         plan=plan
     ).select_related('assigned_to', 'created_by').order_by('-created_time')
     
+    # 获取不作为记录（系统自动生成，只读展示）
+    inactivity_logs = plan.inactivity_logs.all().order_by('-detected_at')
+    
     # 获取下级计划
     child_plans = plan.child_plans.select_related(
         'responsible_person', 'responsible_department', 'related_goal'
     ).all()
+    
+    # 计算时间进度
+    def _progress_percent(plan):
+        if not plan.start_time or not plan.end_time:
+            return None
+        
+        from datetime import date
+        from django.utils import timezone
+        
+        def to_date(v):
+            return v.date() if hasattr(v, "date") else v
+        
+        start = to_date(plan.start_time)
+        end = to_date(plan.end_time)
+        today = timezone.localdate()
+        
+        if end <= start:
+            return 0
+        
+        if today <= start:
+            return 0
+        if today >= end:
+            return 100
+        
+        total = (end - start).days
+        passed = (today - start).days
+        pct = int(round(passed * 100 / total))
+        return max(0, min(100, pct))
+    
+    progress_percent = _progress_percent(plan)
     
     context = _context(
         f"计划详情 - {plan.name}",
@@ -743,6 +850,8 @@ def plan_detail(request, plan_id):
         'status_logs': status_logs,
         'issues': issues,
         'child_plans': child_plans,
+        'inactivity_logs': inactivity_logs,  # P2: 不作为记录
+        'progress_percent': progress_percent,  # 时间进度百分比
         'can_edit': _permission_granted('plan_management.create', permission_set) and plan.status == 'draft',
         'can_delete': _permission_granted('plan_management.create', permission_set) and plan.status == 'draft',
         # P1 新增权限
@@ -779,6 +888,19 @@ def plan_edit(request, plan_id):
             return redirect('plan_pages:plan_detail', plan_id=plan.id)
         else:
             messages.error(request, '表单验证失败，请检查输入')
+            # 关键：无效就回渲染，不要 redirect
+            context = _context(
+                f"编辑计划 - {plan.name}",
+                "✏️",
+                "编辑工作计划",
+                request=request,
+            )
+            context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='plan_list')
+            context['form'] = form
+            context['plan'] = plan
+            context['page_title'] = f"编辑计划 - {plan.name}"
+            context['submit_text'] = "保存"
+            return render(request, "plan_management/plan_form.html", context)
     else:
         form = PlanForm(instance=plan, user=request.user)
     
@@ -791,6 +913,8 @@ def plan_edit(request, plan_id):
     context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='plan_list')
     context['form'] = form
     context['plan'] = plan
+    context['page_title'] = f"编辑计划 - {plan.name}"
+    context['submit_text'] = "保存"
     return render(request, "plan_management/plan_form.html", context)
 
 
@@ -968,9 +1092,40 @@ def plan_goal_alignment(request, plan_id):
 
 @login_required
 def plan_approval_list(request):
-    """计划审批列表页面（P2 功能，暂不可用）"""
-    from django.http import Http404
-    raise Http404("审批功能将在 P2 阶段实现")
+    """
+    P2: 计划审批列表（v2）
+    展示所有待裁决 PlanDecision（decided_at is null）
+    """
+    from .models import PlanDecision
+    
+    permission_set = get_user_permission_codes(request.user)
+    can_approve = _permission_granted('plan_management.approve_plan', permission_set) or request.user.is_superuser
+    
+    pending_decisions = (
+        PlanDecision.objects
+        .filter(decided_at__isnull=True)
+        .select_related("plan", "requested_by", "plan__responsible_person", "plan__created_by")
+        .order_by("-requested_at")
+    )
+    
+    # 统计信息
+    pending_count = pending_decisions.filter(request_type='start').count()
+    cancel_count = pending_decisions.filter(request_type='cancel').count()
+    
+    context = _context(
+        "计划审批列表",
+        "✅",
+        "待裁决的计划请求",
+        request=request,
+    )
+    context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='plan_approval')
+    context.update({
+        "pending_decisions": pending_decisions,
+        "can_approve": can_approve,
+        "pending_count": pending_count,
+        "cancel_count": cancel_count,
+    })
+    return render(request, "plan_management/plan_approval_list.html", context)
 
 
 @login_required
@@ -1290,13 +1445,22 @@ def strategic_goal_create(request):
             return redirect('plan_pages:strategic_goal_detail', goal_id=goal.id)
         else:
             messages.error(request, '表单验证失败，请检查输入')
+            # 关键：invalid 时回渲染，不要 redirect
+            context = _context("创建战略目标", "➕", "创建新的战略目标", request=request)
+            context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='strategic_goal_list')
+            context['form'] = form
+            context['page_title'] = "创建战略目标"
+            context['submit_text'] = "创建"
+            return render(request, "goal_management/goal_form.html", context)
     else:
         form = StrategicGoalForm(user=request.user)
     
     context = _context("创建战略目标", "➕", "创建新的战略目标", request=request)
     context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='strategic_goal_list')
     context['form'] = form
-    return render(request, "plan_management/strategic_goal_form.html", context)
+    context['page_title'] = "创建战略目标"
+    context['submit_text'] = "创建"
+    return render(request, "goal_management/goal_form.html", context)
 
 
 @login_required
@@ -1356,7 +1520,7 @@ def strategic_goal_detail(request, goal_id):
         'can_edit': _permission_granted('plan_management.manage_goal', permission_set) and goal.status in ['draft', 'published'],
         'can_delete': _permission_granted('plan_management.manage_goal', permission_set) and goal.status == 'draft' and not goal.has_related_plans(),
     })
-    return render(request, "plan_management/strategic_goal_detail.html", context)
+    return render(request, "goal_management/goal_detail.html", context)
 
 
 @login_required
@@ -1384,6 +1548,19 @@ def strategic_goal_edit(request, goal_id):
             return redirect('plan_pages:strategic_goal_detail', goal_id=goal.id)
         else:
             messages.error(request, '表单验证失败，请检查输入')
+            # 关键：invalid 时回渲染，不要 redirect
+            context = _context(
+                f"编辑战略目标 - {goal.name}",
+                "✏️",
+                "编辑战略目标信息",
+                request=request,
+            )
+            context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='strategic_goal_list')
+            context['form'] = form
+            context['goal'] = goal
+            context['page_title'] = "编辑战略目标"
+            context['submit_text'] = "保存"
+            return render(request, "goal_management/goal_form.html", context)
     else:
         form = StrategicGoalForm(instance=goal, user=request.user)
     
@@ -1396,7 +1573,9 @@ def strategic_goal_edit(request, goal_id):
     context['plan_menu'] = _build_plan_management_menu(permission_set, active_id='strategic_goal_list')
     context['form'] = form
     context['goal'] = goal
-    return render(request, "plan_management/strategic_goal_form.html", context)
+    context['page_title'] = "编辑战略目标"
+    context['submit_text'] = "保存"
+    return render(request, "goal_management/goal_form.html", context)
 
 
 @login_required

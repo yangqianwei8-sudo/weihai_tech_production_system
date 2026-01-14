@@ -78,13 +78,12 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="center-hero">
         <h1 class="hero-title">{{ page_title }}</h1>
         <p class="hero-subtitle">{{ description }}</p>
     </div>
 
-    <!-- 操作按钮 -->
     <div class="text-end mb-4">
         <a href="{% url 'admin_pages:reception_management' %}" class="btn btn-outline-secondary me-2">
             <i class="bi bi-arrow-left"></i> 返回列表
@@ -94,7 +93,6 @@
         </a>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <h5>基本信息</h5>
         <div class="info-row">
@@ -133,7 +131,6 @@
         </div>
     </div>
 
-    <!-- 访客信息 -->
     <div class="info-card">
         <h5>访客信息</h5>
         <div class="info-row">
@@ -160,7 +157,6 @@
         </div>
     </div>
 
-    <!-- 接待信息 -->
     <div class="info-card">
         <h5>接待信息</h5>
         <div class="info-row">
@@ -191,7 +187,6 @@
         </div>
     </div>
 
-    <!-- 安排信息 -->
     <div class="info-card">
         <h5>安排信息</h5>
         <div class="info-row">
@@ -218,7 +213,6 @@
         {% endif %}
     </div>
 
-    <!-- 接待费用 -->
     {% if expenses %}
     <div class="info-card">
         <h5>接待费用 <span class="badge bg-primary ms-2">总计：¥{{ total_expense|floatformat:2 }}</span></h5>
@@ -250,7 +244,6 @@
     </div>
     {% endif %}
 
-    <!-- 接待结果 -->
     {% if reception.outcome %}
     <div class="info-card">
         <h5>接待结果/成果</h5>
@@ -258,7 +251,6 @@
     </div>
     {% endif %}
 
-    <!-- 备注信息 -->
     {% if reception.notes %}
     <div class="info-card">
         <h5>备注信息</h5>
@@ -266,7 +258,6 @@
     </div>
     {% endif %}
 
-    <!-- 其他信息 -->
     <div class="info-card">
         <h5>其他信息</h5>
         <div class="info-row">
@@ -282,4 +273,3 @@
     </div>
 </div>
 {% endblock %}
-

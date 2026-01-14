@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">🗑️ 新建档案销毁</h2>
@@ -23,7 +23,6 @@
         </div>
     </div>
 
-    <!-- 表单卡片 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">销毁信息</h5>
@@ -46,14 +45,13 @@
                 {% csrf_token %}
                 
                 <div class="row g-3">
-                    <!-- 档案类型选择 -->
+                    
                     <div class="col-md-12">
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle"></i> 请选择要销毁的项目文档或行政档案（二选一），销毁操作不可逆，请谨慎操作
                         </div>
                     </div>
 
-                    <!-- 项目文档 -->
                     <div class="col-md-6">
                         <label for="{{ form.project_document.id_for_label }}" class="form-label">
                             {{ form.project_document.label }}
@@ -64,7 +62,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 行政档案 -->
                     <div class="col-md-6">
                         <label for="{{ form.administrative_archive.id_for_label }}" class="form-label">
                             {{ form.administrative_archive.label }}
@@ -75,7 +72,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 销毁原因 -->
                     <div class="col-md-12">
                         <label for="{{ form.destroy_reason.id_for_label }}" class="form-label">
                             {{ form.destroy_reason.label }} <span class="text-danger">*</span>
@@ -86,7 +82,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 销毁日期 -->
                     <div class="col-md-4">
                         <label for="{{ form.destroy_date.id_for_label }}" class="form-label">
                             {{ form.destroy_date.label }}
@@ -97,7 +92,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 销毁方式 -->
                     <div class="col-md-4">
                         <label for="{{ form.destroy_method.id_for_label }}" class="form-label">
                             {{ form.destroy_method.label }}
@@ -108,7 +102,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- 销毁依据 -->
                     <div class="col-md-12">
                         <label for="{{ form.destroy_basis.id_for_label }}" class="form-label">
                             {{ form.destroy_basis.label }}
@@ -120,7 +113,6 @@
                     </div>
                 </div>
 
-                <!-- 提交按钮 -->
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="d-flex justify-content-end gap-2">
@@ -137,9 +129,8 @@
         </div>
     </div>
 
-    <!-- 可销毁档案列表 -->
     <div class="row">
-        <!-- 项目文档列表 -->
+        
         {% if project_documents %}
         <div class="col-md-6">
             <div class="info-card mb-4">
@@ -180,7 +171,6 @@
         </div>
         {% endif %}
 
-        <!-- 行政档案列表 -->
         {% if administrative_archives %}
         <div class="col-md-6">
             <div class="info-card mb-4">
@@ -222,7 +212,6 @@
         {% endif %}
     </div>
 
-    <!-- 销毁说明 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">销毁说明</h5>

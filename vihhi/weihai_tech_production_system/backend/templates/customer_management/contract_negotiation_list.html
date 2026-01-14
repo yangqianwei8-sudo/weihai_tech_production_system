@@ -7,8 +7,6 @@
     <li class="breadcrumb-item active" aria-current="page">合同洽谈记录</li>
 {% endblock %}
 
-
-
 {% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
@@ -95,7 +93,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="list-page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding: 6px 0;">
         <div>
             <h2 class="mb-0">
@@ -111,7 +109,6 @@
         </div>
     </div>
 
-    <!-- 筛选栏 -->
     <div class="filter-bar">
         <form method="get" action="{% url 'business_pages:contract_negotiation_list' %}" class="row g-3">
             <div class="col-md-12">
@@ -161,7 +158,6 @@
         </form>
     </div>
 
-    <!-- 洽谈记录列表 -->
     <div class="negotiation-table">
         {% if page_obj %}
         <table class="table table-hover">
@@ -204,7 +200,6 @@
             </tbody>
         </table>
 
-        <!-- 分页 -->
         {% if page_obj.has_other_pages %}
         <div class="pagination p-3">
             <span class="step-links">
@@ -235,4 +230,3 @@
     </div>
 </div>
 {% endblock %}
-

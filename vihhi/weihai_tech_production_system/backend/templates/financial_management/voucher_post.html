@@ -15,7 +15,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 凭证信息预览 -->
+    
     <div class="info-card mb-4">
         <h5>凭证信息</h5>
         <div class="info-row">
@@ -54,7 +54,6 @@
         </div>
     </div>
 
-    <!-- 凭证分录 -->
     {% if entries %}
     <div class="info-card mb-4">
         <h5>凭证分录（将生成总账记录）</h5>
@@ -104,13 +103,11 @@
     </div>
     {% endif %}
 
-    <!-- 过账说明 -->
     <div class="alert alert-info">
         <i class="bi bi-info-circle"></i> 
         <strong>过账说明：</strong>过账后，凭证的状态将变为"已过账"，并且会根据凭证分录自动生成总账记录。已过账的凭证不能修改或删除。
     </div>
 
-    <!-- 过账操作 -->
     <div class="info-card">
         <h5>过账操作</h5>
         {% if voucher.total_debit != voucher.total_credit %}
@@ -135,4 +132,3 @@
     </div>
 </div>
 {% endblock %}
-

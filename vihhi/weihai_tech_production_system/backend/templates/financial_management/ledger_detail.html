@@ -14,7 +14,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-        <!-- 操作按钮 -->
+        
     <div class="text-end mb-4">
         <a href="{% url 'finance_pages:ledger_management' %}" class="btn btn-outline-secondary me-2">
             <i class="bi bi-arrow-left"></i> 返回列表
@@ -24,7 +24,6 @@
         </a>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <h5>基本信息</h5>
         <div class="info-row">
@@ -51,7 +50,6 @@
         </div>
     </div>
 
-    <!-- 余额信息 -->
     <div class="info-card">
         <h5>余额信息</h5>
         <div class="info-row">
@@ -74,7 +72,6 @@
         </div>
     </div>
 
-    <!-- 相关记录 -->
     {% if related_ledgers %}
     <div class="info-card">
         <h5>相关期间记录 (最近6个月)</h5>
@@ -114,4 +111,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

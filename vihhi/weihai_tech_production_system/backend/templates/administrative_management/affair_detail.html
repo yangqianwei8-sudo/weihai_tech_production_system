@@ -60,7 +60,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 页面标题区域 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="page-title">{{ page_title }}</h1>
@@ -96,7 +96,6 @@
         </div>
     </div>
 
-    <!-- 基本信息 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">基本信息</h5>
@@ -163,7 +162,6 @@
         </div>
     </div>
 
-    <!-- 事务内容 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">事务内容</h5>
@@ -185,7 +183,6 @@
         </div>
     </div>
 
-    <!-- 参与人员 -->
     {% if affair.participants.exists %}
     <div class="info-card">
         <div class="info-card-header">
@@ -203,7 +200,6 @@
     </div>
     {% endif %}
 
-    <!-- 时间安排 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">时间安排</h5>
@@ -234,7 +230,6 @@
         </div>
     </div>
 
-    <!-- 处理说明 -->
     {% if affair.processing_notes %}
     <div class="info-card">
         <div class="info-card-header">
@@ -248,7 +243,6 @@
     </div>
     {% endif %}
 
-    <!-- 完成说明 -->
     {% if affair.completion_notes %}
     <div class="info-card">
         <div class="info-card-header">
@@ -262,7 +256,6 @@
     </div>
     {% endif %}
 
-    <!-- 进度记录 -->
     {% if progress_records %}
     <div class="info-card">
         <div class="info-card-header">
@@ -296,7 +289,6 @@
     </div>
     {% endif %}
 
-    <!-- 状态历史 -->
     {% if status_history %}
     <div class="info-card">
         <div class="info-card-header">
@@ -342,4 +334,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

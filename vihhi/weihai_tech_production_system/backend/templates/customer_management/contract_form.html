@@ -60,7 +60,6 @@
             {{ form.non_field_errors }}
         </div>
         
-        <!-- 合同识别功能 -->
         <div class="form-section">
             <div class="form-section-header">
                 <h5>🤖 AI合同识别</h5>
@@ -94,7 +93,6 @@
             </div>
         </div>
         
-        <!-- 一、基础信息 -->
         <div class="form-section">
             <div class="form-section-header">
                 <h5>基础信息</h5>
@@ -143,7 +141,7 @@
                         <small class="form-text text-muted">YYYYMMDD-0000，系统自动生成，可手动修改，须保持唯一性</small>
                     </div>
                 </div>
-                <!-- 合同编号 -->
+                
                 <div class="col-md-3">
                     <div class="form-group">
                         <label class="form-label">合同编号</label>
@@ -211,7 +209,7 @@
                     </div>
                 </div>
         </div>
-        <!-- 签约主体 -->
+        
         <div class="form-section">
             <div class="form-section-header">
                 <h5>客户联系方式</h5>
@@ -232,7 +230,7 @@
                         </tr>
                     </thead>
                     <tbody id="parties-container">
-                        <!-- 签约主体列表将通过JavaScript动态添加 -->
+                        
                     </tbody>
                 </table>
             </div>
@@ -243,7 +241,6 @@
             </div>
         </div>
 
-        <!-- 四、服务信息 -->
         <div class="form-section">
             <div class="form-section-header">
                 <h5>服务信息</h5>
@@ -262,7 +259,7 @@
                         </tr>
                     </thead>
                     <tbody id="service-contents-container">
-                        <!-- 服务信息列表将通过JavaScript动态添加 -->
+                        
                     </tbody>
                 </table>
             </div>
@@ -273,13 +270,11 @@
             </div>
         </div>
 
-                <!-- 五、价款信息 -->
         <div class="form-section">
             <div class="form-section-header">
                 <h5>价款信息</h5>
             </div>
             
-            <!-- 结算方式选择 -->
             <div class="row" style="margin-bottom: 20px;">
                 <div class="col-md-6">
                     <div class="form-group">
@@ -293,7 +288,7 @@
                         <small class="form-text text-muted">后台引入，未选择时隐藏列表</small>
                     </div>
                 </div>            
-            <!-- 金额信息 -->
+            
             <div class="row" style="margin-bottom: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
                 <div class="col-md-3">
                     <div class="form-group">
@@ -354,11 +349,8 @@
                 </div>
             </div>
             
-
             </div>
             
-            <!-- 根据结算方式显示不同的列表 -->
-            <!-- 包干总价列表 -->
             <div id="fixed-total-list" style="display: none;">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
@@ -371,7 +363,7 @@
                             </tr>
                         </thead>
                         <tbody id="fixed-total-container">
-                            <!-- 包干总价列表将通过JavaScript动态添加 -->
+                            
                         </tbody>
                     </table>
                 </div>
@@ -382,7 +374,7 @@
                 </div>
             </div>
         </div>
-        <!-- 七、回款信息 -->
+        
         <div class="form-section">
             <div class="form-section-header">
                 <h5>回款信息</h5>
@@ -401,7 +393,7 @@
                         </tr>
                     </thead>
                     <tbody id="payment-info-container">
-                        <!-- 回款信息列表将通过JavaScript动态添加 -->
+                        
                     </tbody>
                 </table>
             </div>
@@ -411,7 +403,7 @@
                 </button>
             </div>
         </div>
-        <!-- 三、合同信息 -->
+        
         <div class="form-section">
             <div class="form-section-header">
                 <h5>合同信息</h5>
@@ -1304,7 +1296,6 @@
         }
     })();
 
-    
     // ========== 关联客户根据关联商机自动填充 ==========
     (function() {
         // 等待DOM加载完成
@@ -1500,7 +1491,6 @@
         }
     })();
 
-        
         // 从API获取联系人列表
         fetch(`/api/customer-management/get-contacts-by-client-id/?client_id=${clientId}`, {
             method: 'GET',
@@ -1920,7 +1910,6 @@
             } else {
                 initServiceContentsTable();
             }
-    
     
 // 行模板函数
             function serviceContentRowTemplate(index, data) {

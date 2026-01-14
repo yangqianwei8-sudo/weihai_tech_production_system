@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题和操作按钮 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">💬 客户反馈</h2>
@@ -27,7 +27,6 @@
         </div>
     </div>
 
-    <!-- 交付记录基本信息 - 使用样式模板 -->
     <div class="info-card info-card-fade-in mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">交付记录信息</h5>
@@ -70,7 +69,6 @@
         </div>
     </div>
 
-    <!-- 反馈表单 - 使用样式模板 -->
     {% if can_create_feedback %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -134,7 +132,6 @@
     </div>
     {% endif %}
 
-    <!-- 历史反馈记录 - 使用样式模板 -->
     {% if delivery.feedbacks.exists %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -175,7 +172,6 @@
     </div>
     {% endif %}
 
-    <!-- 交付文件清单 - 使用样式模板 -->
     {% if delivery.files.exists %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -206,4 +202,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

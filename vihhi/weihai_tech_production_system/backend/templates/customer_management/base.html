@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}维海科技信息化管理平台{% endblock %}</title>
     {% load static %}
-    <!-- Bootstrap CSS with CDN fallback -->
+    
     <link id="bootstrap-css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <link id="bootstrap-icons-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
@@ -124,7 +124,6 @@
         })();
     </script>
     
-    
                 <style>
         body {
             padding-top: 56px; /* 为固定导航栏留出空间 */
@@ -159,8 +158,6 @@
             flex-direction: column;
             gap: 4px;
         }
-        
-        
         
             padding: 8px 12px;
             font-size: 13px;
@@ -261,11 +258,6 @@
         }
     </style>
     
-    
-    
-    
-    
-
     </head>
 <body>
     {% include "shared/_top_nav.html" %}
@@ -294,9 +286,9 @@
         {% endblock %}
 
                 {% if customer_menu %}
-        {# 客户管理布局 - 使用统一样式模板，带左侧菜单 #}
+        
         <div class="workspace workspace-two-column customer-management-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
@@ -329,7 +321,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main customer-content">
         {% else %}
         <div class="workspace-content">
@@ -344,11 +335,8 @@
         </div>
         {% endif %}
         
-        
     </div>
 
-    
-    <!-- 导航栏相关JavaScript已由sidebar.js统一处理 -->
     <script>
         // Bootstrap JS fallback
         const bootstrapJs = document.getElementById('bootstrap-js');
@@ -360,10 +348,8 @@
             });
         }
     </script>
-    <!-- 导航栏折叠功能已由sidebar.js统一处理 -->
+    
     {% block extra_js %}{% endblock %}
     <script src="{% static 'js/sidebar.js' %}"></script>
 </body>
 </html>
-
-

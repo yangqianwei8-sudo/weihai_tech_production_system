@@ -1,6 +1,9 @@
 from datetime import timedelta
 
 from django.shortcuts import render, redirect
+
+# 构建探针标识（用于验证代码版本）
+BUILD_PROBE = "HOME_HDR_PROBE_20260113_1"
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, logout, authenticate
@@ -174,9 +177,13 @@ def home(request):
         from django.db.models import Count, Q, Sum
         from datetime import timedelta
         
-        # 如果未登录，重定向到登录页
+        # 如果未登录，重定向到 Django Admin 登录页（不再使用旧版 Vue SPA）
         if not request.user.is_authenticated:
-            return redirect('login')
+            resp = redirect("/admin/login/?next=/")
+            resp["X-Hit-Home-View"] = "1"
+            resp["X-Home-Branch"] = "redirect-admin-login"
+            resp["X-Build-Probe"] = "HOME_HDR_PROBE_20260113_1"
+            return resp
         
         user = request.user
         
@@ -204,7 +211,7 @@ def home(request):
         # 获取待办任务统计
         try:
             today = timezone.now().date()
-            from backend.apps.project_center.models import ProjectTask
+            from backend.apps.production_management.models import ProjectTask
             user_tasks = ProjectTask.objects.filter(
                 Q(assigned_to=user) | Q(created_by=user)
             ).exclude(status='completed')
@@ -257,7 +264,7 @@ def home(request):
         try:
             # 进行中项目数
             try:
-                from backend.apps.project_center.models import Project
+                from backend.apps.production_management.models import Project
                 active_projects = Project.objects.filter(
                     status__in=['in_progress', 'planning']
                 ).count()
@@ -328,7 +335,11 @@ def home(request):
         
         # 尝试渲染模板，如果模板不存在则返回简单HTML
         try:
-            return render(request, 'home.html', context)
+            resp = render(request, 'home.html', context)
+            resp["X-Hit-Home-View"] = "1"
+            resp["X-Home-Branch"] = "render-home"
+            resp["X-Build-Probe"] = "HOME_HDR_PROBE_20260113_1"
+            return resp
         except Exception as template_error:
             logger.warning(f'模板渲染失败，返回简单HTML: {template_error}')
             # 如果模板不存在，返回一个简单的HTML页面
@@ -375,36 +386,16 @@ def home(request):
 
 
 def login_view(request):
-    """登录页面 - 返回前端Vue登录页面，统一使用Vue登录"""
-    # 统一使用Vue登录页面，Django模板登录已暂时注释
-    # 无论是否登录，都返回前端页面，由前端路由处理登录逻辑
-    import os
-    from django.conf import settings
-    from django.http import HttpResponse
-
-    # 前端构建文件路径
-    frontend_dist_path = os.path.join(settings.BASE_DIR.parent, 'frontend', 'dist', 'index.html')
-
-    if os.path.exists(frontend_dist_path):
-        # 如果前端构建文件存在，返回前端页面
-        with open(frontend_dist_path, 'r', encoding='utf-8') as f:
-            return HttpResponse(f.read(), content_type='text/html')
-    else:
-        # 如果前端构建文件不存在，返回一个简单的提示页面
-        return HttpResponse('''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>维海科技信息化管理平台 - 登录</title>
-            <meta charset="UTF-8">
-        </head>
-        <body>
-            <h1>维海科技信息化管理平台</h1>
-            <p>前端页面未找到，请先构建前端应用。</p>
-            <p><a href="/admin/login/">访问后台管理登录</a></p>
-        </body>
-        </html>
-        ''', content_type='text/html')
+    """登录页面 - 重定向到 Django Admin 登录（已移除旧版 Vue SPA）"""
+    # P2: 彻底移除旧版 Vue SPA，不再返回 frontend/dist/index.html
+    # 所有登录请求统一重定向到 Django Admin 登录页
+    
+    # 如果已登录，重定向到首页
+    if request.user.is_authenticated:
+        return redirect('home')
+    
+    # 未登录用户重定向到 Django Admin 登录页
+    return redirect('admin:login')
 
     # ========== Django模板登录（已暂时注释）==========
     # if request.user.is_authenticated:

@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Sum, Count
 from django.utils import timezone
 from backend.apps.customer_management.models import OutputValueStage, OutputValueMilestone, OutputValueEvent, OutputValueRecord
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.system_management.models import User
 
 
@@ -251,7 +251,7 @@ def get_project_output_value_summary(project):
         dict: 包含总产值、已确认产值、产值记录等统计信息
     """
     if isinstance(project, int):
-        from backend.apps.project_center.models import Project
+        from backend.apps.production_management.models import Project
         project = Project.objects.get(id=project)
     
     records = OutputValueRecord.objects.filter(

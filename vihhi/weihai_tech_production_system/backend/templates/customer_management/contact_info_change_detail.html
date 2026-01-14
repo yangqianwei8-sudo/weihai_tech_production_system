@@ -47,7 +47,7 @@
                 <h5 class="info-card-title">{{ page_title }}</h5>
             </div>
             <div class="info-card-body">
-                <!-- 基本信息 -->
+                
                 <div class="info-section">
                     <h6 class="info-section-title">基本信息</h6>
                     <div class="info-grid info-grid-2">
@@ -86,7 +86,6 @@
                     </div>
                 </div>
                 
-                <!-- 变更内容 -->
                 {% if change_content %}
                 <div class="info-section">
                     <h6 class="info-section-title">变更内容</h6>
@@ -103,7 +102,6 @@
                 </div>
                 {% endif %}
                 
-                <!-- 审批信息 -->
                 <div class="info-section">
                     <h6 class="info-section-title">审批信息</h6>
                     <div class="info-grid info-grid-2">
@@ -134,7 +132,6 @@
                     </div>
                 </div>
                 
-                <!-- 操作按钮 -->
                 <div class="d-flex justify-content-end gap-2 mt-4">
                     <a href="{% url 'business_pages:contact_info_change_list' %}" class="btn btn-secondary">返回列表</a>
                 </div>
@@ -143,4 +140,3 @@
     </div>
 </div>
 {% endblock %}
-

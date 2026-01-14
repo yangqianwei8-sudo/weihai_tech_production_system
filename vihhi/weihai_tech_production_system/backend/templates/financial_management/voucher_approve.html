@@ -15,7 +15,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 凭证信息预览 -->
+    
     <div class="info-card mb-4">
         <h5>凭证信息</h5>
         <div class="info-row">
@@ -58,7 +58,6 @@
         </div>
     </div>
 
-    <!-- 凭证分录 -->
     {% if voucher.entries.all %}
     <div class="info-card mb-4">
         <h5>凭证分录</h5>
@@ -108,7 +107,6 @@
     </div>
     {% endif %}
 
-    <!-- 审核操作 -->
     <div class="info-card">
         <h5>审核操作</h5>
         {% if voucher.total_debit != voucher.total_credit %}
@@ -140,4 +138,3 @@
     </div>
 </div>
 {% endblock %}
-

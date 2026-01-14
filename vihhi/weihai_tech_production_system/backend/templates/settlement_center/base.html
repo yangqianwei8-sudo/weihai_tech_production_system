@@ -44,9 +44,9 @@
         </nav>
         {% endblock %}
         {% if settlement_menu %}
-        {# 结算中心布局 - 使用统一样式模板，带左侧菜单 #}
+        
         <div class="workspace workspace-two-column settlement-center-layout">
-            <!-- 左侧导航菜单 -->
+            
             <aside class="workspace-nav">
                 <nav class="sidenav">
                     <div class="sidenav-section">
@@ -79,7 +79,6 @@
                 </nav>
             </aside>
             
-            <!-- 主内容区域 -->
             <main class="workspace-main settlement-center-content">
         {% else %}
         <div class="workspace-content">
@@ -102,4 +101,3 @@
     <script src="{% static 'js/sidebar.js' %}"></script>
 </body>
 </html>
-

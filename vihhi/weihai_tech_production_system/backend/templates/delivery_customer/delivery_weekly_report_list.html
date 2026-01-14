@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">📰 每周快报</h2>
@@ -44,7 +44,6 @@
         </div>
     </div>
 
-    <!-- 筛选栏 - 使用样式模板 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">筛选条件</h5>
@@ -79,7 +78,6 @@
         </div>
     </div>
 
-    <!-- 每周快报列表 - 使用样式模板 -->
     <div class="info-card">
         <div class="info-card-header">
             <h5 class="info-card-title">每周快报列表</h5>
@@ -175,7 +173,6 @@
                 </table>
             </div>
 
-            <!-- 分页 -->
             {% if weekly_reports.has_other_pages %}
             <nav aria-label="每周快报分页">
                 <ul class="pagination justify-content-center">
@@ -224,6 +221,3 @@
     </div>
 </div>
 {% endblock %}
-
-
-

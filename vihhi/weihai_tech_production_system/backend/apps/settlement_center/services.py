@@ -11,7 +11,7 @@ from backend.apps.settlement_center.models import (
     ServiceFeeSettlementScheme, ServiceFeeSegmentedRate, ServiceFeeJumpPointRate,
     ServiceFeeUnitCapDetail
 )
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.system_management.models import User
 
 
@@ -58,7 +58,7 @@ def find_responsible_user(project, role_code):
         return User.objects.filter(roles__code='technical_manager', is_active=True).first()
     elif role_code == 'professional_engineer':
         # 从项目团队中查找专业工程师
-        from backend.apps.project_center.models import ProjectTeam
+        from backend.apps.production_management.models import ProjectTeam
         team_member = ProjectTeam.objects.filter(
             project=project,
             role='professional_engineer',
@@ -67,7 +67,7 @@ def find_responsible_user(project, role_code):
         return team_member.user if team_member else None
     elif role_code == 'professional_lead':
         # 从项目团队中查找专业负责人
-        from backend.apps.project_center.models import ProjectTeam
+        from backend.apps.production_management.models import ProjectTeam
         team_member = ProjectTeam.objects.filter(
             project=project,
             role='professional_lead',
@@ -255,7 +255,7 @@ def get_project_output_value_summary(project):
         dict: 包含总产值、已确认产值、产值记录等统计信息
     """
     if isinstance(project, int):
-        from backend.apps.project_center.models import Project
+        from backend.apps.production_management.models import Project
         project = Project.objects.get(id=project)
     
     records = OutputValueRecord.objects.filter(

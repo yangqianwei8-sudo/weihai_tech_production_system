@@ -135,7 +135,6 @@
             </h1>
         </div>
 
-        <!-- 筛选栏 -->
         <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="mb-0 small fw-semibold">筛选条件</h6>
@@ -151,7 +150,7 @@
             </div>
             <form method="get" id="filterForm">
                 <div id="basicFilters">
-                    <!-- 搜索 -->
+                    
                     <div class="filter-row mb-3" data-filter-key="search">
                         <label class="filter-label">搜索:</label>
                         <div class="filter-buttons">
@@ -160,7 +159,6 @@
                         </div>
                     </div>
                     
-                    <!-- 进入原因 -->
                     <div class="filter-row mb-3" data-filter-key="public_sea_reason">
                         <label class="filter-label">进入原因:</label>
                         <div class="filter-buttons">
@@ -176,7 +174,6 @@
                         </div>
                     </div>
                     
-                    <!-- 客户等级 -->
                     <div class="filter-row mb-3" data-filter-key="client_level">
                         <label class="filter-label">客户等级:</label>
                         <div class="filter-buttons">
@@ -192,7 +189,6 @@
                         </div>
                     </div>
                     
-                    <!-- 地区 -->
                     <div class="filter-row mb-3" data-filter-key="region">
                         <label class="filter-label">地区:</label>
                         <div class="filter-buttons">
@@ -206,7 +202,6 @@
                         </div>
                     </div>
                     
-                    <!-- 行业 -->
                     <div class="filter-row mb-3" data-filter-key="industry">
                         <label class="filter-label">行业:</label>
                         <div class="filter-buttons">
@@ -223,7 +218,6 @@
             </form>
         </div>
 
-        <!-- 数据表格 -->
         <div class="list-page-table-container">
             <div class="list-page-table-wrapper">
                 {% if page_obj %}
@@ -281,7 +275,6 @@
             </div>
         </div>
 
-        <!-- 分页 -->
         {% if page_obj and page_obj.has_other_pages %}
         <nav aria-label="分页导航" class="list-page-pagination">
             <ul class="pagination justify-content-center">
@@ -399,13 +392,11 @@ document.getElementById('clearSelection')?.addEventListener('click', function() 
 
 // 快速搜索表单提交
 </script>
-        <!-- 引入筛选字段设置功能模块 -->
-    
+        
         {% include "customer_management/includes/filter_fields_settings_modal.html" %}
     
-    <!-- 引入筛选字段设置功能模块 -->
     <script src="{% static 'js/filter-fields-settings.js' %}"></script>
-    <!-- 配置筛选字段设置功能（必须在 list-filters.js 之前） -->
+    
     <script>
     window.listFiltersConfig = {
         enableFieldsSettings: true,

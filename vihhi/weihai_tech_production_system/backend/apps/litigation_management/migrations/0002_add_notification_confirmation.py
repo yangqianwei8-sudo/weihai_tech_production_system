@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('project_center', '0025_add_notification_confirmation'),
+        ('production_management', '0001_initial'),  # 修复：project_center 已迁移到 production_management
         ('litigation_management', '0001_initial'),
     ]
 

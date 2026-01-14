@@ -117,7 +117,6 @@
         margin-right: var(--spacing-sm);
     }
     
-    
     .claim-btn {
         background: var(--vh-success);
         color: #fff;
@@ -143,7 +142,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- 统计卡片 -->
+    
     <div class="pool-stats">
         <div class="pool-stat-card">
             <div class="pool-stat-value">{{ pool_total }}</div>
@@ -155,7 +154,6 @@
         </div>
     </div>
     
-    <!-- 筛选栏 -->
     <div class="lead-filters">
         <form method="get" id="filterForm">
             <div class="filter-row">
@@ -204,7 +202,6 @@
         </form>
     </div>
     
-    <!-- 线索列表表格 -->
     {% if page_obj %}
     <div class="lead-table">
         <div class="table-responsive">
@@ -263,7 +260,6 @@
             </table>
         </div>
         
-        <!-- 分页 -->
         {% if page_obj.has_other_pages %}
         <div class="pagination-wrapper p-3">
             <div class="d-flex justify-content-between align-items-center">
@@ -342,7 +338,6 @@
             });
         }
     });
-
 
     // 事件处理器: handle_onchange_2
     document.addEventListener('DOMContentLoaded', function() {

@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('system_management', '0006_alter_user_user_type'),
-        ('project_center', '0018_add_project_tasks'),
+        ('production_management', '0001_initial'),  # 修复：project_center 已迁移到 production_management
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

@@ -2,19 +2,6 @@
 
 {% block title %}{{ page_title }} - 维海科技信息化管理平台
     
-    <!-- 引入列表筛选功能模块 -->
-    
-
-    
-    
-
-    
-    
-    
-    
-    <!-- 引入列表筛选功能模块 -->
-    
-
 {% endblock %}
 
 {% load static %}
@@ -22,45 +9,17 @@
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/list-filters.css' %}">
 
-    
-    <!-- 引入列表筛选功能模块 -->
-    
-
-    
-    
-
-    
-    
-    
-    
-    <!-- 引入列表筛选功能模块 -->
-    
-
 {% endblock %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
-
-    
-    <!-- 引入列表筛选功能模块 -->
-    
-
-    
-    
-
-    
-    
-    
-    
-    <!-- 引入列表筛选功能模块 -->
-    
 
 {% endblock %}
 
 {% block content %}
 <div class="workspace-content">
     <div class="list-page-container">
-        <!-- 页面标题区域 -->
+        
         <div class="list-page-header">
             <div>
                 <h2 class="mb-0">
@@ -76,7 +35,6 @@
             </div>
         </div>
 
-        <!-- 筛选栏区域 -->
         <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="mb-0 small fw-semibold">筛选条件</h6>
@@ -86,7 +44,7 @@
             </div>
             <form method="get" id="filterForm">
                 <div id="basicFilters" style="display: block;">
-                    <!-- 搜索 -->
+                    
                     <div class="filter-row mb-3" data-filter-key="search">
                         <label class="filter-label">搜索:</label>
                         <div class="filter-buttons">
@@ -97,7 +55,6 @@
                         </div>
                     </div>
 
-                    <!-- 客户 -->
                     <div class="filter-row mb-3" data-filter-key="client">
                         <label class="filter-label">客户:</label>
                         <div class="filter-buttons">
@@ -117,7 +74,6 @@
                         </div>
                     </div>
 
-                    <!-- 拜访类型 -->
                     <div class="filter-row mb-3" data-filter-key="visit_type">
                         <label class="filter-label">拜访类型:</label>
                         <div class="filter-buttons">
@@ -140,7 +96,6 @@
             </form>
         </div>
 
-        <!-- 操作栏 -->
         <div class="list-page-action-bar mb-3 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3">
                 <span class="text-muted small">共 <strong>{{ page_obj.paginator.count|default:0 }}</strong> 条记录</span>
@@ -155,7 +110,6 @@
             </div>
         </div>
 
-        <!-- 数据表格 -->
         <div class="list-page-table">
             {% if page_obj %}
             <div class="table-responsive">
@@ -203,7 +157,6 @@
                 </table>
             </div>
 
-            <!-- 分页 -->
             {% if page_obj.has_other_pages %}
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small">
@@ -259,25 +212,10 @@
     </div>
 </div>
 
-    
-    <!-- 引入列表筛选功能模块 -->
-    
-
-    
-    
-
-    
-    
-    
-    
-    <!-- 引入列表筛选功能模块 -->
-    
-
     {% include "customer_management/includes/filter_fields_settings_modal.html" %}
 
-    <!-- 引入筛选字段设置功能模块 -->
     <script src="{% static 'js/filter-fields-settings.js' %}"></script>
-    <!-- 配置筛选字段设置功能（必须在 list-filters.js 之前） -->
+    
     <script>
     window.listFiltersConfig = {
         enableFieldsSettings: true,
@@ -292,6 +230,6 @@
         defaultEnabledFields: ['search', 'client', 'visit_type']
     };
     </script>
-    <!-- 引入列表筛选功能模块 -->
+    
     <script src="{% static 'js/list-filters.js' %}"></script>
 {% endblock %}

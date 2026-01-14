@@ -15,7 +15,7 @@
 {% block content %}
 <div class="workspace-content">
     <div class="list-page-container">
-        <!-- 页面标题区域 -->
+        
         <div class="list-page-header">
             <div>
                 <h2 class="mb-0">
@@ -31,7 +31,6 @@
             </div>
         </div>
 
-                <!-- 筛选栏区域 -->
         <div class="list-page-filters mb-1" style="margin-bottom: 8px !important;">
             <div class="list-page-filters-header">
                 <h6 class="list-page-filters-title">筛选条件</h6>
@@ -43,7 +42,7 @@
             </div>
             <form method="get" id="filterForm">
                 <div id="basicFilters" style="display: block;">
-                    <!-- 搜索 -->
+                    
                     <div class="filter-row mb-3" data-filter-key="search">
                         <label class="filter-label">搜索:</label>
                         <div class="filter-buttons">
@@ -54,7 +53,6 @@
                         </div>
                     </div>
 
-                    <!-- 客户 -->
                     <div class="filter-row mb-3" data-filter-key="client">
                         <label class="filter-label">客户:</label>
                         <div class="filter-buttons">
@@ -74,7 +72,6 @@
                         </div>
                     </div>
 
-                    <!-- 申请类型 -->
                     <div class="filter-row mb-3" data-filter-key="task_type">
                         <label class="filter-label">申请类型:</label>
                         <div class="filter-buttons">
@@ -94,7 +91,6 @@
                         </div>
                     </div>
 
-                    <!-- 申请状态 -->
                     <div class="filter-row mb-3" data-filter-key="status">
                         <label class="filter-label">申请状态:</label>
                         <div class="filter-buttons">
@@ -114,7 +110,6 @@
                         </div>
                     </div>
 
-                    <!-- 优先级 -->
                     <div class="filter-row mb-3" data-filter-key="priority">
                         <label class="filter-label">优先级:</label>
                         <div class="filter-buttons">
@@ -134,7 +129,6 @@
                         </div>
                     </div>
 
-                    <!-- 负责人 -->
                     <div class="filter-row mb-3" data-filter-key="responsible_user">
                         <label class="filter-label">负责人:</label>
                         <div class="filter-buttons">
@@ -157,7 +151,6 @@
             </form>
         </div>
 
-        <!-- 操作栏 -->
         <div class="list-page-action-bar mb-3 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3">
                 <span class="text-muted small">共 <strong>{{ page_obj.paginator.count|default:0 }}</strong> 条记录</span>
@@ -167,7 +160,6 @@
             </div>
         </div>
 
-        <!-- 数据表格 -->
         <div class="list-page-table">
             {% if page_obj %}
             <div class="table-responsive">
@@ -231,7 +223,6 @@
                 </table>
             </div>
 
-            <!-- 分页 -->
             {% if page_obj and page_obj.has_other_pages %}
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small">
@@ -287,14 +278,12 @@
     </div>
 </div>
 
-
 {% endblock %}
 {% block extra_js %}
     {% include "customer_management/includes/filter_fields_settings_modal.html" %}
 
-    <!-- 引入筛选字段设置功能模块 -->
     <script src="{% static 'js/filter-fields-settings.js' %}"></script>
-    <!-- 配置筛选字段设置功能（必须在 list-filters.js 之前） -->
+    
     <script>
     window.listFiltersConfig = {
         enableFieldsSettings: true,
@@ -309,6 +298,6 @@
         defaultEnabledFields: ['search', 'client', 'task_type', 'status', 'priority', 'responsible_user']
     };
     </script>
-    <!-- 引入列表筛选功能模块 -->
+    
     <script src="{% static 'js/list-filters.js' %}"></script>
 {% endblock %}

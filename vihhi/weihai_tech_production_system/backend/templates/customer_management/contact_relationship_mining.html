@@ -101,11 +101,10 @@
 {% block content %}
 <div class="workspace-content">
     <div class="container-fluid py-4">
-        <!-- 搜索框 -->
+        
         <div class="mining-search-box">
             <h4 class="mb-3">🔍 关系挖掘</h4>
             
-            <!-- 搜索方式切换 -->
             <ul class="nav nav-tabs mb-3" id="searchTypeTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link {% if search_type == 'phone' or not search_type %}active{% endif %}" 
@@ -129,9 +128,8 @@
                 </li>
             </ul>
             
-            <!-- 搜索表单 -->
             <div class="tab-content" id="searchTypeContent">
-                <!-- 电话号码搜索 -->
+                
                 <div class="tab-pane fade {% if search_type == 'phone' or not search_type %}show active{% endif %}" 
                      id="phone-search" 
                      role="tabpanel">
@@ -158,7 +156,6 @@
                     </form>
                 </div>
                 
-                <!-- 客户公司搜索 -->
                 <div class="tab-pane fade {% if search_type == 'client' %}show active{% endif %}" 
                      id="client-search" 
                      role="tabpanel">
@@ -193,7 +190,7 @@
 
         {% if phone %}
             {% if target_contact %}
-                <!-- 目标人员信息 -->
+                
                 <div class="target-contact-card">
                     <h5><i class="bi bi-person-circle"></i> 目标人员信息</h5>
                     <div class="target-contact-info">
@@ -234,7 +231,6 @@
                     </div>
                 </div>
 
-                <!-- 相同教育背景的人员 -->
                 <div class="mining-result-section">
                     <div class="mining-result-card">
                         <h6>
@@ -292,7 +288,6 @@
                     </div>
                 </div>
 
-                <!-- 相同籍贯的人员 -->
                 <div class="mining-result-section">
                     <div class="mining-result-card">
                         <h6>
@@ -333,7 +328,6 @@
                     </div>
                 </div>
 
-                <!-- 相同职业信息的人员 -->
                 <div class="mining-result-section">
                     <div class="mining-result-card">
                         <h6>
@@ -385,7 +379,7 @@
                 </div>
 
             {% else %}
-                <!-- 未找到目标人员 -->
+                
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle"></i>
                     <strong>未找到匹配的联系人</strong>
@@ -395,7 +389,7 @@
         
         {% elif search_type == 'client' and client_id %}
             {% if target_client %}
-                <!-- 目标客户公司信息 -->
+                
                 <div class="target-contact-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                     <h5><i class="bi bi-building"></i> 目标客户公司信息</h5>
                     <div class="target-contact-info">
@@ -424,7 +418,6 @@
                     </div>
                 </div>
 
-                <!-- 客户公司内所有联系人 -->
                 <div class="mining-result-section">
                     <div class="mining-result-card">
                         <h6>
@@ -486,7 +479,6 @@
                     </div>
                 </div>
 
-                <!-- 客户公司关系网络 -->
                 {% if client_company_contacts %}
                 <div class="mining-result-section">
                     <div class="mining-result-card">
@@ -498,7 +490,6 @@
                             <small>以下是与该公司内联系人具有关系的外部人员（按关系评分排序）</small>
                         </p>
                         
-                        <!-- 按关系类型分组显示 -->
                         <div class="accordion" id="relationTypeAccordion">
                             {% regroup client_company_contacts by relation_type as relations_by_type %}
                             {% for relation_group in relations_by_type %}
@@ -570,7 +561,7 @@
                 {% endif %}
 
             {% else %}
-                <!-- 未找到目标客户 -->
+                
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle"></i>
                     <strong>未找到匹配的客户</strong>
@@ -579,7 +570,7 @@
             {% endif %}
         
         {% else %}
-            <!-- 初始提示 -->
+            
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i>
                 <strong>使用说明</strong>
@@ -610,4 +601,3 @@
     </div>
 </div>
 {% endblock %}
-

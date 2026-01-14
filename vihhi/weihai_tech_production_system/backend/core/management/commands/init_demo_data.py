@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from backend.apps.system_management.models import Department, DataDictionary
 from backend.apps.customer_management.models import Client, ClientContact
 from backend.apps.production_management.models import BusinessContract, BusinessPaymentPlan
-from backend.apps.project_center.models import Project, ProjectTeam
+from backend.apps.production_management.models import Project, ProjectTeam
 from django.utils import timezone
 from datetime import datetime, timedelta
 

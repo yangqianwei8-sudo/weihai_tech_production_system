@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题区域 -->
+    
     <div class="center-hero mb-4">
         <div style="position: relative; z-index: 1;">
             <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">{{ page_title }}</h1>
@@ -12,7 +12,6 @@
         </div>
     </div>
 
-    <!-- 筛选和操作栏 -->
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
@@ -49,7 +48,6 @@
         </div>
     </div>
 
-    <!-- 模板列表 -->
     <div class="card">
         <div class="card-body">
             {% if page_obj %}
@@ -114,7 +112,6 @@
                     </table>
                 </div>
                 
-                <!-- 分页 -->
                 {% if page_obj.has_other_pages %}
                 <nav aria-label="Page navigation" class="mt-4">
                     <ul class="pagination justify-content-center">
@@ -148,4 +145,3 @@
     </div>
 </div>
 {% endblock %}
-

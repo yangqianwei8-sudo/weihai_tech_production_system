@@ -1,0 +1,21 @@
+{% extends "goal_management/_base.html" %}
+{% load static %}
+
+{% block pm_title %}战略目标{% endblock %}
+{% block pm_subtitle %}<span class="pm-subtitle">查看和管理所有战略目标</span>{% endblock %}
+
+{% block pm_actions %}
+<a href="{% url 'plan_pages:strategic_goal_create' %}" class="list-btn list-btn-primary">
+  创建战略目标
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/list_layout.css' %}">
+{% endblock %}
+
+{% block pm_content %}
+  {% include "goal_management/_partials/_list_stats.html" %}
+  {% include "goal_management/_partials/_list_filters.html" %}
+  {% include "goal_management/_partials/_list_table.html" %}
+{% endblock %}

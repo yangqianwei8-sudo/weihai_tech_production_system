@@ -157,7 +157,6 @@
     <div class="container-fluid py-4">
         <h4 class="mb-4">🔔 {{ page_title }}</h4>
         
-        <!-- 统计卡片 -->
         <div class="reminder-stats">
             <div class="stat-card total">
                 <div class="stat-value">{{ stats.total }}</div>
@@ -177,7 +176,6 @@
             </div>
         </div>
         
-        <!-- 筛选栏 -->
         <div class="filter-bar">
             <form method="get" action="{% url 'business_pages:contact_tracking_reminders' %}" class="row g-3 align-items-end">
                 <div class="col-md-3">
@@ -200,7 +198,6 @@
             </form>
         </div>
         
-        <!-- 提醒列表 -->
         {% if reminders %}
             {% for reminder in reminders %}
             <div class="reminder-item {% if reminder.is_overdue %}overdue{% elif reminder.priority == 'high' %}high-priority{% elif reminder.priority == 'medium' %}medium-priority{% else %}normal-priority{% endif %}">
@@ -287,4 +284,3 @@
     </div>
 </div>
 {% endblock %}
-

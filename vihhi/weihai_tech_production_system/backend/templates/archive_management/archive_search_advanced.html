@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- 页面标题 -->
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-1">🔎 档案高级检索</h2>
@@ -24,7 +24,6 @@
         </div>
     </div>
 
-    <!-- 检索表单 -->
     <div class="info-card mb-4">
         <div class="info-card-header">
             <h5 class="info-card-title">检索条件</h5>
@@ -108,7 +107,6 @@
         </div>
     </div>
 
-    <!-- 检索结果 -->
     {% if result_count is not None %}
     <div class="info-card mb-4">
         <div class="info-card-header">
@@ -178,7 +176,6 @@
                 </table>
             </div>
 
-            <!-- 分页 -->
             {% if page.has_other_pages %}
             <nav aria-label="分页导航" class="mt-3">
                 <ul class="pagination justify-content-center">

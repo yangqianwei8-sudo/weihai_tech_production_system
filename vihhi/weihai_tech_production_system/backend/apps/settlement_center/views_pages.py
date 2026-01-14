@@ -16,7 +16,7 @@ from backend.apps.settlement_management.models import (
 # from backend.apps.production_quality.models import Opinion  # 已删除生产质量模块
 from .forms import ProjectSettlementForm, ContractSettlementForm
 from .services import get_project_output_value_for_settlement, get_project_output_value_summary
-from backend.apps.project_center.models import Project
+from backend.apps.production_management.models import Project
 from backend.apps.system_management.models import User
 from backend.apps.system_management.services import get_user_permission_codes
 from backend.core.views import _permission_granted, _build_full_top_nav
