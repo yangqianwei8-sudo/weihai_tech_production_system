@@ -56,6 +56,13 @@ def custom_index(self, request, extra_context=None):
     if '/admin/login' in current_path or '/admin/logout' in current_path:
         return _original_index(self, request, extra_context)
     
+    # ========== 限制管理后台访问：只允许admin用户 ==========
+    # 检查用户是否是admin用户（除了登录/登出页面）
+    if not (request.user.is_authenticated and (request.user.username == 'admin' or request.user.is_superuser)):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('您没有权限访问管理后台。只有系统管理员可以访问。')
+    # ========== 限制管理后台访问结束 ==========
+    
     # 权限检查：依赖 @staff_member_required 装饰器（已在 _original_index 上）
     # 移除重复的登录检查，统一使用 Django 标准的权限检查机制
     # 注意：_original_index 本身有 @staff_member_required 装饰器，会检查登录和staff权限
@@ -239,6 +246,66 @@ admin.site.get_app_list = types.MethodType(custom_get_app_list, admin.site)
 # 不再有特殊例外，学校管理页面也需要登录和staff权限
 # ========== 统一权限检查结束 ==========
 
+# ========== 限制管理后台访问：只允许admin用户 ==========
+from django.http import HttpResponseForbidden
+
+def admin_only(user):
+    """检查用户是否是admin用户"""
+    if not user or not user.is_authenticated:
+        return False
+    return user.username == 'admin' or user.is_superuser
+
+# 重写admin.site的has_permission和has_module_permission方法，确保只有admin用户可以访问
+# 使用延迟访问，避免在Django完全初始化前访问admin.site的方法
+try:
+    # 保存原始方法（如果可用）
+    _original_has_permission = admin.site.has_permission
+    _original_has_module_permission = admin.site.has_module_permission
+except AttributeError:
+    # 如果方法不存在，使用默认实现
+    def _original_has_permission(request, obj=None):
+        return request.user.is_authenticated and request.user.is_staff
+    def _original_has_module_permission(request, app_label):
+        return request.user.is_authenticated and request.user.is_staff
+
+def custom_has_permission(self, request, obj=None):
+    """自定义权限检查：只允许admin用户"""
+    if not request.user or not request.user.is_authenticated:
+        return False
+    if not admin_only(request.user):
+        return False
+    # 调用原始方法
+    try:
+        return _original_has_permission(request, obj)
+    except TypeError:
+        # 如果原始方法是实例方法，需要传入self
+        return _original_has_permission(self, request, obj)
+
+def custom_has_module_permission(self, request, app_label):
+    """自定义模块权限检查：只允许admin用户"""
+    if not request.user or not request.user.is_authenticated:
+        return False
+    if not admin_only(request.user):
+        return False
+    # 调用原始方法
+    try:
+        return _original_has_module_permission(request, app_label)
+    except TypeError:
+        # 如果原始方法是实例方法，需要传入self
+        return _original_has_module_permission(self, request, app_label)
+
+# 使用MethodType绑定方法到admin.site实例
+try:
+    admin.site.has_permission = types.MethodType(custom_has_permission, admin.site)
+    admin.site.has_module_permission = types.MethodType(custom_has_module_permission, admin.site)
+except AttributeError:
+    # 如果方法不存在，跳过（可能Django版本不支持）
+    pass
+
+# 注意：admin用户检查已经在custom_index函数内部完成（第58-62行）
+# custom_index已经在第234行被赋值给admin.site.index，无需再次赋值
+# ========== 限制管理后台访问结束 ==========
+
 # 为了兼容性，创建一个admin_site别名指向admin.site
 admin_site = admin.site
 
@@ -253,6 +320,12 @@ def custom_app_index(self, request, app_label, extra_context=None):
     """
     自定义app_index方法，为所有应用显示自定义首页
     """
+    # ========== 限制管理后台访问：只允许admin用户 ==========
+    # 检查用户是否是admin用户
+    if not (request.user.is_authenticated and (request.user.username == 'admin' or request.user.is_superuser)):
+        return HttpResponseForbidden('您没有权限访问管理后台。只有系统管理员可以访问。')
+    # ========== 限制管理后台访问结束 ==========
+    
     # 定义需要自定义首页的应用列表
     apps_with_custom_index = [
         'customer_management',

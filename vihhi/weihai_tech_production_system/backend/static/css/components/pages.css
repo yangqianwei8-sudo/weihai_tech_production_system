@@ -54,7 +54,7 @@
 }
 
 .summary-card h3 {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.5px;
     color: rgba(20, 47, 91, 0.6);
@@ -205,7 +205,7 @@
 }
 
 .task-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     margin-bottom: 8px;
     color: var(--vh-text);

@@ -28,7 +28,7 @@
   }
   
   .track-form-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #1A1A1A;
     margin: 0;
@@ -63,7 +63,7 @@
     padding: 8px 12px;
     border: 1px solid #E0E0E0;
     border-radius: 0;
-    font-size: 13px;
+    font-size: 14px;
     color: #333333;
     background: #FFFFFF;
   }
@@ -85,7 +85,7 @@
     color: #FFFFFF;
     border: 1px solid #1A1A1A;
     border-radius: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -117,7 +117,7 @@
   }
   
   .track-action-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #1A1A1A;
     margin: 0;
@@ -211,7 +211,7 @@
           <label class="track-form-label required">当前值</label>
           {{ progress_form.current_value }}
           {% if progress_form.current_value.errors %}
-          <div style="font-size: 11px; color: #999999; margin-top: 4px;">{{ progress_form.current_value.errors }}</div>
+          <div style="font-size: 12px; color: #999999; margin-top: 4px;">{{ progress_form.current_value.errors }}</div>
           {% endif %}
         </div>
         <div class="track-form-group" style="margin-bottom: 0;">
@@ -224,7 +224,7 @@
         <label class="track-form-label required">进度说明</label>
         {{ progress_form.progress_description }}
         {% if progress_form.progress_description.errors %}
-        <div style="font-size: 11px; color: #999999; margin-top: 4px;">{{ progress_form.progress_description.errors }}</div>
+        <div style="font-size: 12px; color: #999999; margin-top: 4px;">{{ progress_form.progress_description.errors }}</div>
         {% endif %}
       </div>
       
@@ -315,7 +315,7 @@
       <tr>
         <td>
           <div style="font-size: 12px; color: #333333; font-weight: 500;">{{ record.recorded_time|date:"Y-m-d" }}</div>
-          <div style="font-size: 11px; color: #999999;">{{ record.recorded_time|date:"H:i" }}</div>
+          <div style="font-size: 12px; color: #999999;">{{ record.recorded_time|date:"H:i" }}</div>
         </td>
         <td>{{ record.recorded_by.get_full_name|default:record.recorded_by.username }}</td>
         <td>
@@ -332,7 +332,7 @@
         </td>
         <td>
           {% if record.notes %}
-          <div style="font-size: 11px; color: #999999;">{{ record.notes|truncatewords:10 }}</div>
+          <div style="font-size: 12px; color: #999999;">{{ record.notes|truncatewords:10 }}</div>
           {% else %}
           <span style="color: #999999;">-</span>
           {% endif %}
@@ -375,7 +375,7 @@
       <tr>
         <td>
           <div style="font-size: 12px; color: #333333; font-weight: 500;">{{ log.changed_time|date:"Y-m-d" }}</div>
-          <div style="font-size: 11px; color: #999999;">{{ log.changed_time|date:"H:i" }}</div>
+          <div style="font-size: 12px; color: #999999;">{{ log.changed_time|date:"H:i" }}</div>
         </td>
         <td>
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -435,7 +435,7 @@
       <tr>
         <td>
           <div style="font-size: 12px; color: #333333; font-weight: 500;">{{ adjustment.created_time|date:"Y-m-d" }}</div>
-          <div style="font-size: 11px; color: #999999;">{{ adjustment.created_time|date:"H:i" }}</div>
+          <div style="font-size: 12px; color: #999999;">{{ adjustment.created_time|date:"H:i" }}</div>
         </td>
         <td>
           <span class="list-badge list-badge-{{ adjustment.status }}">{{ adjustment.get_status_display }}</span>

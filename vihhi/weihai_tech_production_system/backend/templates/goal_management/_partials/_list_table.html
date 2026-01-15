@@ -1,13 +1,3 @@
-<div class="list-action-bar">
-  <div class="list-action-left">
-    <a href="{% url 'plan_pages:strategic_goal_create' %}" class="list-btn list-btn-primary">
-      创建目标
-    </a>
-  </div>
-  <div class="list-action-right">
-    <span>共 {{ total_count|default:0 }} 条记录</span>
-  </div>
-</div>
 
 <div class="list-table-container">
   <table class="list-table">
@@ -94,7 +84,7 @@
   </div>
   <div class="list-pagination-nav">
     {% if goals.has_previous %}
-    <a href="?page={{ goals.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if goal_type_filter %}&goal_type={{ goal_type_filter }}{% endif %}{% if goal_period_filter %}&goal_period={{ goal_period_filter }}{% endif %}{% if responsible_filter %}&responsible={{ responsible_filter }}{% endif %}" class="list-pagination-btn">上一页</a>
+    <a href="?page={{ goals.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.goal_type %}&goal_type={{ request.GET.goal_type }}{% endif %}{% if request.GET.goal_period %}&goal_period={{ request.GET.goal_period }}{% endif %}{% if request.GET.responsible %}&responsible={{ request.GET.responsible }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="list-pagination-btn">上一页</a>
     {% else %}
     <span class="list-pagination-btn disabled">上一页</span>
     {% endif %}
@@ -103,12 +93,12 @@
     {% if goals.number == num %}
     <span class="list-pagination-btn active">{{ num }}</span>
     {% elif num > goals.number|add:'-3' and num < goals.number|add:'3' %}
-    <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if goal_type_filter %}&goal_type={{ goal_type_filter }}{% endif %}{% if goal_period_filter %}&goal_period={{ goal_period_filter }}{% endif %}{% if responsible_filter %}&responsible={{ responsible_filter }}{% endif %}" class="list-pagination-btn">{{ num }}</a>
+    <a href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.goal_type %}&goal_type={{ request.GET.goal_type }}{% endif %}{% if request.GET.goal_period %}&goal_period={{ request.GET.goal_period }}{% endif %}{% if request.GET.responsible %}&responsible={{ request.GET.responsible }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="list-pagination-btn">{{ num }}</a>
     {% endif %}
     {% endfor %}
     
     {% if goals.has_next %}
-    <a href="?page={{ goals.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if goal_type_filter %}&goal_type={{ goal_type_filter }}{% endif %}{% if goal_period_filter %}&goal_period={{ goal_period_filter }}{% endif %}{% if responsible_filter %}&responsible={{ responsible_filter }}{% endif %}" class="list-pagination-btn">下一页</a>
+    <a href="?page={{ goals.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.goal_type %}&goal_type={{ request.GET.goal_type }}{% endif %}{% if request.GET.goal_period %}&goal_period={{ request.GET.goal_period }}{% endif %}{% if request.GET.responsible %}&responsible={{ request.GET.responsible }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="list-pagination-btn">下一页</a>
     {% else %}
     <span class="list-pagination-btn disabled">下一页</span>
     {% endif %}

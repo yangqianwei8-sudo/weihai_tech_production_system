@@ -60,7 +60,7 @@
   align-items: center;
   gap: 12px;
   color: #666666;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* 筛选器区域 */
@@ -96,7 +96,7 @@
   border: 1px solid #E0E0E0;
   border-radius: 0;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: 14px;
   color: #333333;
   background: #FFFFFF;
 }
@@ -160,7 +160,7 @@
 
 .list-table tbody td {
   padding: 12px 16px;
-  font-size: 13px;
+  font-size: 14px;
   color: #333333;
   vertical-align: middle;
 }
@@ -175,11 +175,23 @@
   text-decoration: underline;
 }
 
+/* 表格中的 code 标签样式（目标编号等） */
+.list-table tbody td code,
+.list-table code {
+  background: #F5F5F5;
+  padding: 2px 6px;
+  border-radius: 0;
+  font-size: 12px;
+  color: #333333;
+  border: 1px solid #E0E0E0;
+  font-family: inherit;
+}
+
 /* 状态徽章 */
 .list-badge {
   display: inline-block;
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   border-radius: 0;
   border: 1px solid #E0E0E0;

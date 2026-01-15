@@ -27,6 +27,22 @@ def _permission_granted(required_code, user_permissions: set) -> bool:
         return True
     if isinstance(required_code, str) and required_code.endswith('.view_assigned'):
         return required_code.replace('view_assigned', 'view_all') in user_permissions
+    
+    # 特殊处理：计划管理模块的权限检查
+    # 如果要求 plan_management.view，但用户有审批权限，也允许显示菜单
+    if required_code == 'plan_management.view':
+        # 检查是否有任何计划管理相关权限（包括审批权限）
+        plan_permissions = [
+            'plan_management.view',
+            'plan_management.approve',
+            'plan_management.approve_plan',
+            'plan_management.plan.view',
+            'plan_management.goal.view',
+        ]
+        for perm in plan_permissions:
+            if perm in user_permissions:
+                return True
+    
     return False
 
 HOME_ACTION_DEFINITIONS = [
@@ -65,7 +81,7 @@ HOME_NAV_STRUCTURE = [
     {'label': '任务协作', 'icon': '🤝', 'url_name': 'collaboration_pages:task_board', 'permission': 'task_collaboration.view'},
     {'label': '收发管理', 'icon': '📦', 'url_name': 'delivery_pages:report_delivery', 'permission': 'delivery_center.view'},
     {'label': '档案管理', 'icon': '📁', 'url_name': 'archive_management:archive_list', 'permission': 'archive_management.view'},
-    {'label': '计划管理', 'icon': '📅', 'url_name': 'plan_pages:plan_list', 'permission': 'plan_management.view'},
+    {'label': '计划管理', 'icon': '📅', 'url_name': 'plan_pages:plan_management_home', 'permission': 'plan_management.view'},
     {'label': '诉讼管理', 'icon': '⚖️', 'url_name': 'litigation_pages:litigation_home', 'permission': 'litigation_management.view'},
     {'label': '风险管理', 'icon': '⚠️', 'url_name': '#', 'permission': 'risk_management.view'},  # 占位，待实现
     {'label': '财务管理', 'icon': '💵', 'url_name': 'finance_pages:financial_home', 'permission': 'financial_management.view'},
@@ -177,11 +193,12 @@ def home(request):
         from django.db.models import Count, Q, Sum
         from datetime import timedelta
         
-        # 如果未登录，重定向到 Django Admin 登录页（不再使用旧版 Vue SPA）
+        # 如果未登录，重定向到前端登录页面
         if not request.user.is_authenticated:
-            resp = redirect("/admin/login/?next=/")
+            next_url = request.path
+            resp = redirect(f"/login/?next={next_url}")
             resp["X-Hit-Home-View"] = "1"
-            resp["X-Home-Branch"] = "redirect-admin-login"
+            resp["X-Home-Branch"] = "redirect-frontend-login"
             resp["X-Build-Probe"] = "HOME_HDR_PROBE_20260113_1"
             return resp
         
@@ -326,6 +343,7 @@ def home(request):
             'user': user,
             'is_superuser': getattr(user, 'is_superuser', False),
             'centers_navigation': centers_navigation,
+            'full_top_nav': centers_navigation,  # 顶部导航菜单（与计划管理模块一致）
             'pending_counts': pending_counts,
             'approval_stats': approval_stats,
             'delivery_stats': delivery_stats,
@@ -385,55 +403,55 @@ def home(request):
             return redirect('login')
 
 
+def dashboard(request):
+    """总工作台首页 - 与home视图功能相同"""
+    # 直接调用home视图的逻辑
+    return home(request)
+
+
 def login_view(request):
-    """登录页面 - 重定向到 Django Admin 登录（已移除旧版 Vue SPA）"""
-    # P2: 彻底移除旧版 Vue SPA，不再返回 frontend/dist/index.html
-    # 所有登录请求统一重定向到 Django Admin 登录页
+    """前端登录页面 - 与管理后台登录分开"""
+    from django.contrib.auth import authenticate, login as auth_login
     
     # 如果已登录，重定向到首页
     if request.user.is_authenticated:
+        next_url = request.GET.get('next', 'home')
+        # 如果next参数指向admin，重定向到admin首页
+        if next_url and ('admin' in next_url or next_url.startswith('/admin')):
+            return redirect('admin:index')
         return redirect('home')
     
-    # 未登录用户重定向到 Django Admin 登录页
-    return redirect('admin:login')
-
-    # ========== Django模板登录（已暂时注释）==========
-    # if request.user.is_authenticated:
-    #     # 已登录用户，根据next参数决定重定向目标
-    #     next_url = request.GET.get('next', '')
-    #     if next_url and ('admin' in next_url or next_url.startswith('/admin')):
-    #         return redirect('admin:index')
-    #     else:
-    #         return redirect('home')  # 重定向到前端首页
-    #
-    # if request.method == 'POST':
-    #     username = request.POST.get('username')
-    #     password = request.POST.get('password')
-    #
-    #     if username and password:
-    #         user = authenticate(request, username=username, password=password)
-    #         if user:
-    #             if user.is_active:
-    #                 login(request, user)
-    #                 if not user.profile_completed:
-    #                     return redirect('complete_profile')
-    #                 
-    #                 # 根据next参数决定重定向目标
-    #                 next_url = request.GET.get('next', 'home')
-    #                 if next_url and ('admin' in next_url or next_url.startswith('/admin')):
-    #                     # 如果next包含admin，重定向到后台管理
-    #                     return redirect('admin:index')
-    #                 else:
-    #                     # 否则重定向到前端首页
-    #                     return redirect('home')
-    #             else:
-    #                 messages.error(request, '用户账户已被禁用')
-    #         else:
-    #             messages.error(request, '用户名或密码错误')
-    #     else:
-    #         messages.error(request, '请输入用户名和密码')
-    #
-    # return render(request, 'login.html')
+    # 处理POST请求（登录表单提交）
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        if username and password:
+            user = authenticate(request, username=username, password=password)
+            if user:
+                if user.is_active:
+                    auth_login(request, user)
+                    # 检查是否需要完善资料
+                    # if not user.profile_completed:
+                    #     return redirect('complete_profile')  # 已注释：禁用资料完善页面
+                    
+                    # 根据next参数决定重定向目标
+                    next_url = request.GET.get('next', 'home')
+                    if next_url and ('admin' in next_url or next_url.startswith('/admin')):
+                        # 如果next包含admin，重定向到后台管理
+                        return redirect('admin:index')
+                    else:
+                        # 否则重定向到前端首页
+                        return redirect('home')
+                else:
+                    messages.error(request, '用户账户已被禁用')
+            else:
+                messages.error(request, '用户名或密码错误')
+        else:
+            messages.error(request, '请输入用户名和密码')
+    
+    # GET请求：渲染前端登录页面
+    return render(request, 'login.html')
 
 
 def logout_view(request):

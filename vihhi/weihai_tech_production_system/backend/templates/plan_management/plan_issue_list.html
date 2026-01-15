@@ -60,7 +60,7 @@
     padding: 8px 12px;
     border: 1px solid #E0E0E0;
     border-radius: 0;
-    font-size: 13px;
+    font-size: 14px;
     color: #333333;
     background: #FFFFFF;
   }
@@ -78,7 +78,7 @@
     color: #FFFFFF;
     border: 1px solid #1A1A1A;
     border-radius: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -109,7 +109,7 @@
         <label class="issue-form-label required">问题标题</label>
         {{ issue_form.title }}
         {% if issue_form.title.errors %}
-        <div style="font-size: 11px; color: #999999; margin-top: 4px;">{{ issue_form.title.errors }}</div>
+        <div style="font-size: 12px; color: #999999; margin-top: 4px;">{{ issue_form.title.errors }}</div>
         {% endif %}
       </div>
       
@@ -117,7 +117,7 @@
         <label class="issue-form-label required">问题描述</label>
         {{ issue_form.description }}
         {% if issue_form.description.errors %}
-        <div style="font-size: 11px; color: #999999; margin-top: 4px;">{{ issue_form.description.errors }}</div>
+        <div style="font-size: 12px; color: #999999; margin-top: 4px;">{{ issue_form.description.errors }}</div>
         {% endif %}
       </div>
       

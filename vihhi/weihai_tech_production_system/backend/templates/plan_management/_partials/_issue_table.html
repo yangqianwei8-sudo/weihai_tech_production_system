@@ -15,7 +15,7 @@
       <tr>
         <td>
           <div style="font-weight: 500; margin-bottom: 4px;">{{ issue.title }}</div>
-          <div style="font-size: 11px; color: #999999;">{{ issue.description|truncatewords:10 }}</div>
+          <div style="font-size: 12px; color: #999999;">{{ issue.description|truncatewords:10 }}</div>
         </td>
         <td>
           <span class="list-badge list-badge-{{ issue.severity }}">
@@ -35,7 +35,7 @@
           {% endif %}
         </td>
         <td>
-          <div style="font-size: 11px; color: #666666;">
+          <div style="font-size: 12px; color: #666666;">
             {{ issue.discovered_time|date:"Y-m-d H:i" }}
           </div>
         </td>

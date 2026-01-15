@@ -18,19 +18,27 @@
 <div class="list-stats">
   <div class="list-stat-card">
     <div class="list-stat-label">目标总数</div>
-    <div class="list-stat-value">{{ goals|length|default:0 }}</div>
+    <div class="list-stat-value">{{ total_count|default:0 }}</div>
   </div>
   <div class="list-stat-card">
-    <div class="list-stat-label">可跟踪目标</div>
-    <div class="list-stat-value">{{ trackable_goals|length|default:0 }}</div>
+    <div class="list-stat-label">制定中</div>
+    <div class="list-stat-value">{{ draft_count|default:0 }}</div>
   </div>
   <div class="list-stat-card">
-    <div class="list-stat-label">不可跟踪</div>
-    <div class="list-stat-value">
-      {% with total=goals|length trackable=trackable_goals|length %}
-        {{ total|add:"-"|add:trackable }}
-      {% endwith %}
-    </div>
+    <div class="list-stat-label">已发布</div>
+    <div class="list-stat-value">{{ published_count|default:0 }}</div>
+  </div>
+  <div class="list-stat-card">
+    <div class="list-stat-label">执行中</div>
+    <div class="list-stat-value">{{ in_progress_count|default:0 }}</div>
+  </div>
+  <div class="list-stat-card">
+    <div class="list-stat-label">已完成</div>
+    <div class="list-stat-value">{{ completed_count|default:0 }}</div>
+  </div>
+  <div class="list-stat-card">
+    <div class="list-stat-label">已取消</div>
+    <div class="list-stat-value">{{ cancelled_count|default:0 }}</div>
   </div>
 </div>
 
@@ -73,12 +81,12 @@
         <td>
           {{ goal.responsible_person.get_full_name|default:goal.responsible_person.username }}
           {% if goal.responsible_department %}
-          <div style="font-size: 11px; color: #999999;">{{ goal.responsible_department.name }}</div>
+          <div style="font-size: 12px; color: #999999;">{{ goal.responsible_department.name }}</div>
           {% endif %}
         </td>
         <td>
           {% if goal.start_date and goal.end_date %}
-          <div style="font-size: 11px; color: #666666;">
+          <div style="font-size: 12px; color: #666666;">
             {{ goal.start_date|date:"Y-m-d" }}<br>
             {{ goal.end_date|date:"Y-m-d" }}
           </div>
@@ -91,7 +99,7 @@
             <div class="list-progress-fill" style="width: {{ goal.completion_rate }}%"></div>
             <span class="list-progress-text">{{ goal.completion_rate }}%</span>
           </div>
-          <div style="font-size: 11px; color: #999999; margin-top: 4px;">
+          <div style="font-size: 12px; color: #999999; margin-top: 4px;">
             {{ goal.current_value }}{% if goal.indicator_unit %} {{ goal.indicator_unit }}{% endif %} / {{ goal.target_value }}{% if goal.indicator_unit %} {{ goal.indicator_unit }}{% endif %}
           </div>
         </td>

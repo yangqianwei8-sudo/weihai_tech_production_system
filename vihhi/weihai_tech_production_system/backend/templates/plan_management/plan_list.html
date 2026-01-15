@@ -4,6 +4,12 @@
 {% block pm_title %}计划列表{% endblock %}
 {% block pm_subtitle %}<span class="pm-subtitle">查看和管理所有计划</span>{% endblock %}
 
+{% block pm_actions %}
+<a href="{% url 'plan_pages:plan_create' %}" class="list-btn list-btn-primary">
+  创建计划
+</a>
+{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/components/list_layout.css' %}">
 <style>

@@ -39,7 +39,7 @@
     border: 1px solid #E0E0E0;
     border-radius: 0;
     padding: 6px 10px;
-    font-size: 13px;
+    font-size: 14px;
     color: #333333;
     background: #FFFFFF;
     width: 100%;
@@ -174,7 +174,7 @@
   }
   
   .analysis-empty-text {
-    font-size: 13px;
+    font-size: 14px;
     color: #999999;
   }
   
@@ -217,8 +217,8 @@
       <select name="goal_period" class="analysis-filter-input">
         <option value="">全部周期</option>
         <option value="annual" {% if goal_period == 'annual' %}selected{% endif %}>年度目标</option>
-        <option value="three_year" {% if goal_period == 'three_year' %}selected{% endif %}>三年目标</option>
-        <option value="five_year" {% if goal_period == 'five_year' %}selected{% endif %}>五年目标</option>
+        <option value="half_year" {% if goal_period == 'half_year' %}selected{% endif %}>半年目标</option>
+        <option value="quarterly" {% if goal_period == 'quarterly' %}selected{% endif %}>季度目标</option>
       </select>
     </div>
     <div class="analysis-filter-group analysis-filter-actions">
@@ -332,7 +332,7 @@
               {{ goal.name }}
             </a>
             {% if goal.description %}
-            <div style="font-size: 11px; color: #666666; margin-top: 4px;">{{ goal.description|truncatewords:10 }}</div>
+            <div style="font-size: 12px; color: #666666; margin-top: 4px;">{{ goal.description|truncatewords:10 }}</div>
             {% endif %}
           </td>
           <td>
@@ -347,7 +347,7 @@
           <td>
             <div style="font-size: 12px; color: #333333;">{{ goal.responsible_person.get_full_name|default:goal.responsible_person.username }}</div>
             {% if goal.responsible_department %}
-            <div style="font-size: 11px; color: #666666; margin-top: 4px;">{{ goal.responsible_department.name }}</div>
+            <div style="font-size: 12px; color: #666666; margin-top: 4px;">{{ goal.responsible_department.name }}</div>
             {% endif %}
           </td>
           <td>
@@ -385,7 +385,7 @@
               {{ goal.name }}
             </a>
             {% if goal.description %}
-            <div style="font-size: 11px; color: #666666; margin-top: 4px;">{{ goal.description|truncatewords:10 }}</div>
+            <div style="font-size: 12px; color: #666666; margin-top: 4px;">{{ goal.description|truncatewords:10 }}</div>
             {% endif %}
           </td>
           <td>
@@ -400,7 +400,7 @@
           <td>
             <div style="font-size: 12px; color: #333333;">{{ goal.responsible_person.get_full_name|default:goal.responsible_person.username }}</div>
             {% if goal.responsible_department %}
-            <div style="font-size: 11px; color: #666666; margin-top: 4px;">{{ goal.responsible_department.name }}</div>
+            <div style="font-size: 12px; color: #666666; margin-top: 4px;">{{ goal.responsible_department.name }}</div>
             {% endif %}
           </td>
           <td>
@@ -445,8 +445,8 @@ const typeMap = {
 
 const periodMap = {
     'annual': '年度目标',
-    'three_year': '三年目标',
-    'five_year': '五年目标'
+    'half_year': '半年目标',
+    'quarterly': '季度目标'
 };
 
 const statusCtx = document.getElementById('statusChart').getContext('2d');

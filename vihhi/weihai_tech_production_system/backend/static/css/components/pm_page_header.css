@@ -13,7 +13,7 @@
 .pm-page-header-title-wrapper {
   position: relative;
   display: flex !important;
-  align-items: baseline !important;
+  align-items: flex-end !important;
   gap: 12px !important;
   flex: 1;
   min-width: 0;
@@ -34,7 +34,7 @@
 }
 
 .pm-page-header .pm-subtitle {
-  font-size: 11px !important;
+  font-size: 12px !important;
   color: #999999 !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -42,7 +42,6 @@
   font-weight: 400;
   display: inline-block !important;
   line-height: 1.2;
-  vertical-align: baseline;
 }
 
 .pm-page-header .pm-subtitle span {

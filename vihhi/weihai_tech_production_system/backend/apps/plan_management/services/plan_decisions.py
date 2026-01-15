@@ -119,10 +119,20 @@ def decide(decision_id: int, user, approve: bool, reason: str | None = None) -> 
     if decision.decided_at is not None:
         raise PlanDecisionError("该裁决已处理，不能重复裁决")
 
-    # 这里先复用现有权限体系：最小可行做法
-    # 你们若已有"裁决权限"，替换成对应 has_perm
-    if not user.is_superuser and not user.has_perm("plan_management.change_plan"):
-        raise PermissionDenied("无裁决权限")
+    # 权限检查：使用业务权限 plan_management.approve_plan
+    from backend.apps.system_management.services import get_user_permission_codes
+    permission_set = get_user_permission_codes(user)
+    
+    # 检查是否有审批权限
+    # 超级用户或拥有全部权限的用户可以直接审批
+    has_approve_permission = (
+        user.is_superuser or 
+        '__all__' in permission_set or
+        'plan_management.approve_plan' in permission_set
+    )
+    
+    if not has_approve_permission:
+        raise PermissionDenied("无裁决权限，需要 plan_management.approve_plan 权限")
 
     decision.decision = "approve" if approve else "reject"
     decision.decided_by = user

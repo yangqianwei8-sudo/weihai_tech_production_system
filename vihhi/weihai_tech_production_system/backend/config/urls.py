@@ -4,7 +4,7 @@ from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
 from backend.core.api_views import api_root, api_docs
-from backend.core.views import home, health_check, login_view, logout_view, favicon_view, test_admin_page, django_service_control
+from backend.core.views import home, dashboard, health_check, login_view, logout_view, favicon_view, test_admin_page, django_service_control
 from backend.apps.system_management import views_registration as registration_views
 
 from backend.core.dashboard_views import dashboard_stats, dashboard_todos
@@ -35,12 +35,13 @@ admin_site.site_url = '/'
 
 urlpatterns = [
     path('', home, name='home'),
+    path('dashboard/', dashboard, name='dashboard'),
     path('favicon.ico', favicon_view, name='favicon'),
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
     path('register/', registration_views.register, name='register'),
     path('register/submitted/', registration_views.registration_submitted, name='registration_submitted'),
-    path('profile/complete/', registration_views.complete_profile, name='complete_profile'),
+    # path('profile/complete/', registration_views.complete_profile, name='complete_profile'),  # 已注释：禁用资料完善页面
     path('health/', health_check, name='health-check'),
     path('api/service/control/', django_service_control, name='django_service_control'),
     path('test-admin/', test_admin_page, name='test-admin'),
@@ -97,7 +98,12 @@ urlpatterns = [
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:
     # 开发环境：Django 开发服务器提供静态文件
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # 使用 STATICFILES_DIRS 而不是 STATIC_ROOT，因为开发模式下文件在 STATICFILES_DIRS 中
+    if settings.STATICFILES_DIRS and len(settings.STATICFILES_DIRS) > 0:
+        urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+    else:
+        # 如果没有 STATICFILES_DIRS，回退到 STATIC_ROOT
+        urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     
     # P2: 已移除旧版 Vue SPA 静态资源服务
     # 不再提供 frontend/dist 下的 js/css/img 等静态资源

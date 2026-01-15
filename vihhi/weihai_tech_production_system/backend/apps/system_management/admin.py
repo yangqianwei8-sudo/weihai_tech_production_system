@@ -89,11 +89,21 @@ class RoleAdmin(BaseModelAdmin):
     def get_actions(self, request):
         """自定义批量操作名称"""
         actions = super().get_actions(request)
-        # 重命名批量操作
+        # 重命名批量操作（元组不可变，需要创建新元组）
         if 'activate_items' in actions:
-            actions['activate_items'][1] = '激活选中的角色'
+            old_action = actions['activate_items']
+            actions['activate_items'] = (
+                old_action[0],  # 函数对象
+                old_action[1],  # 函数名
+                '激活选中的角色'  # 新的显示名称
+            )
         if 'deactivate_items' in actions:
-            actions['deactivate_items'][1] = '停用选中的角色'
+            old_action = actions['deactivate_items']
+            actions['deactivate_items'] = (
+                old_action[0],  # 函数对象
+                old_action[1],  # 函数名
+                '停用选中的角色'  # 新的显示名称
+            )
         return actions
 
 

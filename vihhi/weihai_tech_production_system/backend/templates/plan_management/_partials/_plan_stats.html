@@ -4,6 +4,10 @@
     <div class="list-stat-value">{{ total_count|default:0 }}</div>
   </div>
   <div class="list-stat-card">
+    <div class="list-stat-label">草稿</div>
+    <div class="list-stat-value">{{ draft_count|default:0 }}</div>
+  </div>
+  <div class="list-stat-card">
     <div class="list-stat-label">执行中</div>
     <div class="list-stat-value">{{ in_progress_count|default:0 }}</div>
   </div>

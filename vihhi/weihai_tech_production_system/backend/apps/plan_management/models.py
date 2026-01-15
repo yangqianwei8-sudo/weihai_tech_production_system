@@ -23,8 +23,8 @@ class StrategicGoal(models.Model):
     
     GOAL_PERIOD_CHOICES = [
         ('annual', '年度目标'),
-        ('three_year', '三年目标'),
-        ('five_year', '五年目标'),
+        ('half_year', '半年目标'),
+        ('quarterly', '季度目标'),
     ]
     
     STATUS_CHOICES = [
@@ -463,8 +463,10 @@ class Plan(models.Model):
         StrategicGoal,
         on_delete=models.PROTECT,
         related_name='related_plans',
+        null=True,
+        blank=True,
         verbose_name='关联战略目标',
-        help_text='必填，选择关联的战略目标'
+        help_text='选择关联的战略目标（可选）'
     )
     alignment_score = models.DecimalField(
         max_digits=5,
@@ -554,6 +556,24 @@ class Plan(models.Model):
         help_text='用于计划分解'
     )
     notes = models.TextField(blank=True, verbose_name='备注')
+    
+    # 公司和组织部门（用于数据隔离）
+    company = models.ForeignKey(
+        'system_management.OurCompany',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='plans',
+        verbose_name='公司'
+    )
+    org_department = models.ForeignKey(
+        Department,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='org_plans',
+        verbose_name='部门'
+    )
     
     # 进度信息
     progress = models.DecimalField(
@@ -687,9 +707,13 @@ class Plan(models.Model):
         super().save(*args, **kwargs)
     
     def get_valid_transitions(self):
-        """获取有效的状态转换（P1：只支持 4 状态）"""
+        """
+        获取有效的状态转换（P1：只支持 4 状态）
+        
+        注意：draft -> in_progress 必须通过审批流程（PlanDecision），不能直接转换
+        """
         transitions = {
-            'draft': ['in_progress', 'cancelled'],
+            'draft': ['cancelled'],  # 移除 'in_progress'，必须通过审批
             'in_progress': ['completed', 'cancelled'],
             'completed': [],
             'cancelled': [],
@@ -764,6 +788,28 @@ class PlanStatusLog(models.Model):
     
     def __str__(self):
         return f"{self.plan.plan_number} - {self.old_status} → {self.new_status}"
+    
+    def get_old_status_display(self):
+        """获取原状态的中文显示"""
+        STATUS_CHOICES = [
+            ('draft', '草稿'),
+            ('in_progress', '执行中'),
+            ('completed', '已完成'),
+            ('cancelled', '已取消'),
+        ]
+        status_dict = dict(STATUS_CHOICES)
+        return status_dict.get(self.old_status, self.old_status)
+    
+    def get_new_status_display(self):
+        """获取新状态的中文显示"""
+        STATUS_CHOICES = [
+            ('draft', '草稿'),
+            ('in_progress', '执行中'),
+            ('completed', '已完成'),
+            ('cancelled', '已取消'),
+        ]
+        status_dict = dict(STATUS_CHOICES)
+        return status_dict.get(self.new_status, self.new_status)
 
 
 class PlanProgressRecord(models.Model):
@@ -1004,52 +1050,8 @@ class PlanIssue(models.Model):
         return f"{self.plan.plan_number} - {self.title}"
 
 
-class PlanApproval(models.Model):
-    """计划审批记录"""
-    STATUS_CHOICES = [
-        ('pending', '待审批'),
-        ('approved', '已批准'),
-        ('rejected', '已拒绝'),
-    ]
-    
-    plan = models.ForeignKey(
-        Plan,
-        on_delete=models.CASCADE,
-        related_name='approvals',
-        verbose_name='计划'
-    )
-    approval_node = models.CharField(max_length=100, verbose_name='审批节点')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='审批状态')
-    approval_opinion = models.TextField(verbose_name='审批意见')
-    approval_notes = models.TextField(blank=True, verbose_name='审批说明')
-    
-    # 审批人
-    approved_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='approved_plans',
-        verbose_name='审批人'
-    )
-    approved_time = models.DateTimeField(null=True, blank=True, verbose_name='审批时间')
-    
-    # 系统字段
-    created_time = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
-    updated_time = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-    
-    class Meta:
-        db_table = 'plan_plan_approval'
-        verbose_name = '计划审批记录'
-        verbose_name_plural = verbose_name
-        ordering = ['-created_time']
-        indexes = [
-            models.Index(fields=['plan', '-created_time']),
-            models.Index(fields=['status']),
-        ]
-    
-    def __str__(self):
-        return f"{self.plan.plan_number} - {self.approval_node} - {self.get_status_display()}"
+# PlanApproval 模型已被迁移 0003 删除，不再使用
+# 审批功能已由 PlanDecision 模型替代
 
 
 class PlanDecision(models.Model):

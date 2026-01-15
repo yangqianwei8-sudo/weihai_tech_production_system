@@ -9,9 +9,14 @@
   {% include "plan_management/_sidebar.html" %}
 {% endblock %}
 
+{% block top_nav %}
+  {% include "shared/_top_nav.html" %}
+{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/components/sidebar_legacy_hide.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/list_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/navigation.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/pm_page_header.css' %}">
 <style>
   .plan-content-wrapper {

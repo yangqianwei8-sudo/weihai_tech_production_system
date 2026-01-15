@@ -1,5 +1,5 @@
 // 计划管理页面标题区域样式自动修复脚本
-// 确保副标题显示在主标题右侧，并添加灰色线条，按钮位于线条右上角
+// 确保副标题显示在主标题右侧（右下角），底部对齐，并添加灰色线条，按钮位于线条右上角
 
 (function() {
   function applySubtitleFix() {
@@ -9,7 +9,7 @@
     if (wrapper) {
       // 强制应用flex布局
       wrapper.style.setProperty('display', 'flex', 'important');
-      wrapper.style.setProperty('align-items', 'baseline', 'important');
+      wrapper.style.setProperty('align-items', 'flex-end', 'important');
       wrapper.style.setProperty('gap', '12px', 'important');
       wrapper.style.setProperty('padding-bottom', '8px', 'important');
       wrapper.style.setProperty('border-bottom', '1px solid #E0E0E0', 'important');
@@ -28,7 +28,6 @@
         subtitle.style.setProperty('margin', '0', 'important');
         subtitle.style.setProperty('padding', '0', 'important');
         subtitle.style.setProperty('line-height', '1.2', 'important');
-        subtitle.style.setProperty('vertical-align', 'baseline', 'important');
       }
     }
     

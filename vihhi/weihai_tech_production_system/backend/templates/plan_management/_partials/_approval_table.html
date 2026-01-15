@@ -20,7 +20,7 @@
             {{ d.plan.name|default:"(未命名计划)" }}
           </a>
           {% if d.plan.description %}
-          <div style="font-size: 11px; color: #999999; margin-top: 4px;">
+          <div style="font-size: 12px; color: #999999; margin-top: 4px;">
             {{ d.plan.description|truncatewords:10 }}
           </div>
           {% endif %}
@@ -35,13 +35,13 @@
             {{ d.requested_by.get_full_name|default:d.requested_by.username|default:"-" }}
           </div>
           {% if d.plan.responsible_person %}
-          <div style="font-size: 11px; color: #999999; margin-top: 2px;">
+          <div style="font-size: 12px; color: #999999; margin-top: 2px;">
             负责人：{{ d.plan.responsible_person.get_full_name|default:d.plan.responsible_person.username }}
           </div>
           {% endif %}
         </td>
         <td>
-          <div style="font-size: 11px; color: #666666;">
+          <div style="font-size: 12px; color: #666666;">
             {{ d.requested_at|date:"Y-m-d" }}<br>
             {{ d.requested_at|date:"H:i" }}
           </div>
@@ -76,7 +76,7 @@
 
 {% if can_approve %}
 <div style="background: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 0; padding: 16px; margin-top: 16px;">
-  <div style="font-size: 13px; color: #666666; margin-bottom: 8px; font-weight: 600;">审批说明：</div>
+  <div style="font-size: 14px; color: #666666; margin-bottom: 8px; font-weight: 600;">审批说明：</div>
   <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #666666; line-height: 1.8;">
     <li>点击"通过"通过请求，计划将进入下一状态</li>
     <li>点击"驳回"驳回请求，计划将保持当前状态</li>

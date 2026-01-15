@@ -164,6 +164,11 @@
 </style>
 {% endblock %}
 
+{% block extra_js %}
+<script src="{% static 'js/goal_form_date_calculator.js' %}"></script>
+{% endblock %}
+
+
 {% block pm_content %}
 <div class="form-container">
   {% include "goal_management/_partials/_form_errors.html" %}

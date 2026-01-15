@@ -8,7 +8,7 @@ from django.db.models import Sum
 from datetime import datetime, date
 from .models import (
     StrategicGoal, GoalProgressRecord, GoalAdjustment,
-    Plan, PlanProgressRecord, PlanIssue
+    Plan, PlanProgressRecord, PlanIssue, PlanAdjustment
 )
 from backend.apps.system_management.models import User, Department
 from backend.apps.production_management.models import Project
@@ -56,7 +56,8 @@ class StrategicGoalForm(forms.ModelForm):
         widgets = {
             'goal_number': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '留空将自动生成，例如：GOAL-20250101-0001'
+                'readonly': True,
+                'placeholder': '系统自动生成'
             }),
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -178,15 +179,85 @@ class StrategicGoalForm(forms.ModelForm):
         # 设置关联项目查询集
         self.fields['related_projects'].queryset = Project.objects.all()
         
+        # 目标编号字段处理：完全由系统自动生成，不允许修改
+        self.fields['goal_number'].widget.attrs['readonly'] = True
+        self.fields['goal_number'].required = False
+        if self.instance and self.instance.pk:
+            # 编辑时：显示已有编号，不允许修改
+            self.fields['goal_number'].widget.attrs['placeholder'] = '系统自动生成，不可修改'
+        else:
+            # 新建时：显示提示信息，系统会自动生成
+            self.fields['goal_number'].widget.attrs['placeholder'] = '系统将自动生成'
+        
         # 如果是编辑，设置初始值
         if self.instance and self.instance.pk:
             self.fields['participants'].initial = self.instance.participants.all()
             self.fields['related_projects'].initial = self.instance.related_projects.all()
         else:
-            # 新建时，设置日期字段默认值为当天
+            # 新建时，设置开始日期默认为当天
             today = date.today()
             self.fields['start_date'].initial = today
-            self.fields['end_date'].initial = today
+            
+            # 根据目标周期自动计算结束日期
+            goal_period = self.data.get('goal_period') or self.initial.get('goal_period')
+            if goal_period:
+                end_date = self._calculate_end_date_by_period(today, goal_period)
+                self.fields['end_date'].initial = end_date
+            else:
+                # 如果没有选择目标周期，默认设置为当天（用户选择周期后会通过JavaScript更新）
+                self.fields['end_date'].initial = today
+    
+    def _calculate_end_date_by_period(self, start_date, goal_period):
+        """根据目标周期计算结束日期"""
+        from datetime import timedelta
+        from calendar import monthrange
+        
+        if goal_period == 'annual':
+            # 年度目标：开始日期后1年减1天
+            try:
+                end_year = start_date.year + 1
+                end_month = start_date.month
+                end_day = start_date.day
+                # 处理2月29日的情况
+                if end_month == 2 and end_day == 29:
+                    end_day = 28
+                return date(end_year, end_month, end_day) - timedelta(days=1)
+            except ValueError:
+                # 如果日期无效，返回开始日期后365天
+                return start_date + timedelta(days=365) - timedelta(days=1)
+        elif goal_period == 'half_year':
+            # 半年目标：开始日期后6个月减1天
+            try:
+                end_year = start_date.year
+                end_month = start_date.month + 6
+                if end_month > 12:
+                    end_year += 1
+                    end_month -= 12
+                # 确保日期有效（处理月末日期）
+                max_day = monthrange(end_year, end_month)[1]
+                end_day = min(start_date.day, max_day)
+                return date(end_year, end_month, end_day) - timedelta(days=1)
+            except ValueError:
+                # 如果日期无效，返回开始日期后180天
+                return start_date + timedelta(days=180) - timedelta(days=1)
+        elif goal_period == 'quarterly':
+            # 季度目标：开始日期后3个月减1天
+            try:
+                end_year = start_date.year
+                end_month = start_date.month + 3
+                if end_month > 12:
+                    end_year += 1
+                    end_month -= 12
+                # 确保日期有效（处理月末日期）
+                max_day = monthrange(end_year, end_month)[1]
+                end_day = min(start_date.day, max_day)
+                return date(end_year, end_month, end_day) - timedelta(days=1)
+            except ValueError:
+                # 如果日期无效，返回开始日期后90天
+                return start_date + timedelta(days=90) - timedelta(days=1)
+        else:
+            # 默认返回开始日期
+            return start_date
     
     def clean(self):
         cleaned_data = super().clean()
@@ -197,6 +268,13 @@ class StrategicGoalForm(forms.ModelForm):
         indicator_type = cleaned_data.get('indicator_type')
         weight = cleaned_data.get('weight')
         goal_period = cleaned_data.get('goal_period')
+        goal_number = cleaned_data.get('goal_number')
+        
+        # 编辑时，确保目标编号不被修改
+        if self.instance and self.instance.pk:
+            if goal_number and goal_number != self.instance.goal_number:
+                # 如果用户尝试修改目标编号，恢复为原值
+                cleaned_data['goal_number'] = self.instance.goal_number
         
         # 验证日期范围
         if start_date and end_date:
@@ -244,6 +322,9 @@ class StrategicGoalForm(forms.ModelForm):
     
     def save(self, commit=True):
         instance = super().save(commit=False)
+        
+        # 新建时，如果目标编号为空，系统会自动生成（在模型的save方法中）
+        # 编辑时，目标编号不可修改，保持原值
         
         if commit:
             instance.save()
@@ -504,10 +585,76 @@ class PlanForm(forms.ModelForm):
             if self.instance.end_time:
                 self.fields['end_time'].initial = self.instance.end_time.date()
         else:
-            # 新建时，设置日期字段默认值为当天
+            # 新建时，设置开始日期默认为当天
             today = date.today()
             self.fields['start_time'].initial = today
-            self.fields['end_time'].initial = today
+            
+            # 根据计划周期自动计算结束日期
+            plan_period = self.data.get('plan_period') or self.initial.get('plan_period')
+            if plan_period:
+                end_date = self._calculate_end_date_by_period(today, plan_period)
+                self.fields['end_time'].initial = end_date
+            else:
+                # 如果没有选择计划周期，默认设置为当天（用户选择周期后会通过JavaScript更新）
+                self.fields['end_time'].initial = today
+    
+    def _calculate_end_date_by_period(self, start_date, plan_period):
+        """根据计划周期计算结束日期"""
+        from datetime import timedelta
+        from calendar import monthrange
+        
+        if plan_period == 'yearly':
+            # 年计划：开始日期后1年减1天
+            try:
+                end_year = start_date.year + 1
+                end_month = start_date.month
+                end_day = start_date.day
+                # 处理2月29日的情况
+                if end_month == 2 and end_day == 29:
+                    end_day = 28
+                return date(end_year, end_month, end_day) - timedelta(days=1)
+            except ValueError:
+                # 如果日期无效，返回开始日期后365天
+                return start_date + timedelta(days=365) - timedelta(days=1)
+        elif plan_period == 'quarterly':
+            # 季度计划：开始日期后3个月减1天
+            try:
+                end_year = start_date.year
+                end_month = start_date.month + 3
+                if end_month > 12:
+                    end_year += 1
+                    end_month -= 12
+                # 确保日期有效（处理月末日期）
+                max_day = monthrange(end_year, end_month)[1]
+                end_day = min(start_date.day, max_day)
+                return date(end_year, end_month, end_day) - timedelta(days=1)
+            except ValueError:
+                # 如果日期无效，返回开始日期后90天
+                return start_date + timedelta(days=90) - timedelta(days=1)
+        elif plan_period == 'monthly':
+            # 月计划：开始日期后1个月减1天
+            try:
+                end_year = start_date.year
+                end_month = start_date.month + 1
+                if end_month > 12:
+                    end_year += 1
+                    end_month -= 12
+                # 确保日期有效（处理月末日期）
+                max_day = monthrange(end_year, end_month)[1]
+                end_day = min(start_date.day, max_day)
+                return date(end_year, end_month, end_day) - timedelta(days=1)
+            except ValueError:
+                # 如果日期无效，返回开始日期后30天
+                return start_date + timedelta(days=30) - timedelta(days=1)
+        elif plan_period == 'weekly':
+            # 周计划：开始日期后7天减1天（即6天后）
+            return start_date + timedelta(days=6)
+        elif plan_period == 'daily':
+            # 日计划：开始日期当天（即结束日期等于开始日期）
+            return start_date
+        else:
+            # 默认返回开始日期
+            return start_date
     
     def clean(self):
         cleaned_data = super().clean()
@@ -693,5 +840,94 @@ class PlanIssueForm(forms.ModelForm):
             instance.created_by = self.user
         if commit:
             instance.save()
+        return instance
+
+
+class PlanAdjustmentForm(forms.ModelForm):
+    """计划调整申请表单"""
+    
+    class Meta:
+        model = PlanAdjustment
+        fields = [
+            'adjustment_reason',
+            'adjustment_content',
+            'new_end_time',
+        ]
+        widgets = {
+            'adjustment_reason': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': '4',
+                'placeholder': '请输入调整原因',
+                'required': True
+            }),
+            'adjustment_content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': '4',
+                'placeholder': '请输入调整内容',
+                'required': True
+            }),
+            'new_end_time': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'placeholder': '请选择新的截止时间'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.plan = kwargs.pop('plan', None)
+        super().__init__(*args, **kwargs)
+        
+        # 如果有关联的计划，设置默认的新截止时间
+        if self.plan and self.plan.end_time:
+            # 将datetime转换为datetime-local格式（YYYY-MM-DDTHH:mm）
+            end_time = self.plan.end_time
+            if timezone.is_aware(end_time):
+                end_time = timezone.localtime(end_time)
+            dt_str = end_time.strftime('%Y-%m-%dT%H:%M')
+            self.fields['new_end_time'].initial = dt_str
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        new_end_time = cleaned_data.get('new_end_time')
+        
+        if not self.plan:
+            raise ValidationError('计划信息缺失')
+        
+        # 验证新截止时间必须晚于原截止时间
+        if new_end_time and self.plan.end_time:
+            # 将datetime转换为timezone-aware进行比较
+            if timezone.is_naive(new_end_time):
+                new_end_time = timezone.make_aware(new_end_time)
+            
+            if new_end_time <= self.plan.end_time:
+                raise ValidationError({
+                    'new_end_time': '新截止时间必须晚于原截止时间'
+                })
+        
+        # 验证计划状态：只有执行中的计划可以申请调整
+        if self.plan.status != 'in_progress':
+            raise ValidationError('只有执行中的计划可以申请调整')
+        
+        # 检查是否已有待审批的调整申请
+        pending_adjustment = PlanAdjustment.objects.filter(
+            plan=self.plan,
+            status='pending'
+        ).exists()
+        
+        if pending_adjustment:
+            raise ValidationError('该计划已有待审批的调整申请，请等待审批完成后再提交新的申请')
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.plan:
+            instance.plan = self.plan
+            # 记录原截止时间
+            instance.original_end_time = self.plan.end_time
+        
+        if commit:
+            instance.save()
+        
         return instance
 

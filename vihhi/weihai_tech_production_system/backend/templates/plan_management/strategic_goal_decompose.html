@@ -150,7 +150,7 @@
   }
   
   .goal-card-number {
-    font-size: 11px;
+    font-size: 12px;
     color: #999999;
     font-family: monospace;
   }
@@ -164,7 +164,7 @@
   .goal-card-badge {
     padding: 3px 8px;
     border-radius: 0;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     background: #F5F5F5;
     color: #666666;
@@ -190,7 +190,7 @@
   
   .goal-card-action {
     padding: 4px 8px;
-    font-size: 11px;
+    font-size: 12px;
     border: 1px solid #E0E0E0;
     background: #FFFFFF;
     color: #666666;
@@ -251,7 +251,7 @@
     padding: 8px 12px;
     border: 1px solid #E0E0E0;
     border-radius: 0;
-    font-size: 13px;
+    font-size: 14px;
     color: #333333;
     background: #FFFFFF;
   }
@@ -263,7 +263,7 @@
   }
   
   .decompose-form-hint {
-    font-size: 11px;
+    font-size: 12px;
     color: #999999;
     margin-top: 4px;
   }
@@ -275,7 +275,7 @@
     color: #FFFFFF;
     border: 1px solid #1A1A1A;
     border-radius: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -300,7 +300,7 @@
   }
   
   .decompose-stats-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #1A1A1A;
     margin: 0;
@@ -373,16 +373,33 @@
                   
                   <div class="goal-card-badges">
                     <span class="goal-card-badge">{{ goal_item.get_goal_type_display }}</span>
+                    <span class="goal-card-badge">{{ goal_item.get_goal_period_display }}</span>
                     <span class="goal-card-badge">{{ goal_item.get_status_display }}</span>
                   </div>
                   
                   <div class="goal-card-info">
+                    <span style="margin-right: 16px;">
+                      <strong>指标名称：</strong>{{ goal_item.indicator_name }}{% if goal_item.indicator_unit %} ({{ goal_item.indicator_unit }}){% endif %}
+                    </span>
                     <span style="margin-right: 16px;">
                       <strong>目标值：</strong>{{ goal_item.target_value }}{% if goal_item.indicator_unit %} {{ goal_item.indicator_unit }}{% endif %}
                     </span>
                     {% if goal_item.weight > 0 %}
                     <span>
                       <strong>权重：</strong>{{ goal_item.weight }}%
+                    </span>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="goal-card-info">
+                    {% if goal_item.start_date %}
+                    <span style="margin-right: 16px;">
+                      <strong>开始日期：</strong>{{ goal_item.start_date|date:"Y-m-d" }}
+                    </span>
+                    {% endif %}
+                    {% if goal_item.end_date %}
+                    <span style="margin-right: 16px;">
+                      <strong>结束日期：</strong>{{ goal_item.end_date|date:"Y-m-d" }}
                     </span>
                     {% endif %}
                   </div>
