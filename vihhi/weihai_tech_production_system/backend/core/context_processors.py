@@ -79,3 +79,22 @@ def sidebar_menu(request):
         # 只记录警告，不抛出异常，避免导致 503 错误
         logger.warning(f'获取左侧菜单失败: {e}', exc_info=True)
         return {'sidebar_menu': []}
+
+
+def notification_widget(request):
+    """
+    上下文处理器：为所有模板提供通知组件脚本引用
+    
+    使用方式：
+    1. 在 settings.py 的 TEMPLATES['OPTIONS']['context_processors'] 中添加：
+       'backend.core.context_processors.notification_widget',
+    2. 在基础模板的 </body> 标签前添加：
+       {% if notification_widget_enabled %}
+       <script src="{% static 'js/notification_widget.js' %}"></script>
+       {% endif %}
+    """
+    # 如果用户未登录，不启用通知组件
+    if not request or not hasattr(request, 'user') or not request.user.is_authenticated:
+        return {'notification_widget_enabled': False}
+    
+    return {'notification_widget_enabled': True}

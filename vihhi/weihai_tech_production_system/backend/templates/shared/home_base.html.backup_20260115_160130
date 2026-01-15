@@ -62,32 +62,7 @@
 {% endblock %}
 
 {% block top_nav %}
-  {% comment %}总工作台顶部栏 - 简化版（无导航菜单）{% endcomment %}
-  <nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'home' %}">
-            <i class="bi bi-building"></i> 维海科技
-        </a>
-        <div class="navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <span class="nav-link">{{ user.get_full_name|default:user.username }}</span>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'logout' %}">退出</a>
-                </li>
-                {% else %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'login' %}">
-                        <i class="bi bi-box-arrow-in-right"></i> 登录
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
-    </div>
-  </nav>
+  {% include "shared/_top_nav.html" %}
 {% endblock %}
 
 

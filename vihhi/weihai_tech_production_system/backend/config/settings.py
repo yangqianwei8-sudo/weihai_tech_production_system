@@ -99,6 +99,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'backend.core.context_processors.sidebar_menu',  # 自动提供当前模块的左侧菜单
+                'backend.core.context_processors.notification_widget',  # 通知组件
             ],
         },
     },

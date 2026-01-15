@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
-from backend.core.api_views import api_root, api_docs
+from backend.core.api_views import api_root, api_docs, notification_list, mark_notification_read
 from backend.core.views import home, dashboard, health_check, login_view, logout_view, favicon_view, test_admin_page, django_service_control
 from backend.apps.system_management import views_registration as registration_views
 
@@ -55,6 +55,9 @@ urlpatterns = [
     path('admin/', admin_site.urls),
     path('api/', api_root, name='api-root'),
     path('api/docs/', api_docs, name='api-docs'),
+    # 通知API
+    path('api/notifications/', notification_list, name='notification_list'),
+    path('api/notifications/mark-read/', mark_notification_read, name='mark_notification_read'),
     # 仪表盘API
     path('api/admin/dashboard/stats/', dashboard_stats, name='dashboard_stats'),
     path('api/admin/dashboard/todos/', dashboard_todos, name='dashboard_todos'),
