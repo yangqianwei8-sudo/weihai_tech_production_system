@@ -23,7 +23,7 @@
 
   .pm-top-action-btn {
     padding: 8px 16px;
-    background: #007BFF;
+    background: #333333;
     color: #FFFFFF;
     border: none;
     border-radius: 4px;
@@ -34,7 +34,7 @@
   }
 
   .pm-top-action-btn:hover {
-    background: #0056B3;
+    background: #1A1A1A;
     color: #FFFFFF;
     text-decoration: none;
   }
@@ -174,19 +174,19 @@
   .pm-warning-item, .pm-todo-item {
     padding: 12px;
     margin-bottom: 8px;
-    border-left: 3px solid #FFC107;
-    background: #FFFBF0;
+    border-left: 3px solid #666666;
+    background: #F5F5F5;
     border-radius: 4px;
   }
 
   .pm-warning-item.overdue {
-    border-left-color: #DC3545;
-    background: #FFF5F5;
+    border-left-color: #333333;
+    background: #F5F5F5;
   }
 
   .pm-todo-item {
-    border-left-color: #007BFF;
-    background: #F0F8FF;
+    border-left-color: #333333;
+    background: #F5F5F5;
   }
 
   .pm-item-title {
@@ -202,7 +202,7 @@
   }
 
   .pm-item-link {
-    color: #007BFF;
+    color: #333333;
     text-decoration: none;
   }
 
@@ -270,7 +270,7 @@
 
   .pm-activity-item {
     padding: 12px 0;
-    border-bottom: 1px solid #F0F0F0;
+    border-bottom: 1px solid #E5E5E5;
   }
 
   .pm-activity-item:last-child {
@@ -304,101 +304,101 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // 计划状态分布饼图
-  {% if plan_status_dist %}
-  const planCtx = document.getElementById('planStatusChart');
-  if (planCtx) {
-    const planData = {
-      labels: [
-        {% for status_code, status_data in plan_status_dist.items %}
-        '{{ status_data.label }}'{% if not forloop.last %},{% endif %}
-        {% endfor %}
-      ],
-      datasets: [{
-        data: [
-          {% for status_code, status_data in plan_status_dist.items %}
-          {{ status_data.count }}{% if not forloop.last %},{% endif %}
-          {% endfor %}
-        ],
-        backgroundColor: [
-          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
-        ]
-      }]
-    };
-    new Chart(planCtx, {
-      type: 'pie',
-      data: planData,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom'
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = ((value / total) * 100).toFixed(1);
-                return label + ': ' + value + ' (' + percentage + '%)';
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-  {% endif %}
+  {# // 计划状态分布饼图 #}
+  {#   {% if plan_status_dist %} #}
+  {#   const planCtx = document.getElementById('planStatusChart'); #}
+  {#   if (planCtx) { #}
+  {#     const planData = { #}
+  {#       labels: [ #}
+  {#         {% for status_code, status_data in plan_status_dist.items %} #}
+  {#         '{{ status_data.label }}'{% if not forloop.last %},{% endif %} #}
+  {#         {% endfor %} #}
+  {#       ], #}
+  {#       datasets: [{ #}
+  {#         data: [ #}
+  {#           {% for status_code, status_data in plan_status_dist.items %} #}
+  {#           {{ status_data.count }}{% if not forloop.last %},{% endif %} #}
+  {#           {% endfor %} #}
+  {#         ], #}
+  {#         backgroundColor: [ #}
+  {#           '#666666', '#999999', '#CCCCCC', '#333333', '#1A1A1A' #}
+  {#         ] #}
+  {#       }] #}
+  {#     }; #}
+  {#     new Chart(planCtx, { #}
+  {#       type: 'pie', #}
+  {#       data: planData, #}
+  {#       options: { #}
+  {#         responsive: true, #}
+  {#         maintainAspectRatio: false, #}
+  {#         plugins: { #}
+  {#           legend: { #}
+  {#             position: 'bottom' #}
+  {#           }, #}
+  {#           tooltip: { #}
+  {#             callbacks: { #}
+  {#               label: function(context) { #}
+  {#                 const label = context.label || ''; #}
+  {#                 const value = context.parsed || 0; #}
+  {#                 const total = context.dataset.data.reduce((a, b) => a + b, 0); #}
+  {#                 const percentage = ((value / total) * 100).toFixed(1); #}
+  {#                 return label + ': ' + value + ' (' + percentage + '%)'; #}
+  {#               } #}
+  {#             } #}
+  {#           } #}
+  {#         } #}
+  {#       } #}
+  {#     }); #}
+  {#   } #}
+  {#   {% endif %} #}
 
-  // 目标状态分布饼图
-  {% if goal_status_dist %}
-  const goalCtx = document.getElementById('goalStatusChart');
-  if (goalCtx) {
-    const goalData = {
-      labels: [
-        {% for status_code, status_data in goal_status_dist.items %}
-        '{{ status_data.label }}'{% if not forloop.last %},{% endif %}
-        {% endfor %}
-      ],
-      datasets: [{
-        data: [
-          {% for status_code, status_data in goal_status_dist.items %}
-          {{ status_data.count }}{% if not forloop.last %},{% endif %}
-          {% endfor %}
-        ],
-        backgroundColor: [
-          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
-        ]
-      }]
-    };
-    new Chart(goalCtx, {
-      type: 'pie',
-      data: goalData,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom'
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.parsed || 0;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = ((value / total) * 100).toFixed(1);
-                return label + ': ' + value + ' (' + percentage + '%)';
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-  {% endif %}
+  {# // 目标状态分布饼图 #}
+  {#   {% if goal_status_dist %} #}
+  {#   const goalCtx = document.getElementById('goalStatusChart'); #}
+  {#   if (goalCtx) { #}
+  {#     const goalData = { #}
+  {#       labels: [ #}
+  {#         {% for status_code, status_data in goal_status_dist.items %} #}
+  {#         '{{ status_data.label }}'{% if not forloop.last %},{% endif %} #}
+  {#         {% endfor %} #}
+  {#       ], #}
+  {#       datasets: [{ #}
+  {#         data: [ #}
+  {#           {% for status_code, status_data in goal_status_dist.items %} #}
+  {#           {{ status_data.count }}{% if not forloop.last %},{% endif %} #}
+  {#           {% endfor %} #}
+  {#         ], #}
+  {#         backgroundColor: [ #}
+  {#           '#666666', '#999999', '#CCCCCC', '#333333', '#1A1A1A' #}
+  {#         ] #}
+  {#       }] #}
+  {#     }; #}
+  {#     new Chart(goalCtx, { #}
+  {#       type: 'pie', #}
+  {#       data: goalData, #}
+  {#       options: { #}
+  {#         responsive: true, #}
+  {#         maintainAspectRatio: false, #}
+  {#         plugins: { #}
+  {#           legend: { #}
+  {#             position: 'bottom' #}
+  {#           }, #}
+  {#           tooltip: { #}
+  {#             callbacks: { #}
+  {#               label: function(context) { #}
+  {#                 const label = context.label || ''; #}
+  {#                 const value = context.parsed || 0; #}
+  {#                 const total = context.dataset.data.reduce((a, b) => a + b, 0); #}
+  {#                 const percentage = ((value / total) * 100).toFixed(1); #}
+  {#                 return label + ': ' + value + ' (' + percentage + '%)'; #}
+  {#               } #}
+  {#             } #}
+  {#           } #}
+  {#         } #}
+  {#       } #}
+  {#     }); #}
+  {#   } #}
+  {#   {% endif %} #}
 });
 </script>
 {% endblock %}
@@ -414,8 +414,8 @@ document.addEventListener('DOMContentLoaded', function() {
     </a>
     {% endfor %}
   </div>
+  {#   {% endif %} #}
   {% endif %}
-
   <!-- 第二行：核心指标卡片（6个） -->
   {% if core_cards %}
   <div class="pm-core-cards">
@@ -432,32 +432,32 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
   {% endif %}
 
-  <!-- 第三行：状态分布统计（左右分栏） -->
-  <div class="pm-stats-row">
-    <!-- 左侧：计划状态分布 -->
-    <div class="pm-stats-card">
-      <div class="pm-stats-card-title">计划状态分布</div>
-      {% if plan_status_dist %}
-      <div class="pm-chart-container">
-        <canvas id="planStatusChart"></canvas>
-      </div>
-      {% else %}
-      <div class="pm-empty">暂无数据</div>
-      {% endif %}
-    </div>
+  {# <!-- 第三行：状态分布统计（左右分栏） --> #}
+  {#   <div class="pm-stats-row"> #}
+  {#     <!-- 左侧：计划状态分布 --> #}
+  {#     <div class="pm-stats-card"> #}
+  {#       <div class="pm-stats-card-title">计划状态分布</div> #}
+  {#       {% if plan_status_dist %} #}
+  {#       <div class="pm-chart-container"> #}
+  {#         <canvas id="planStatusChart"></canvas> #}
+  {#       </div> #}
+  {#       {% else %} #}
+  {#       <div class="pm-empty">暂无数据</div> #}
+  {#       {% endif %} #}
+  {#     </div> #}
 
-    <!-- 右侧：目标状态分布 -->
-    <div class="pm-stats-card">
-      <div class="pm-stats-card-title">目标状态分布</div>
-      {% if goal_status_dist %}
-      <div class="pm-chart-container">
-        <canvas id="goalStatusChart"></canvas>
-      </div>
-      {% else %}
-      <div class="pm-empty">暂无数据</div>
-      {% endif %}
-    </div>
-  </div>
+  {#     <!-- 右侧：目标状态分布 --> #}
+  {#     <div class="pm-stats-card"> #}
+  {#       <div class="pm-stats-card-title">目标状态分布</div> #}
+  {#       {% if goal_status_dist %} #}
+  {#       <div class="pm-chart-container"> #}
+  {#         <canvas id="goalStatusChart"></canvas> #}
+  {#       </div> #}
+  {#       {% else %} #}
+  {#       <div class="pm-empty">暂无数据</div> #}
+  {#       {% endif %} #}
+  {#     </div> #}
+  {#   </div> #}
 
   <!-- 第四行：风险预警与待办（左右分栏） -->
   <div class="pm-stats-row">
@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="pm-card-title">
         风险预警
         {% if overdue_plans_count or stale_plans_count %}
-        <span style="font-size: 12px; color: #DC3545; margin-left: 8px;">
+        <span style="font-size: 12px; color: #333333; margin-left: 8px;">
           (逾期 {{ overdue_plans_count|default:0 }} | 未更新 {{ stale_plans_count|default:0 }})
         </span>
         {% endif %}
@@ -496,9 +496,13 @@ document.addEventListener('DOMContentLoaded', function() {
     <!-- 右侧：待办事项 -->
     <div class="pm-todo-card">
       <div class="pm-card-title">
-        待办事项
+        {% if todo_summary_url %}
+          <a href="{{ todo_summary_url }}" style="color: inherit; text-decoration: none;">待办事项</a>
+        {% else %}
+          待办事项
+        {% endif %}
         {% if pending_approval_count or upcoming_deadline_count or stale_goals_count %}
-        <span style="font-size: 12px; color: #007BFF; margin-left: 8px;">
+        <span style="font-size: 12px; color: #333333; margin-left: 8px;">
           (待审批 {{ pending_approval_count|default:0 }} | 即将到期 {{ upcoming_deadline_count|default:0 }} | 需更新 {{ stale_goals_count|default:0 }})
         </span>
         {% endif %}
@@ -509,14 +513,43 @@ document.addEventListener('DOMContentLoaded', function() {
         <li class="pm-todo-item">
           <div class="pm-item-title">
             <a href="{{ item.url }}" class="pm-item-link">{{ item.title }}</a>
+            {% if item.plan_number or item.goal_number %}
+            <span style="font-size: 11px; color: #999; margin-left: 8px;">
+              ({% if item.plan_number %}{{ item.plan_number }}{% elif item.goal_number %}{{ item.goal_number }}{% endif %})
+            </span>
+            {% endif %}
           </div>
           <div class="pm-item-meta">
             {% if item.type == 'approval' %}
-            {{ item.request_type }} | {{ item.time|date:"Y-m-d H:i" }}
+            <div style="margin-bottom: 4px;">
+              <strong>{{ item.request_type }}</strong> | 
+              {% if item.plan_type %}{{ item.plan_type }} | {% endif %}
+              申请人：{{ item.requested_by }} | {{ item.time|date:"Y-m-d H:i" }}
+            </div>
+            <div style="font-size: 12px; color: #666;">
+              负责人：{{ item.responsible }}{% if item.department %} | 部门：{{ item.department }}{% endif %}
+              {% if item.related_goal %} | 关联目标：{{ item.related_goal }}{% endif %}
+            </div>
             {% elif item.type == 'deadline' %}
-            负责人：{{ item.responsible }} | {{ item.deadline }} 到期（剩余 {{ item.days_left }} 天）
+            <div style="margin-bottom: 4px;">
+              <strong>{{ item.deadline }} 到期</strong>（剩余 {{ item.days_left }} 天）
+              {% if item.progress is not None %} | 进度：{{ item.progress }}%{% endif %}
+            </div>
+            <div style="font-size: 12px; color: #666;">
+              负责人：{{ item.responsible }}{% if item.department %} | 部门：{{ item.department }}{% endif %}
+              {% if item.plan_type %} | {{ item.plan_type }}{% endif %}
+              {% if item.related_goal %} | 关联目标：{{ item.related_goal }}{% endif %}
+            </div>
             {% elif item.type == 'goal_update' %}
-            负责人：{{ item.responsible }} | {{ item.days }} 天未更新
+            <div style="margin-bottom: 4px;">
+              <strong>{{ item.days }} 天未更新</strong>
+              {% if item.status %} | 状态：{{ item.status }}{% endif %}
+              {% if item.completion_rate is not None %} | 完成率：{{ item.completion_rate }}%{% endif %}
+            </div>
+            <div style="font-size: 12px; color: #666;">
+              负责人：{{ item.responsible }}{% if item.department %} | 部门：{{ item.department }}{% endif %}
+              {% if item.goal_type %} | {{ item.goal_type }}{% endif %}
+            </div>
             {% endif %}
           </div>
         </li>
@@ -532,7 +565,13 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="pm-stats-row">
     <!-- 左侧：我的工作 -->
     <div class="pm-my-work-card">
-      <div class="pm-card-title">我的工作</div>
+      <div class="pm-card-title">
+        {% if my_work.summary_url %}
+          <a href="{{ my_work.summary_url }}" style="color: inherit; text-decoration: none;">我的工作</a>
+        {% else %}
+          我的工作
+        {% endif %}
+      </div>
       
       {% if my_work %}
       <!-- 我负责的计划 -->
