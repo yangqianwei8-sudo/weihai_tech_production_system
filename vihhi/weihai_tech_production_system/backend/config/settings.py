@@ -289,8 +289,9 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 AUTH_USER_MODEL = 'system_management.User'
 
 # Login settings
-# P2: 彻底移除旧版 Vue SPA，统一使用 Django Admin 登录
-LOGIN_URL = '/admin/login/'
+# 使用自定义登录页面（/login/），而不是 Django Admin 登录页面
+# 这样当用户未登录访问受保护页面时，会重定向到自定义登录页
+LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/login/'
 

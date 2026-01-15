@@ -179,7 +179,7 @@
   }
   
   .goal-card-info strong {
-    color: #333333;
+    color: var(--vh-primary); /* 主题深蓝色 */
     font-weight: 600;
   }
   
@@ -252,7 +252,7 @@
     border: 1px solid #E0E0E0;
     border-radius: 0;
     font-size: 14px;
-    color: #333333;
+    color: var(--vh-primary); /* 主题深蓝色 */
     background: #FFFFFF;
   }
   
@@ -283,7 +283,7 @@
   
   .decompose-form-submit:hover {
     background: #333333;
-    border-color: #333333;
+    border-color: var(--vh-primary); /* 主题深蓝色 */
   }
   
   .decompose-stats-card {
@@ -317,7 +317,7 @@
   }
   
   .decompose-stats-item strong {
-    color: #333333;
+    color: var(--vh-primary); /* 主题深蓝色 */
     font-weight: 600;
   }
   
@@ -449,7 +449,7 @@
           
           <div class="decompose-form-group">
             <label class="decompose-form-label required">分解方式</label>
-            <select name="goal_type" class="decompose-form-input" id="goalTypeSelect" required>
+            <select name="goal_type" class="form-control" id="goalTypeSelect" required>
               <option value="">请选择</option>
               <option value="department">按部门分解</option>
               <option value="personal">按个人分解</option>
@@ -459,7 +459,7 @@
           
           <div class="decompose-form-group" id="departmentSelectDiv" style="display: none;">
             <label class="decompose-form-label required">选择部门</label>
-            <select name="department_id" class="decompose-form-input" id="departmentSelect">
+            <select name="department_id" class="form-control" id="departmentSelect">
               <option value="">请选择部门</option>
               {% for dept in departments %}
               <option value="{{ dept.id }}">{{ dept.name }}</option>
@@ -469,7 +469,7 @@
           
           <div class="decompose-form-group" id="userSelectDiv" style="display: none;">
             <label class="decompose-form-label required">选择负责人</label>
-            <select name="responsible_id" class="decompose-form-input" id="userSelect" required>
+            <select name="responsible_id" class="form-control" id="userSelect" required>
               <option value="">请选择负责人</option>
               {% for user in users %}
               <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
@@ -479,18 +479,18 @@
           
           <div class="decompose-form-group">
             <label class="decompose-form-label required">目标名称</label>
-            <input type="text" name="name" class="decompose-form-input" required placeholder="请输入目标名称">
+            <input type="text" name="name" class="form-control" required placeholder="请输入目标名称">
           </div>
           
           <div class="decompose-form-group">
             <label class="decompose-form-label required">目标值</label>
-            <input type="number" name="target_value" class="decompose-form-input" step="0.01" required placeholder="0.00">
+            <input type="number" name="target_value" class="form-control" step="0.01" required placeholder="0.00">
             <div class="decompose-form-hint">继承指标：{{ goal.indicator_name }} ({{ goal.indicator_unit }})</div>
           </div>
           
           <div class="decompose-form-group">
             <label class="decompose-form-label">目标描述</label>
-            <textarea name="description" class="decompose-form-input" rows="3" placeholder="请输入目标描述（可选）"></textarea>
+            <textarea name="description" class="form-control" rows="3" placeholder="请输入目标描述（可选）"></textarea>
           </div>
           
           <button type="submit" class="decompose-form-submit">创建下级目标</button>

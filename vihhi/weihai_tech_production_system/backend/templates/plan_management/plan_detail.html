@@ -38,7 +38,7 @@
   .detail-card-title {
     font-size: 16px;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--vh-primary); /* 主题深蓝色 */
     margin-bottom: 20px;
     padding-bottom: 12px;
     border-bottom: 2px solid #E0E0E0;
@@ -64,13 +64,13 @@
   
   .detail-info-value {
     font-size: 14px;
-    color: #1A1A1A;
+    color: var(--vh-primary); /* 主题深蓝色 */
     font-weight: 500;
   }
   
   .detail-info-value strong {
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--vh-primary); /* 主题深蓝色 */
   }
   
   .detail-full-width {
@@ -93,12 +93,12 @@
   }
   .list-badge-in_progress { 
     background: #E8E8E8; 
-    color: #333333; 
+    color: var(--vh-primary); /* 主题深蓝色 */ 
     border-color: #CCCCCC; 
   }
   .list-badge-completed { 
     background: #E8E8E8; 
-    color: #1A1A1A; 
+    color: var(--vh-primary); /* 主题深蓝色 */ 
     border-color: #CCCCCC; 
   }
   .list-badge-cancelled { 
@@ -119,7 +119,7 @@
   
   .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #c41c1c, #e63946);
+    background: linear-gradient(90deg, #6c757d, #adb5bd);
     transition: width 0.3s;
   }
   
@@ -130,14 +130,16 @@
     transform: translate(-50%, -50%);
     font-size: 12px;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--vh-primary); /* 主题深蓝色 */
     z-index: 1;
   }
   
   .text-content {
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    color: var(--vh-primary); /* 主题深蓝色 - 与系统主题保持一致 */
     white-space: pre-wrap;
     line-height: 1.6;
-    color: #333333;
   }
 </style>
 {% endblock %}

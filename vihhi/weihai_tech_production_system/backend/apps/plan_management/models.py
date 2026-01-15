@@ -80,7 +80,7 @@ class StrategicGoal(models.Model):
     )
     
     # 目标描述
-    description = models.TextField(max_length=2000, verbose_name='目标描述')
+    description = models.TextField(max_length=2000, blank=True, verbose_name='目标描述')
     background = models.TextField(blank=True, verbose_name='目标背景')
     significance = models.TextField(blank=True, verbose_name='目标意义')
     
@@ -97,7 +97,7 @@ class StrategicGoal(models.Model):
     # 时间信息
     start_date = models.DateField(verbose_name='开始日期')
     end_date = models.DateField(verbose_name='结束日期')
-    duration_days = models.IntegerField(verbose_name='目标周期（天）', help_text='自动计算')
+    duration_days = models.IntegerField(default=0, verbose_name='目标周期（天）', help_text='自动计算')
     
     # 关联信息
     parent_goal = models.ForeignKey(
@@ -132,6 +132,9 @@ class StrategicGoal(models.Model):
         verbose_name = '战略目标'
         verbose_name_plural = verbose_name
         ordering = ['-created_time']
+        # 禁用 Django 默认权限（add, change, delete, view）
+        # 使用自定义业务权限系统（plan_management.goal.view 等）
+        default_permissions = ()
         indexes = [
             models.Index(fields=['goal_number']),
             models.Index(fields=['status']),
@@ -466,7 +469,7 @@ class Plan(models.Model):
         null=True,
         blank=True,
         verbose_name='关联战略目标',
-        help_text='选择关联的战略目标（可选）'
+        help_text='选择关联的战略目标（必填）'
     )
     alignment_score = models.DecimalField(
         max_digits=5,
@@ -497,7 +500,7 @@ class Plan(models.Model):
     # 时间信息
     start_time = models.DateTimeField(verbose_name='计划开始时间')
     end_time = models.DateTimeField(verbose_name='计划结束时间')
-    duration_days = models.IntegerField(verbose_name='计划周期（天）', help_text='自动计算')
+    duration_days = models.IntegerField(default=0, verbose_name='计划周期（天）', help_text='自动计算')
     
     # 责任人信息
     responsible_person = models.ForeignKey(
@@ -599,6 +602,9 @@ class Plan(models.Model):
         verbose_name = '计划'
         verbose_name_plural = verbose_name
         ordering = ['-created_time']
+        # 禁用 Django 默认权限（add, change, delete, view）
+        # 使用自定义业务权限系统（plan_management.plan.view 等）
+        default_permissions = ()
         indexes = [
             models.Index(fields=['plan_number']),
             models.Index(fields=['status']),

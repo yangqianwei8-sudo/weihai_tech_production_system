@@ -2,85 +2,233 @@
 {% load static %}
 
 {% block home_extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.css" rel="stylesheet">
 <style>
-  /* ===== Dashboard首页样式 ===== */
-  /* 风格：简洁、清晰、整齐、稳重、美观，黑白灰配色 */
-  
-  /* Dashboard容器 */
-  .dashboard-container {
-    padding: 24px;
+  .dashboard-home-wrap {
+    padding: 0; 
+    
   }
-  
-  /* 统计卡片区域 */
-  .dashboard-stats {
+
+  /* 第一行：顶部操作栏 */
+  .dashboard-top-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+  }
+
+  .dashboard-top-action-btn {
+    padding: 8px 16px;
+    background: #1A1A1A;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .dashboard-top-action-btn:hover {
+    background: #333333;
+    color: #FFFFFF;
+    text-decoration: none;
+  }
+
+  /* 第二行：核心指标卡片 */
+  .dashboard-core-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     margin-bottom: 24px;
   }
-  
-  .stat-card {
+
+  @media (max-width: 1200px) {
+    .dashboard-core-cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-core-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .dashboard-core-card {
     background: #FFFFFF;
     border: 1px solid #E0E0E0;
-    border-radius: 0;
-    padding: 16px;
+    border-radius: 4px;
+    padding: 20px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-    cursor: pointer;
-  }
-  
-  .stat-card:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px);
-  }
-  
-  .stat-card a {
+    transition: box-shadow 0.2s ease;
     text-decoration: none;
     color: inherit;
     display: block;
   }
-  
-  .stat-label {
-    font-size: 12px;
-    color: #666666;
-    margin-bottom: 8px;
-    font-weight: 400;
+
+  .dashboard-core-card:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+    color: inherit;
   }
-  
-  .stat-value {
+
+  .dashboard-core-card-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F5;
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
     font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .dashboard-core-card-label {
+    font-size: 14px;
+    color: #1A1A1A;
+    font-weight: 400;
+    margin-bottom: 8px;
+  }
+
+  .dashboard-core-card-value {
+    font-size: 32px;
     font-weight: 600;
     color: #1A1A1A;
+    margin-bottom: 8px;
     line-height: 1.2;
   }
-  
-  /* 快捷操作区域 */
-  .dashboard-quick-actions {
+
+  .dashboard-core-card-subvalue {
+    font-size: 12px;
+    color: #1A1A1A;
+    line-height: 1.5;
+  }
+
+  /* 第三行：状态分布统计（左右分栏） */
+  .dashboard-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-stats-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .dashboard-stats-card {
     background: #FFFFFF;
     border: 1px solid #E0E0E0;
-    border-radius: 0;
-    padding: 16px;
-    margin-bottom: 24px;
+    border-radius: 4px;
+    padding: 20px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
-  
-  .quick-actions-title {
+
+  .dashboard-stats-card-title {
     font-size: 16px;
     font-weight: 600;
     color: #1A1A1A;
     margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E0E0E0;
   }
-  
-  .quick-actions-grid {
+
+  .dashboard-chart-container {
+    position: relative;
+    height: 300px;
+  }
+
+  /* 第四行：风险预警与待办（左右分栏） */
+  .dashboard-warning-card, .dashboard-todo-card {
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .dashboard-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E0E0E0;
+  }
+
+  .dashboard-warning-list, .dashboard-todo-list {
+    list-style: none;
+    padding: 0 0 0 0;
+    margin: 0;
+  }
+
+  .dashboard-warning-item, .dashboard-todo-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    border-left: 3px solid #999999;
+    background: #F5F5F5;
+    border-radius: 4px;
+  }
+
+  .dashboard-warning-item.overdue {
+    border-left-color: #666666;
+    background: #F0F0F0;
+  }
+
+  .dashboard-todo-item {
+    border-left-color: #1A1A1A;
+    background: #F5F5F5;
+  }
+
+  .dashboard-item-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1A1A1A;
+    margin-bottom: 4px;
+  }
+
+  .dashboard-item-meta {
+    font-size: 12px;
+    color: #1A1A1A;
+  }
+
+  .dashboard-item-link {
+    color: #1A1A1A;
+    text-decoration: none;
+  }
+
+  .dashboard-item-link:hover {
+    text-decoration: underline;
+    
+  }
+
+  /* 第五行：快速访问与最近活动（左右分栏） */
+  .dashboard-quick-access-card, .dashboard-activities-card {
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .dashboard-quick-actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 12px;
   }
-  
-  .quick-action-btn {
+
+  .dashboard-quick-action-btn {
     background: #FFFFFF;
     border: 1px solid #E0E0E0;
-    border-radius: 0;
+    border-radius: 4px;
     padding: 12px 16px;
     font-size: 14px;
     color: #1A1A1A;
@@ -92,339 +240,360 @@
     transition: background 0.2s ease, border-color 0.2s ease;
     cursor: pointer;
   }
-  
-  .quick-action-btn:hover {
+
+  .dashboard-quick-action-btn:hover {
     background: #FAFAFA;
     border-color: #CCCCCC;
     text-decoration: none;
     color: #1A1A1A;
   }
-  
-  .quick-action-icon {
+
+  .dashboard-quick-action-icon {
     font-size: 20px;
   }
-  
-  .quick-action-label {
+
+  .dashboard-quick-action-label {
     font-size: 13px;
   }
-  
-  /* 主要内容区域 */
-  .dashboard-main {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 24px;
+
+  .dashboard-activity-list {
+    list-style: none;
+    padding: 0 0 0 0;
+    margin: 0;
   }
-  
-  /* 待办任务列表 */
-  .dashboard-tasks {
-    background: #FFFFFF;
-    border: 1px solid #E0E0E0;
-    border-radius: 0;
-    padding: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-  
-  .dashboard-section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1A1A1A;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #E0E0E0;
-  }
-  
-  .task-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .task-card {
-    background: #FFFFFF;
-    border: 1px solid #E0E0E0;
-    border-radius: 0;
-    padding: 16px;
-    transition: box-shadow 0.2s ease;
-  }
-  
-  .task-card:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  }
-  
-  .task-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-  }
-  
-  .task-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #1A1A1A;
-    flex: 1;
-  }
-  
-  .task-status {
-    font-size: 12px;
-    padding: 2px 8px;
-    background: #F5F5F5;
-    color: #666666;
-    border-radius: 0;
-  }
-  
-  .task-meta {
-    font-size: 12px;
-    color: #666666;
-    margin-top: 8px;
-  }
-  
-  .task-time {
-    font-size: 11px;
-    color: #999999;
-    margin-top: 4px;
-  }
-  
-  /* 最近动态 */
-  .dashboard-activity {
-    background: #FFFFFF;
-    border: 1px solid #E0E0E0;
-    border-radius: 0;
-    padding: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-  
-  .activity-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .activity-item {
+
+  .dashboard-activity-item {
     padding: 12px 0;
-    border-bottom: 1px solid #F5F5F5;
+    border-bottom: 1px solid #F0F0F0;
   }
-  
-  .activity-item:last-child {
+
+  .dashboard-activity-item:last-child {
     border-bottom: none;
   }
-  
-  .activity-time {
-    font-size: 11px;
-    color: #999999;
+
+  .dashboard-activity-title {
+    font-size: 14px;
+    color: #1A1A1A;
     margin-bottom: 4px;
   }
-  
-  .activity-text {
-    font-size: 13px;
+
+  .dashboard-activity-meta {
+    font-size: 12px;
     color: #1A1A1A;
-    line-height: 1.5;
   }
-  
-  .activity-link {
-    color: #666666;
-    text-decoration: none;
-  }
-  
-  .activity-link:hover {
-    color: #1A1A1A;
-    text-decoration: underline;
-  }
-  
-  /* 空状态 */
-  .empty-state {
+
+  .dashboard-empty {
     padding: 40px 20px;
     text-align: center;
     color: #999999;
     font-size: 14px;
-  }
-  
-  /* 响应式设计 */
-  @media (max-width: 1200px) {
-    .dashboard-main {
-      grid-template-columns: 1fr;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .dashboard-container {
-      padding: 16px;
-    }
-    
-    .dashboard-stats {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    
-    .quick-actions-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .dashboard-main {
-      gap: 16px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .dashboard-stats {
-      grid-template-columns: 1fr;
-    }
-    
-    .quick-actions-grid {
-      grid-template-columns: 1fr;
-    }
+    background: #FAFAFA;
+    border: 1px dashed #E0E0E0;
+    border-radius: 4px;
   }
 </style>
 {% endblock %}
 
 {% block content_inner %}
-  <div class="dashboard-container">
-    {# 统计卡片区域 #}
-    <div class="dashboard-stats">
-      <div class="stat-card">
-        {% if pending_counts.personal > 0 %}
-        <a href="#">
-          <div class="stat-label">待办任务</div>
-          <div class="stat-value">{{ pending_counts.personal }}</div>
-        </a>
-        {% else %}
-        <div class="stat-label">待办任务</div>
-        <div class="stat-value">{{ pending_counts.personal }}</div>
-        {% endif %}
+<div class="dashboard-home-wrap">
+  <!-- 第一行：顶部操作栏 -->
+  {% if top_actions %}
+  <div class="dashboard-top-actions">
+    {% for action in top_actions %}
+    <a href="{{ action.url }}" class="dashboard-top-action-btn">
+      {{ action.icon }} {{ action.label }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- 第二行：核心指标卡片 -->
+  {% if core_cards %}
+  <div class="dashboard-core-cards">
+    {% for card in core_cards %}
+    <a href="{{ card.url }}" class="dashboard-core-card">
+      <div class="dashboard-core-card-icon">{{ card.icon|default:"▢" }}</div>
+      <div class="dashboard-core-card-label">{{ card.label }}</div>
+      <div class="dashboard-core-card-value">{{ card.value }}</div>
+      {% if card.subvalue %}
+      <div class="dashboard-core-card-subvalue">{{ card.subvalue }}</div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- 第三行：状态分布统计（左右分栏） -->
+  {% if show_stats %}
+  <div class="dashboard-stats-row">
+    <!-- 左侧：项目状态分布 -->
+    <div class="dashboard-stats-card">
+      <div class="dashboard-stats-card-title">项目状态分布</div>
+      {% if project_status_dist %}
+      <div class="dashboard-chart-container">
+        <canvas id="projectStatusChart"></canvas>
       </div>
-      
-      {% for card in stats_cards|slice:":3" %}
-      <div class="stat-card">
-        {% if card.url %}
-        <a href="{{ card.url }}">
-          <div class="stat-label">{{ card.label }}</div>
-          <div class="stat-value">{{ card.value }}</div>
-        </a>
-        {% else %}
-        <div class="stat-label">{{ card.label }}</div>
-        <div class="stat-value">{{ card.value }}</div>
-        {% endif %}
-      </div>
-      {% endfor %}
+      {% else %}
+      <div class="dashboard-empty">暂无数据</div>
+      {% endif %}
     </div>
-    
-    {# 快捷操作区域 #}
-    <div class="dashboard-quick-actions">
-      <div class="quick-actions-title">快捷操作</div>
-      <div class="quick-actions-grid">
+
+    <!-- 右侧：任务状态分布 -->
+    <div class="dashboard-stats-card">
+      <div class="dashboard-stats-card-title">任务状态分布</div>
+      {% if task_status_dist %}
+      <div class="dashboard-chart-container">
+        <canvas id="taskStatusChart"></canvas>
+      </div>
+      {% else %}
+      <div class="dashboard-empty">暂无数据</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 第四行：风险预警与待办（左右分栏） -->
+  <div class="dashboard-stats-row">
+    <!-- 左侧：风险预警 -->
+    <div class="dashboard-warning-card">
+      <div class="dashboard-card-title">
+        风险预警
+        {% if overdue_tasks_count or stale_tasks_count %}
+        <span style="font-size: 12px; color: #666666; margin-left: 8px;">
+          (逾期 {{ overdue_tasks_count|default:0 }} | 未更新 {{ stale_tasks_count|default:0 }})
+        </span>
+        {% endif %}
+      </div>
+      {% if risk_warnings %}
+      <ul class="dashboard-warning-list">
+        {% for warning in risk_warnings %}
+        <li class="dashboard-warning-item {{ warning.type }}">
+          <div class="dashboard-item-title">
+            <a href="{{ warning.url }}" class="dashboard-item-link">{{ warning.title }}</a>
+          </div>
+          <div class="dashboard-item-meta">
+            {% if warning.type == 'overdue' %}
+            负责人：{{ warning.responsible }} | 逾期 {{ warning.days }} 天
+            {% elif warning.type == 'stale' %}
+            负责人：{{ warning.responsible }} | {{ warning.days }} 天未更新
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="dashboard-empty">暂无风险预警</div>
+      {% endif %}
+    </div>
+
+    <!-- 右侧：待办事项 -->
+    <div class="dashboard-todo-card">
+      <div class="dashboard-card-title">
+        待办事项
+        {% if pending_tasks_count %}
+        <span style="font-size: 12px; color: #1A1A1A; margin-left: 8px;">
+          (待处理 {{ pending_tasks_count|default:0 }})
+        </span>
+        {% endif %}
+      </div>
+      {% if todo_items %}
+      <ul class="dashboard-todo-list">
+        {% for item in todo_items %}
+        <li class="dashboard-todo-item">
+          <div class="dashboard-item-title">
+            <a href="{{ item.url }}" class="dashboard-item-link">{{ item.title }}</a>
+          </div>
+          <div class="dashboard-item-meta">
+            {% if item.project_name %}
+            项目：{{ item.project_name }}
+            {% endif %}
+            {% if item.due_time %}
+            | 截止时间：{{ item.due_time|date:"Y-m-d H:i" }}
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="dashboard-empty">暂无待办事项</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 第五行：快速访问与最近活动（左右分栏） -->
+  <div class="dashboard-stats-row">
+    <!-- 左侧：快速访问 -->
+    <div class="dashboard-quick-access-card">
+      <div class="dashboard-card-title">快捷操作</div>
+      <div class="dashboard-quick-actions-grid">
         {% url 'plan_pages:plan_create' as plan_create_url %}
         {% if plan_create_url %}
-        <a href="{{ plan_create_url }}" class="quick-action-btn">
-          <span class="quick-action-icon">📋</span>
-          <span class="quick-action-label">创建计划</span>
+        <a href="{{ plan_create_url }}" class="dashboard-quick-action-btn">
+          <span class="dashboard-quick-action-icon">📋</span>
+          <span class="dashboard-quick-action-label">创建计划</span>
         </a>
         {% endif %}
         
         {% url 'production_pages:project_create' as project_create_url %}
         {% if project_create_url %}
-        <a href="{{ project_create_url }}" class="quick-action-btn">
-          <span class="quick-action-icon">➕</span>
-          <span class="quick-action-label">创建项目</span>
+        <a href="{{ project_create_url }}" class="dashboard-quick-action-btn">
+          <span class="dashboard-quick-action-icon">➕</span>
+          <span class="dashboard-quick-action-label">创建项目</span>
         </a>
         {% endif %}
         
         {% url 'production_pages:project_list' as project_list_url %}
         {% if project_list_url %}
-        <a href="{{ project_list_url }}" class="quick-action-btn">
-          <span class="quick-action-icon">📊</span>
-          <span class="quick-action-label">项目列表</span>
+        <a href="{{ project_list_url }}" class="dashboard-quick-action-btn">
+          <span class="dashboard-quick-action-icon">📊</span>
+          <span class="dashboard-quick-action-label">项目列表</span>
         </a>
         {% endif %}
         
         {% url 'plan_pages:plan_list' as plan_list_url %}
         {% if plan_list_url %}
-        <a href="{{ plan_list_url }}" class="quick-action-btn">
-          <span class="quick-action-icon">📝</span>
-          <span class="quick-action-label">计划列表</span>
+        <a href="{{ plan_list_url }}" class="dashboard-quick-action-btn">
+          <span class="dashboard-quick-action-icon">📝</span>
+          <span class="dashboard-quick-action-label">计划列表</span>
         </a>
         {% endif %}
         
-        <a href="{% url 'admin:index' %}" class="quick-action-btn">
-          <span class="quick-action-icon">⚙️</span>
-          <span class="quick-action-label">系统设置</span>
+        <a href="{% url 'admin:index' %}" class="dashboard-quick-action-btn">
+          <span class="dashboard-quick-action-icon">⚙️</span>
+          <span class="dashboard-quick-action-label">系统设置</span>
         </a>
       </div>
     </div>
-    
-    {# 主要内容区域 #}
-    <div class="dashboard-main">
-      {# 待办任务列表 #}
-      <div class="dashboard-tasks">
-        <div class="dashboard-section-title">待办任务</div>
-        {% if task_board.pending or task_board.in_progress %}
-        <div class="task-list">
-          {% for task in task_board.pending|slice:":5" %}
-          <div class="task-card">
-            <div class="task-header">
-              <div class="task-title">{{ task.title }}</div>
-              <span class="task-status">待处理</span>
-            </div>
-            {% if task.project_name %}
-            <div class="task-meta">项目：{{ task.project_name }}</div>
-            {% endif %}
-            {% if task.due_time %}
-            <div class="task-time">截止时间：{{ task.due_time|date:"Y-m-d H:i" }}</div>
-            {% endif %}
-          </div>
-          {% endfor %}
-          
-          {% for task in task_board.in_progress|slice:":5" %}
-          <div class="task-card">
-            <div class="task-header">
-              <div class="task-title">{{ task.title }}</div>
-              <span class="task-status">进行中</span>
-            </div>
-            {% if task.project_name %}
-            <div class="task-meta">项目：{{ task.project_name }}</div>
-            {% endif %}
-            {% if task.due_time %}
-            <div class="task-time">截止时间：{{ task.due_time|date:"Y-m-d H:i" }}</div>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state">暂无待办任务</div>
-        {% endif %}
-      </div>
+
+    <!-- 右侧：最近活动 -->
+    <div class="dashboard-activities-card">
+      <div class="dashboard-card-title">最近动态</div>
       
-      {# 最近动态 #}
-      <div class="dashboard-activity">
-        <div class="dashboard-section-title">最近动态</div>
-        {% if task_board.completed %}
-        <div class="activity-list">
-          {% for task in task_board.completed|slice:":10" %}
-          <div class="activity-item">
-            <div class="activity-time">
-              {% if task.completed_time %}
-              {{ task.completed_time|date:"m-d H:i" }}
-              {% else %}
-              最近
-              {% endif %}
-            </div>
-            <div class="activity-text">
-              完成任务：<a href="{{ task.url|default:'#' }}" class="activity-link">{{ task.title }}</a>
-              {% if task.project_name %}
-              <span style="color: #999999;">（{{ task.project_name }}）</span>
-              {% endif %}
-            </div>
+      {% if recent_activities %}
+      <ul class="dashboard-activity-list">
+        {% for activity in recent_activities %}
+        <li class="dashboard-activity-item">
+          <div class="dashboard-activity-title">
+            <a href="{{ activity.url }}" class="dashboard-item-link">{{ activity.title }}</a>
           </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state">暂无最近动态</div>
-        {% endif %}
-      </div>
+          <div class="dashboard-activity-meta">
+            {% if activity.project_name %}
+            {{ activity.project_name }} | 
+            {% endif %}
+            {{ activity.time|date:"Y-m-d H:i" }}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="dashboard-empty">暂无最近动态</div>
+      {% endif %}
     </div>
   </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-  {# JavaScript已清空，等待重新设计 #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // 项目状态分布饼图
+  {% if project_status_dist %}
+  const projectCtx = document.getElementById('projectStatusChart');
+  if (projectCtx) {
+    const projectData = {
+      labels: [
+        {% for status_code, status_data in project_status_dist.items %}
+        '{{ status_data.label }}'{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ],
+      datasets: [{
+        data: [
+          {% for status_code, status_data in project_status_dist.items %}
+          {{ status_data.count }}{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ],
+        // 彩色图表改为灰度
+        backgroundColor: [
+          '#1A1A1A', '#666666', '#999999', '#CCCCCC', '#E0E0E0'
+        ]
+      }]
+    };
+    new Chart(projectCtx, {
+      type: 'pie',
+      data: projectData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return label + ': ' + value + ' (' + percentage + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  {% endif %}
+
+  // 任务状态分布饼图
+  {% if task_status_dist %}
+  const taskCtx = document.getElementById('taskStatusChart');
+  if (taskCtx) {
+    const taskData = {
+      labels: [
+        {% for status_code, status_data in task_status_dist.items %}
+        '{{ status_data.label }}'{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ],
+      datasets: [{
+        data: [
+          {% for status_code, status_data in task_status_dist.items %}
+          {{ status_data.count }}{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ],
+        // 彩色图表改为灰度
+        backgroundColor: [
+          '#1A1A1A', '#666666', '#999999', '#CCCCCC', '#E0E0E0'
+        ]
+      }]
+    };
+    new Chart(taskCtx, {
+      type: 'pie',
+      data: taskData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return label + ': ' + value + ' (' + percentage + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  {% endif %}
+});
+</script>
 {% endblock %}

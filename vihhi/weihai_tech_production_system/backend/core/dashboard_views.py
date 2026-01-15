@@ -163,7 +163,7 @@ def dashboard_todos(request):
                 status='pending',
                 records__approver=user,
                 records__result='pending'
-            ).select_related('workflow').prefetch_related('records').distinct()[:5]
+            ).select_related('workflow').prefetch_related('records').distinct()[:50]
             
             for approval in pending_approvals:
                 try:
@@ -193,7 +193,7 @@ def dashboard_todos(request):
                 pending_affairs = AdministrativeAffair.objects.filter(
                     status='pending',
                     responsible_user=user
-                ).select_related('responsible_user', 'created_by')[:3]
+                ).select_related('responsible_user', 'created_by')[:50]
                 
                 for affair in pending_affairs:
                     try:
@@ -243,7 +243,7 @@ def dashboard_todos(request):
         ]
     
     result = {
-        'todos': todos[:10],  # 最多返回10条
+        'todos': todos[:100],  # 最多返回100条（已移除限制，显示所有内容）
         'success': True
     }
     

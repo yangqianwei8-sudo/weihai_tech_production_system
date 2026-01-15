@@ -46,7 +46,7 @@
   .detail-section-title {
     font-size: 13px;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--vh-primary); /* 主题深蓝色 */
     margin-bottom: 16px;
     padding-bottom: 8px;
     border-bottom: 1px solid #E0E0E0;
@@ -72,7 +72,7 @@
 
   .detail-value {
     font-size: 13px;
-    color: #1A1A1A;
+    color: var(--vh-primary); /* 主题深蓝色 */
     font-weight: 500;
   }
 
@@ -85,7 +85,7 @@
     padding: 2px 6px;
     border-radius: 0;
     font-size: 12px;
-    color: #333333;
+    color: var(--vh-primary); /* 主题深蓝色 */
     border: 1px solid #E0E0E0;
   }
 
@@ -108,19 +108,19 @@
 
   .detail-badge-published {
     background: #E8E8E8;
-    color: #333333;
+    color: var(--vh-primary); /* 主题深蓝色 */
     border-color: #CCCCCC;
   }
 
   .detail-badge-in_progress {
     background: #E8E8E8;
-    color: #333333;
+    color: var(--vh-primary); /* 主题深蓝色 */
     border-color: #CCCCCC;
   }
 
   .detail-badge-completed {
     background: #E8E8E8;
-    color: #1A1A1A;
+    color: var(--vh-primary); /* 主题深蓝色 */
     border-color: #CCCCCC;
   }
 
@@ -162,9 +162,11 @@
   }
 
   .detail-text-content {
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    color: var(--vh-primary); /* 主题深蓝色 - 与系统主题保持一致 */
     white-space: pre-wrap;
     line-height: 1.6;
-    color: #333333;
   }
 </style>
 {% endblock %}
@@ -321,7 +323,7 @@
       <div class="detail-item">
         <div class="detail-label">上级目标</div>
         <div class="detail-value">
-          <a href="{% url 'plan_pages:strategic_goal_detail' goal.parent_goal.id %}" style="color: #333333; text-decoration: none;">
+          <a href="{% url 'plan_pages:strategic_goal_detail' goal.parent_goal.id %}" style="color: var(--vh-primary); /* 主题深蓝色 */ text-decoration: none;">
             {{ goal.parent_goal.name }}
           </a>
         </div>

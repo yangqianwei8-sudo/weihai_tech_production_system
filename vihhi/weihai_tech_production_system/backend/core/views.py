@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from django.shortcuts import render, redirect
 
@@ -29,19 +29,35 @@ def _permission_granted(required_code, user_permissions: set) -> bool:
         return required_code.replace('view_assigned', 'view_all') in user_permissions
     
     # 特殊处理：计划管理模块的权限检查
-    # 如果要求 plan_management.view，但用户有审批权限，也允许显示菜单
+    # 如果要求 plan_management.view，但用户有审批权限或业务权限，也允许显示菜单
     if required_code == 'plan_management.view':
-        # 检查是否有任何计划管理相关权限（包括审批权限）
+        # 检查是否有任何计划管理相关权限（包括审批权限和业务权限）
         plan_permissions = [
-            'plan_management.view',
+            'plan_management.view',  # 标准权限（菜单系统使用）
             'plan_management.approve',
             'plan_management.approve_plan',
-            'plan_management.plan.view',
-            'plan_management.goal.view',
+            'plan_management.plan.view',  # 业务权限（查看计划）
+            'plan_management.goal.view',  # 业务权限（查看目标）
         ]
         for perm in plan_permissions:
             if perm in user_permissions:
                 return True
+    
+    # 特殊处理：plan_management.plan.view 权限检查
+    # 如果要求 plan_management.plan.view，也接受 plan_management.view（更宽泛的权限）
+    if required_code == 'plan_management.plan.view':
+        if 'plan_management.plan.view' in user_permissions:
+            return True
+        if 'plan_management.view' in user_permissions:
+            return True
+    
+    # 特殊处理：plan_management.goal.view 权限检查
+    # 如果要求 plan_management.goal.view，也接受 plan_management.view（更宽泛的权限）
+    if required_code == 'plan_management.goal.view':
+        if 'plan_management.goal.view' in user_permissions:
+            return True
+        if 'plan_management.view' in user_permissions:
+            return True
     
     return False
 
@@ -237,13 +253,13 @@ def home(request):
             pending_counts['due_today'] = user_tasks.filter(due_time__date=today).count()
             pending_counts['overdue'] = user_tasks.filter(due_time__lt=timezone.now()).exclude(status='completed').count()
             
-            # 构建任务看板
-            pending_tasks = user_tasks.filter(status='pending')[:10]
-            in_progress_tasks = user_tasks.filter(status='in_progress')[:10]
+            # 构建任务看板（移除限制，显示所有数据）
+            pending_tasks = user_tasks.filter(status='pending')
+            in_progress_tasks = user_tasks.filter(status='in_progress')
             completed_tasks = ProjectTask.objects.filter(
                 Q(assigned_to=user) | Q(created_by=user),
                 status='completed'
-            ).order_by('-completed_time')[:10]
+            ).order_by('-completed_time')
             
             task_board['pending'] = [_serialize_task_for_home(task) for task in pending_tasks]
             task_board['in_progress'] = [_serialize_task_for_home(task) for task in in_progress_tasks]
@@ -338,6 +354,233 @@ def home(request):
         except Exception as e:
             logger.exception('构建统计卡片失败: %s', str(e))
         
+        # ========== 构建核心指标卡片（类似计划管理首页） ==========
+        core_cards = []
+        
+        # 卡片1：待办任务
+        core_cards.append({
+            'label': '待办任务',
+            'icon': '📋',
+            'value': str(pending_counts['personal']),
+            'subvalue': f'今日到期 {pending_counts["due_today"]} | 已逾期 {pending_counts["overdue"]}',
+            'url': '#',
+            'variant': 'info'
+        })
+        
+        # 卡片2：进行中项目
+        try:
+            from backend.apps.production_management.models import Project
+            active_projects = Project.objects.filter(
+                status__in=['in_progress', 'planning']
+            ).count()
+            core_cards.append({
+                'label': '进行中项目',
+                'icon': '🏗️',
+                'value': str(active_projects),
+                'subvalue': '正在执行的项目',
+                'url': reverse('production_pages:project_list'),
+                'variant': 'warning'
+            })
+        except Exception:
+            pass
+        
+        # 卡片3：本月完成
+        try:
+            this_month = timezone.now().replace(day=1)
+            completed_projects = Project.objects.filter(
+                status='completed',
+                updated_time__gte=this_month
+            ).count()
+            core_cards.append({
+                'label': '本月完成',
+                'icon': '✅',
+                'value': str(completed_projects),
+                'subvalue': '本月完成的项目数',
+                'url': reverse('production_pages:project_list'),
+                'variant': 'success'
+            })
+        except Exception:
+            pass
+        
+        # 卡片4：待审批
+        if approval_stats['my_pending'] > 0:
+            core_cards.append({
+                'label': '待审批',
+                'icon': '📝',
+                'value': str(approval_stats['my_pending']),
+                'subvalue': '需要您审批的事项',
+                'url': '#',
+                'variant': 'danger'
+            })
+        
+        # 卡片5：待处理事项
+        try:
+            from backend.apps.administrative_management.models import AdministrativeAffair
+            pending_affairs = AdministrativeAffair.objects.filter(
+                status='pending',
+                responsible_user=user
+            ).count()
+            if pending_affairs > 0:
+                core_cards.append({
+                    'label': '待处理事项',
+                    'icon': '📌',
+                    'value': str(pending_affairs),
+                    'subvalue': '需要您处理的行政事务',
+                    'url': reverse('admin_pages:affair_list'),
+                    'variant': 'warning'
+                })
+        except Exception:
+            pass
+        
+        # ========== 状态分布统计 ==========
+        project_status_dist = {}
+        task_status_dist = {}
+        
+        try:
+            from backend.apps.production_management.models import Project
+            total_projects = Project.objects.count()
+            if total_projects > 0:
+                for status_code in ['planning', 'in_progress', 'completed', 'cancelled']:
+                    count = Project.objects.filter(status=status_code).count()
+                    if count > 0:
+                        status_labels = {
+                            'planning': '规划中',
+                            'in_progress': '执行中',
+                            'completed': '已完成',
+                            'cancelled': '已取消'
+                        }
+                        project_status_dist[status_code] = {
+                            'label': status_labels.get(status_code, status_code),
+                            'count': count,
+                            'percentage': round(count / total_projects * 100, 1)
+                        }
+        except Exception:
+            pass
+        
+        try:
+            from backend.apps.production_management.models import ProjectTask
+            total_tasks = ProjectTask.objects.count()
+            if total_tasks > 0:
+                for status_code in ['pending', 'in_progress', 'completed', 'cancelled']:
+                    count = ProjectTask.objects.filter(status=status_code).count()
+                    if count > 0:
+                        status_labels = {
+                            'pending': '待处理',
+                            'in_progress': '进行中',
+                            'completed': '已完成',
+                            'cancelled': '已取消'
+                        }
+                        task_status_dist[status_code] = {
+                            'label': status_labels.get(status_code, status_code),
+                            'count': count,
+                            'percentage': round(count / total_tasks * 100, 1)
+                        }
+        except Exception:
+            pass
+        
+        # ========== 风险预警 ==========
+        risk_warnings = []
+        overdue_tasks_count = 0
+        stale_tasks_count = 0
+        
+        try:
+            from backend.apps.production_management.models import ProjectTask
+            # 逾期任务
+            overdue_tasks = ProjectTask.objects.filter(
+                status__in=['pending', 'in_progress'],
+                due_time__lt=timezone.now()
+            ).select_related('assigned_to', 'project')[:5]
+            
+            overdue_tasks_count = ProjectTask.objects.filter(
+                status__in=['pending', 'in_progress'],
+                due_time__lt=timezone.now()
+            ).count()
+            
+            for task in overdue_tasks:
+                days = (today - task.due_time.date()).days if task.due_time else 0
+                responsible = task.assigned_to.get_full_name() or task.assigned_to.username if task.assigned_to else '未分配'
+                project_name = task.project.project_number if task.project else '未知项目'
+                risk_warnings.append({
+                    'type': 'overdue',
+                    'title': f'{project_name} - {task.title}',
+                    'responsible': responsible,
+                    'days': days,
+                    'url': f'/production/projects/{task.project.id}/' if task.project else '#'
+                })
+            
+            # 7天未更新任务
+            seven_days_ago = today - timedelta(days=7)
+            stale_tasks = ProjectTask.objects.filter(
+                status__in=['pending', 'in_progress'],
+                updated_time__lt=timezone.make_aware(datetime.combine(seven_days_ago, datetime.min.time()))
+            ).select_related('assigned_to', 'project')[:5]
+            
+            stale_tasks_count = ProjectTask.objects.filter(
+                status__in=['pending', 'in_progress'],
+                updated_time__lt=timezone.make_aware(datetime.combine(seven_days_ago, datetime.min.time()))
+            ).count()
+            
+            for task in stale_tasks:
+                days = (today - task.updated_time.date()).days
+                responsible = task.assigned_to.get_full_name() or task.assigned_to.username if task.assigned_to else '未分配'
+                project_name = task.project.project_number if task.project else '未知项目'
+                risk_warnings.append({
+                    'type': 'stale',
+                    'title': f'{project_name} - {task.title}',
+                    'responsible': responsible,
+                    'days': days,
+                    'url': f'/production/projects/{task.project.id}/' if task.project else '#'
+                })
+        except Exception as e:
+            logger.exception('获取风险预警失败: %s', str(e))
+        
+        # ========== 待办事项 ==========
+        todo_items = []
+        pending_tasks_count = len(task_board.get('pending', []))
+        
+        # 将待处理任务转换为待办事项格式
+        for task in task_board.get('pending', [])[:10]:
+            todo_items.append({
+                'title': task.get('title', '未知任务'),
+                'project_name': task.get('project_name', ''),
+                'due_time': task.get('due_time'),
+                'url': task.get('url', '#')
+            })
+        
+        # ========== 最近活动 ==========
+        recent_activities = []
+        
+        # 已完成任务作为最近活动
+        for task in task_board.get('completed', [])[:10]:
+            recent_activities.append({
+                'title': f'完成任务：{task.get("title", "未知任务")}',
+                'project_name': task.get('project_name', ''),
+                'time': task.get('completed_time') or task.get('due_time'),
+                'url': task.get('url', '#')
+            })
+        
+        # ========== 顶部操作栏 ==========
+        top_actions = []
+        try:
+            if _permission_granted('plan_management.plan.create', permission_set):
+                top_actions.append({
+                    'label': '创建计划',
+                    'icon': '📋',
+                    'url': reverse('plan_pages:plan_create')
+                })
+        except Exception:
+            pass
+        
+        try:
+            if _permission_granted('production_management.create', permission_set):
+                top_actions.append({
+                    'label': '创建项目',
+                    'icon': '➕',
+                    'url': reverse('production_pages:project_create')
+                })
+        except Exception:
+            pass
+        
         # 构建上下文
         context = {
             'user': user,
@@ -349,6 +592,18 @@ def home(request):
             'delivery_stats': delivery_stats,
             'stats_cards': stats_cards,
             'task_board': task_board,
+            # 新增：计划管理首页风格的数据
+            'core_cards': core_cards,
+            'project_status_dist': project_status_dist,
+            'task_status_dist': task_status_dist,
+            'show_stats': bool(project_status_dist or task_status_dist),
+            'risk_warnings': risk_warnings[:5],
+            'overdue_tasks_count': overdue_tasks_count,
+            'stale_tasks_count': stale_tasks_count,
+            'todo_items': todo_items,
+            'pending_tasks_count': pending_tasks_count,
+            'recent_activities': recent_activities,
+            'top_actions': top_actions,
         }
         
         # 尝试渲染模板，如果模板不存在则返回简单HTML

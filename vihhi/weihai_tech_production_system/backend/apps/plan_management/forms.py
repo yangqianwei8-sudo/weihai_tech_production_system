@@ -482,7 +482,10 @@ class PlanForm(forms.ModelForm):
             }),
             'plan_type': forms.Select(attrs={'class': 'form-select'}),
             'plan_period': forms.Select(attrs={'class': 'form-select'}),
-            'related_goal': forms.Select(attrs={'class': 'form-select'}),
+            'related_goal': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
             'parent_plan': forms.Select(attrs={'class': 'form-select'}),
             'related_project': forms.Select(attrs={'class': 'form-select'}),
             'content': forms.Textarea(attrs={
@@ -551,8 +554,18 @@ class PlanForm(forms.ModelForm):
         # 设置部门查询集
         self.fields['responsible_department'].queryset = Department.objects.filter(is_active=True)
         
-        # 设置关联战略目标查询集
-        self.fields['related_goal'].queryset = StrategicGoal.objects.filter(status__in=['published', 'in_progress'])
+        # 设置关联战略目标查询集：只显示当前用户负责的目标
+        # 状态必须是已发布或进行中，且负责人必须是当前用户
+        if user:
+            self.fields['related_goal'].queryset = StrategicGoal.objects.filter(
+                status__in=['published', 'in_progress'],
+                responsible_person=user
+            )
+        else:
+            # 如果没有传入用户，返回空查询集
+            self.fields['related_goal'].queryset = StrategicGoal.objects.none()
+        # 关联战略目标为必填
+        self.fields['related_goal'].required = True
         
         # 设置父计划查询集（排除自己和自己的下级计划）
         if self.instance and self.instance.pk:
@@ -585,7 +598,21 @@ class PlanForm(forms.ModelForm):
             if self.instance.end_time:
                 self.fields['end_time'].initial = self.instance.end_time.date()
         else:
-            # 新建时，设置开始日期默认为当天
+            # 新建时，设置默认值
+            # 负责人默认为当前用户
+            if user:
+                self.fields['responsible_person'].initial = user
+                # 负责部门默认为当前用户所在部门
+                # 优先使用 user.department，如果没有则尝试 user.profile.department
+                user_department = None
+                if hasattr(user, 'department') and user.department:
+                    user_department = user.department
+                elif hasattr(user, 'profile') and hasattr(user.profile, 'department') and user.profile.department:
+                    user_department = user.profile.department
+                if user_department:
+                    self.fields['responsible_department'].initial = user_department
+            
+            # 设置开始日期默认为当天
             today = date.today()
             self.fields['start_time'].initial = today
             
@@ -664,6 +691,11 @@ class PlanForm(forms.ModelForm):
         plan_number = cleaned_data.get('plan_number')
         participants = cleaned_data.get('participants')
         collaboration_plan = cleaned_data.get('collaboration_plan')
+        related_goal = cleaned_data.get('related_goal')
+        
+        # 验证关联战略目标为必填
+        if not related_goal:
+            raise ValidationError({'related_goal': '关联战略目标为必填项，请选择关联的战略目标'})
         
         # 编辑时，确保计划编号不被修改
         if self.instance and self.instance.pk:
