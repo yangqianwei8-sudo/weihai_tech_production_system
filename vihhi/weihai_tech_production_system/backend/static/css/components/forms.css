@@ -46,7 +46,7 @@ textarea {
     color: var(--vh-primary); /* 主题深蓝色 - 与系统主题保持一致 */
     transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
     width: 100%;
-    background: #fff;
+    background-color: #fff;
 }
 
 .form-control:hover,

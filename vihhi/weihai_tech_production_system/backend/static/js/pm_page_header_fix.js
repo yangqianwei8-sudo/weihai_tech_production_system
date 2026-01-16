@@ -1,38 +1,36 @@
 // 计划管理页面标题区域样式自动修复脚本
-// 确保副标题显示在主标题右侧（右下角），底部对齐，并添加灰色线条，按钮位于线条右上角
+// 简化版本，避免性能问题
 
 (function() {
-  function applySubtitleFix() {
-    const wrapper = document.querySelector('.pm-page-header-title-wrapper');
-    const actions = document.querySelector('.pm-page-header .pm-actions');
+  function applyFixes() {
+    const h1Elements = document.querySelectorAll('.plan-content .pm-page-header .pm-page-header-title-wrapper h1');
     
+    h1Elements.forEach(function(h1) {
+      // 直接设置内联样式（最高优先级）
+      h1.style.fontSize = '24px';
+      h1.style.setProperty('font-size', '24px', 'important');
+    });
+    
+    const wrapper = document.querySelector('.pm-page-header-title-wrapper');
     if (wrapper) {
-      // 强制应用flex布局
       wrapper.style.setProperty('display', 'flex', 'important');
       wrapper.style.setProperty('align-items', 'flex-end', 'important');
       wrapper.style.setProperty('gap', '12px', 'important');
       wrapper.style.setProperty('padding-bottom', '8px', 'important');
       wrapper.style.setProperty('border-bottom', '1px solid #E0E0E0', 'important');
       wrapper.style.setProperty('margin-bottom', '8px', 'important');
-      
-      const h1 = wrapper.querySelector('h1');
-      if (h1) {
-        h1.style.setProperty('margin', '0', 'important');
-        h1.style.setProperty('padding', '0', 'important');
-        h1.style.setProperty('line-height', '1.2', 'important');
-      }
-      
-      const subtitle = wrapper.querySelector('.pm-subtitle');
-      if (subtitle) {
-        subtitle.style.setProperty('display', 'inline-block', 'important');
-        subtitle.style.setProperty('margin', '0', 'important');
-        subtitle.style.setProperty('padding', '0', 'important');
-        subtitle.style.setProperty('line-height', '1.2', 'important');
-      }
     }
     
+    const subtitle = document.querySelector('.pm-subtitle');
+    if (subtitle) {
+      subtitle.style.setProperty('display', 'inline-block', 'important');
+      subtitle.style.setProperty('margin', '0', 'important');
+      subtitle.style.setProperty('padding', '0', 'important');
+      subtitle.style.setProperty('line-height', '1.2', 'important');
+    }
+    
+    const actions = document.querySelector('.pm-page-header .pm-actions');
     if (actions) {
-      // 按钮区域也添加相同的线条和间距
       actions.style.setProperty('padding-bottom', '8px', 'important');
       actions.style.setProperty('border-bottom', '1px solid #E0E0E0', 'important');
       actions.style.setProperty('margin-bottom', '8px', 'important');
@@ -40,22 +38,15 @@
     }
   }
   
-  // 页面加载完成后立即应用
+  // DOM加载完成后执行一次
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applySubtitleFix);
+    document.addEventListener('DOMContentLoaded', applyFixes);
   } else {
-    applySubtitleFix();
+    applyFixes();
   }
   
-  // 监听DOM变化，确保动态内容也能应用样式
-  const observer = new MutationObserver(function(mutations) {
-    if (document.querySelector('.pm-page-header-title-wrapper')) {
-      applySubtitleFix();
-    }
-  });
-  
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
+  // 只在页面完全加载后再执行一次
+  window.addEventListener('load', function() {
+    setTimeout(applyFixes, 50);
   });
 })();

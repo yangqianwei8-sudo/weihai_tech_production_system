@@ -1,4 +1,4 @@
-{% extends "customer_management/base.html" %}
+{% extends "customer_management/_base.html" %}
 
 {% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
 
@@ -88,7 +88,7 @@
 {% endblock %}
 
 {% block breadcrumb_items %}
-<li class="breadcrumb-item"><a href="{% url 'business_pages:opportunity_management' %}">商机管理</a></li>
+<li class="breadcrumb-item"><a href="{% url 'opportunity_pages:opportunity_management' %}">商机管理</a></li>
 <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
 
@@ -176,7 +176,7 @@
                                             {% if activity.related_client %}
                                                 <a href="{% url 'business_pages:customer_detail' activity.related_client.id %}">{{ activity.related_client.name }}</a>
                                             {% elif activity.related_opportunity %}
-                                                <a href="{% url 'business_pages:opportunity_detail' activity.related_opportunity.id %}">{{ activity.related_opportunity.name }}</a>
+                                                <a href="{% url 'opportunity_pages:opportunity_detail' activity.related_opportunity.id %}">{{ activity.related_opportunity.name }}</a>
                                             {% else %}
                                                 -
                                             {% endif %}

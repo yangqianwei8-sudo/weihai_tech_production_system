@@ -1,4 +1,4 @@
-{% extends "customer_management/base.html" %}
+{% extends "customer_management/_base.html" %}
 
 {% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
 
@@ -55,8 +55,8 @@
 {% endblock %}
 
 {% block breadcrumb_items %}
-<li class="breadcrumb-item"><a href="{% url 'business_pages:opportunity_management' %}">商机管理</a></li>
-<li class="breadcrumb-item"><a href="{% url 'business_pages:opportunity_bidding_quotation' %}">投标报价</a></li>
+<li class="breadcrumb-item"><a href="{% url 'opportunity_pages:opportunity_management' %}">商机管理</a></li>
+<li class="breadcrumb-item"><a href="{% url 'opportunity_pages:opportunity_bidding_quotation' %}">投标报价</a></li>
 <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
 {% endblock %}
 
@@ -80,7 +80,7 @@
             <div class="info-row">
                 <span class="info-label">关联商机：</span>
                 <span class="info-value">
-                    <a href="{% url 'business_pages:opportunity_detail' bidding_quotation.opportunity.id %}">
+                    <a href="{% url 'opportunity_pages:opportunity_detail' bidding_quotation.opportunity.id %}">
                         {{ bidding_quotation.opportunity.name }}
                     </a>
                     <small class="text-muted">({{ bidding_quotation.opportunity.opportunity_number|default:'未编号' }})</small>
@@ -252,7 +252,7 @@
     </div>
 
     <div class="d-flex justify-content-between align-items-center mt-4">
-        <a href="{% url 'business_pages:opportunity_bidding_quotation' %}" class="btn btn-outline-secondary">
+        <a href="{% url 'opportunity_pages:opportunity_bidding_quotation' %}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> 返回列表
         </a>
         <div>

@@ -53,11 +53,82 @@ from backend.apps.system_management.services import get_user_permission_codes
 from backend.core.views import HOME_NAV_STRUCTURE, _permission_granted, _build_full_top_nav
 from backend.apps.permission_management.utils import normalize_permission_code
 
+# 尝试导入统一的侧边栏菜单构建函数
+try:
+    from backend.core.views import _build_unified_sidebar_nav
+except ImportError:
+    # Fallback: 如果 _build_unified_sidebar_nav 不存在，提供简单实现
+    def _build_unified_sidebar_nav(menu_structure, permission_set, active_id=None):
+        """简单的侧边栏菜单构建函数（支持 url_name 转换）"""
+        nav = []
+        for item in menu_structure:
+            if item.get('permission'):
+                if not _permission_granted(item['permission'], permission_set):
+                    continue
+            
+            # 处理 URL：优先使用 url_name 转换为真实 URL
+            url = '#'
+            url_name = item.get('url_name')
+            if url_name:
+                try:
+                    url = reverse(url_name)
+                except NoReverseMatch:
+                    url = item.get('url', '#')
+            else:
+                url = item.get('url', '#')
+            
+            nav_item = {
+                'label': item.get('label', ''),
+                'icon': item.get('icon', ''),
+                'url': url,
+                'active': item.get('id') == active_id if active_id else False,
+            }
+            
+            # 处理子菜单
+            if 'children' in item:
+                children = []
+                for child in item['children']:
+                    # 检查子菜单权限
+                    if child.get('permission'):
+                        if not _permission_granted(child['permission'], permission_set):
+                            continue
+                    
+                    # 处理子菜单 URL
+                    child_url = '#'
+                    child_url_name = child.get('url_name')
+                    if child_url_name:
+                        try:
+                            child_url = reverse(child_url_name)
+                        except NoReverseMatch:
+                            child_url = child.get('url', '#')
+                    else:
+                        child_url = child.get('url', '#')
+                    
+                    children.append({
+                        'label': child.get('label', ''),
+                        'icon': child.get('icon', ''),
+                        'url': child_url,
+                        'active': child.get('id') == active_id if active_id else False,
+                    })
+                
+                nav_item['children'] = children
+            
+            nav.append(nav_item)
+        
+        return nav
+
 logger = logging.getLogger(__name__)
 
 
 # ==================== 客户管理模块左侧菜单结构（按《客户管理详细设计方案 v1.12》）====================
 CUSTOMER_MANAGEMENT_MENU = [
+    {
+        'id': 'customer_home',
+        'label': '客户管理首页',
+        'icon': '🏠',
+        'url_name': 'customer_pages:customer_management_home',
+        'permission': 'customer_management.client.view',
+    },
     {
         'id': 'customer_info',
         'label': '客户信息管理',
@@ -66,16 +137,16 @@ CUSTOMER_MANAGEMENT_MENU = [
         'children': [
             {
                 'id': 'customer_list',
-                'label': '创建客户',
+                'label': '客户列表',
                 'icon': '📋',
-                'url_name': 'business_pages:customer_list',
+                'url_name': 'customer_pages:customer_list',
                 'permission': 'customer_management.client.view',  # 自动根据权限级别显示
             },
             {
                 'id': 'customer_public_sea',
                 'label': '客户公海',
                 'icon': '🌊',
-                'url_name': 'business_pages:customer_public_sea',
+                'url_name': 'customer_pages:customer_public_sea',
                 'permission': 'customer_management.public_sea.view',
             },
         ]
@@ -88,30 +159,30 @@ CUSTOMER_MANAGEMENT_MENU = [
         'children': [
             {
                 'id': 'contact_list',
-                'label': '创建联系人信息',
+                'label': '联系人列表',
                 'icon': '📇',
-                'url_name': 'business_pages:contact_list',
+                'url_name': 'customer_pages:contact_list',
                 'permission': 'customer_management.contact.view',
             },
             {
                 'id': 'contact_relationship_mining',
                 'label': '关系挖掘',
                 'icon': '🔍',
-                'url_name': 'business_pages:contact_relationship_mining',
+                'url_name': 'customer_pages:contact_relationship_mining',
                 'permission': 'customer_management.contact.view',
             },
             {
                 'id': 'visit_list',
-                'label': '创建联系人拜访',
+                'label': '客户拜访',
                 'icon': '🚪',
-                'url_name': 'business_pages:customer_visit',
+                'url_name': 'customer_pages:customer_visit',
                 'permission': 'customer_management.relationship.view',
             },
             {
                 'id': 'contact_tracking_reminders',
                 'label': '逾期拜访提醒',
                 'icon': '🔔',
-                'url_name': 'business_pages:contact_tracking_reminders',
+                'url_name': 'customer_pages:contact_tracking_reminders',
                 'permission': 'customer_management.contact.view',
             },
         ]
@@ -124,23 +195,23 @@ CUSTOMER_MANAGEMENT_MENU = [
         'children': [
             {
                 'id': 'upgrade_list',
-                'label': '创建人员关系升级',
+                'label': '关系升级',
                 'icon': '⬆️',
-                'url_name': 'business_pages:customer_relationship_upgrade',
+                'url_name': 'customer_pages:customer_relationship_upgrade',
                 'permission': 'customer_management.relationship.view',
             },
             {
                 'id': 'business_expense_application',
                 'label': '业务费申请',
                 'icon': '💰',
-                'url_name': 'business_pages:business_expense_application_list',
+                'url_name': 'customer_pages:business_expense_application_list',
                 'permission': 'customer_management.relationship.view',
             },
             {
                 'id': 'relationship_collaboration',
-                'label': '人员关系协作申请',
+                'label': '关系协作',
                 'icon': '🤝',
-                'url_name': 'business_pages:customer_relationship_collaboration',
+                'url_name': 'customer_pages:customer_relationship_collaboration',
                 'permission': 'customer_management.relationship.view',
             },
         ]
@@ -151,6 +222,13 @@ CUSTOMER_MANAGEMENT_MENU = [
 # ==================== 合同管理模块左侧菜单结构 =====================
 CONTRACT_MANAGEMENT_MENU = [
     {
+        'id': 'contract_home',
+        'label': '合同管理首页',
+        'icon': '🏠',
+        'url_name': 'contract_pages:contract_management_home',
+        'permission': 'customer_management.contract.view',
+    },
+    {
         'id': 'authorization_letter',
         'label': '业务委托书',
         'icon': '📋',
@@ -158,9 +236,16 @@ CONTRACT_MANAGEMENT_MENU = [
         'children': [
             {
                 'id': 'authorization_letter_list',
-                'label': '创建业务委托书',
+                'label': '业务委托书列表',
                 'icon': '📋',
-                'url_name': 'business_pages:authorization_letter_list',
+                'url_name': 'contract_pages:authorization_letter_list',
+                'permission': 'customer_management.client.view',
+            },
+            {
+                'id': 'authorization_letter_template_list',
+                'label': '委托书模板管理',
+                'icon': '📄',
+                'url_name': 'contract_pages:authorization_letter_template_list',
                 'permission': 'customer_management.client.view',
             },
         ]
@@ -173,37 +258,37 @@ CONTRACT_MANAGEMENT_MENU = [
         'children': [
             {
                 'id': 'contract_management_list',
-                'label': '创建合同草稿',
+                'label': '合同列表',
                 'icon': '📄',
-                'url_name': 'business_pages:contract_management_list',
+                'url_name': 'contract_pages:contract_management_list',
                 'permission': 'customer_management.client.view',
             },
             {
                 'id': 'contract_negotiation_list',
                 'label': '合同洽谈记录',
                 'icon': '💬',
-                'url_name': 'business_pages:contract_negotiation_list',
+                'url_name': 'contract_pages:contract_negotiation_list',
                 'permission': 'customer_management.client.view',
             },
             {
                 'id': 'contract_negotiation_create',
                 'label': '创建合同洽谈记录',
                 'icon': '➕',
-                'url_name': 'business_pages:contract_negotiation_create',
+                'url_name': 'contract_pages:contract_negotiation_create',
                 'permission': 'customer_management.client.create',
             },
             {
                 'id': 'contract_finalize_list',
                 'label': '合同定稿列表',
                 'icon': '📋',
-                'url_name': 'business_pages:contract_finalize_list',
+                'url_name': 'contract_pages:contract_finalize_list',
                 'permission': 'customer_management.client.view',
             },
             {
                 'id': 'contract_finalize_create',
                 'label': '创建合同定稿',
                 'icon': '✅',
-                'url_name': 'business_pages:contract_finalize_create',
+                'url_name': 'contract_pages:contract_finalize_create',
                 'permission': 'customer_management.client.create',
             },
         ]
@@ -218,14 +303,14 @@ CONTRACT_MANAGEMENT_MENU = [
                 'id': 'contract_performance',
                 'label': '履约跟踪',
                 'icon': '📋',
-                'url_name': 'business_pages:contract_performance_track',
+                'url_name': 'contract_pages:contract_performance_track',
                 'permission': 'customer_management.client.view',
             },
             {
                 'id': 'contract_dispute_list',
                 'label': '合同争议',
                 'icon': '⚖️',
-                'url_name': 'business_pages:contract_dispute_list',
+                'url_name': 'contract_pages:contract_dispute_list',
                 'permission': 'customer_management.client.view',
             },
         ]
@@ -240,21 +325,21 @@ CONTRACT_MANAGEMENT_MENU = [
                 'id': 'contract_expiry_reminder',
                 'label': '到期提醒',
                 'icon': '📅',
-                'url_name': 'business_pages:contract_expiry_reminder',
+                'url_name': 'contract_pages:contract_expiry_reminder',
                 'permission': 'customer_management.client.view',
             },
             {
                 'id': 'contract_payment_reminder',
                 'label': '付款提醒',
                 'icon': '💰',
-                'url_name': 'business_pages:contract_payment_reminder',
+                'url_name': 'contract_pages:contract_payment_reminder',
                 'permission': 'customer_management.client.view',
             },
             {
                 'id': 'contract_risk_warning',
                 'label': '风险预警',
                 'icon': '⚠️',
-                'url_name': 'business_pages:contract_risk_warning',
+                'url_name': 'contract_pages:contract_risk_warning',
                 'permission': 'customer_management.client.view',
             },
         ]
@@ -265,117 +350,139 @@ CONTRACT_MANAGEMENT_MENU = [
 # ==================== 商机管理模块左侧菜单结构 =====================
 OPPORTUNITY_MANAGEMENT_MENU = [
     {
-        'id': 'opportunity_info',
-        'label': '商机信息管理',
+        'id': 'opportunity_home',
+        'label': '商机管理首页',
+        'icon': '🏠',
+        'url_name': 'opportunity_pages:opportunity_management_home',
+        'permission': 'customer_management.opportunity.view',
+    },
+    {
+        'id': 'basic_info',
+        'label': '基本信息',
         'icon': '📋',
         'permission': 'customer_management.opportunity.view',
         'children': [
             {
                 'id': 'opportunity_list',
-                'label': '创建商机',
+                'label': '商机列表',
                 'icon': '📋',
-                'url_name': 'business_pages:opportunity_management',
+                'url_name': 'opportunity_pages:opportunity_management',
+                'permission': 'customer_management.opportunity.view',
+            },
+            {
+                'id': 'opportunity_import',
+                'label': '批量导入',
+                'icon': '📥',
+                'url_name': 'opportunity_pages:opportunity_import',
                 'permission': 'customer_management.opportunity.view',
             },
         ]
     },
     {
-        'id': 'technical_support',
-        'label': '技术支持',
-        'icon': '🔧',
+        'id': 'project_info',
+        'label': '项目信息',
+        'icon': '🏗️',
         'permission': 'customer_management.opportunity.view',
         'children': [
             {
                 'id': 'evaluation_application',
                 'label': '评估申请',
                 'icon': '📝',
-                'url_name': 'business_pages:opportunity_evaluation_application',
+                'url_name': 'opportunity_pages:opportunity_evaluation_application',
                 'permission': 'customer_management.opportunity.manage',
             },
             {
                 'id': 'drawing_evaluation',
                 'label': '图纸评估',
                 'icon': '📐',
-                'url_name': 'business_pages:opportunity_drawing_evaluation',
+                'url_name': 'opportunity_pages:opportunity_drawing_evaluation',
                 'permission': 'customer_management.opportunity.view',
             },
             {
                 'id': 'tech_meeting',
                 'label': '技术沟通会',
                 'icon': '🤝',
-                'url_name': 'business_pages:opportunity_tech_meeting',
+                'url_name': 'opportunity_pages:opportunity_tech_meeting',
                 'permission': 'customer_management.opportunity.view',
             },
         ]
     },
     {
-        'id': 'bidding_quotation',
-        'label': '投标报价',
+        'id': 'amount_info',
+        'label': '金额信息',
         'icon': '💰',
         'permission': 'customer_management.opportunity.view',
         'children': [
             {
-                'id': 'warehouse_list',
-                'label': '创建入库',
-                'icon': '📥',
-                'url_name': 'business_pages:opportunity_warehouse_list',
-                'permission': 'customer_management.opportunity.view',
-            },
-            {
                 'id': 'bidding_quotation_application',
                 'label': '投标报价申请',
                 'icon': '📋',
-                'url_name': 'business_pages:opportunity_bidding_quotation_application',
+                'url_name': 'opportunity_pages:opportunity_bidding_quotation_application',
                 'permission': 'customer_management.opportunity.view',
             },
             {
                 'id': 'bidding_quotation',
                 'label': '投标报价管理',
                 'icon': '📊',
-                'url_name': 'business_pages:opportunity_bidding_quotation',
+                'url_name': 'opportunity_pages:opportunity_bidding_quotation',
                 'permission': 'customer_management.opportunity.view',
             },
+            {
+                'id': 'warehouse_list',
+                'label': '创建入库',
+                'icon': '📥',
+                'url_name': 'opportunity_pages:opportunity_warehouse_list',
+                'permission': 'customer_management.opportunity.view',
+            },
+        ]
+    },
+    {
+        'id': 'time_info',
+        'label': '时间信息',
+        'icon': '⏰',
+        'permission': 'customer_management.opportunity.view',
+        'children': [
             {
                 'id': 'bidding_document_preparation',
                 'label': '编制投标文件',
                 'icon': '📄',
-                'url_name': 'business_pages:opportunity_bidding_document_preparation',
+                'url_name': 'opportunity_pages:opportunity_bidding_document_preparation',
                 'permission': 'customer_management.opportunity.manage',
             },
             {
                 'id': 'bidding_document_submission',
                 'label': '递交投标文件',
                 'icon': '📤',
-                'url_name': 'business_pages:opportunity_bidding_document_submission',
+                'url_name': 'opportunity_pages:opportunity_bidding_document_submission',
                 'permission': 'customer_management.opportunity.manage',
             },
-        ]
-    },
-    {
-        'id': 'opportunity_achievement',
-        'label': '商机成就',
-        'icon': '🎯',
-        'permission': 'customer_management.opportunity.view',
-        'children': [
             {
                 'id': 'business_negotiation',
                 'label': '商务洽谈登记',
                 'icon': '💼',
-                'url_name': 'business_pages:opportunity_business_negotiation',
+                'url_name': 'opportunity_pages:opportunity_business_negotiation',
                 'permission': 'customer_management.opportunity.view',
             },
+        ]
+    },
+    {
+        'id': 'opportunity_description',
+        'label': '商机描述',
+        'icon': '📝',
+        'permission': 'customer_management.opportunity.view',
+        'children': [
             {
                 'id': 'sales_forecast',
                 'label': '商机预测',
                 'icon': '📈',
-                'url_name': 'business_pages:opportunity_sales_forecast',
+                'url_name': 'opportunity_pages:opportunity_sales_forecast',
                 'permission': 'customer_management.opportunity.view',
             },
             {
                 'id': 'win_loss',
                 'label': '赢单与输单',
                 'icon': '✅',
-                'url_name': 'business_pages:opportunity_win_loss',
+                'url_name': 'opportunity_pages:opportunity_win_loss',
                 'permission': 'customer_management.opportunity.manage',
             },
         ]
@@ -390,21 +497,21 @@ OPPORTUNITY_MANAGEMENT_MENU = [
                 'id': 'bid_bond_payment',
                 'label': '投标保证金支付',
                 'icon': '💰',
-                'url_name': 'business_pages:opportunity_bid_bond_payment',
+                'url_name': 'opportunity_pages:opportunity_bid_bond_payment',
                 'permission': 'customer_management.opportunity.manage',
             },
             {
                 'id': 'tender_fee_payment',
                 'label': '标书费支付',
                 'icon': '📄',
-                'url_name': 'business_pages:opportunity_tender_fee_payment',
+                'url_name': 'opportunity_pages:opportunity_tender_fee_payment',
                 'permission': 'customer_management.opportunity.manage',
             },
             {
                 'id': 'tender_agent_fee_payment',
                 'label': '招标代理费支付',
                 'icon': '🏢',
-                'url_name': 'business_pages:opportunity_tender_agent_fee_payment',
+                'url_name': 'opportunity_pages:opportunity_tender_agent_fee_payment',
                 'permission': 'customer_management.opportunity.manage',
             },
         ]
@@ -432,12 +539,33 @@ def _build_opportunity_management_menu(permission_set, active_id=None):
     menu = []
     
     for menu_group in OPPORTUNITY_MANAGEMENT_MENU:
-        # 检查父菜单权限
+        # 检查菜单权限
         permission = menu_group.get('permission')
         if permission and not _permission_granted(permission, permission_set):
             continue
         
-        # 处理子菜单
+        # 如果是单独的菜单项（没有children），直接添加
+        if 'children' not in menu_group or not menu_group.get('children'):
+            url_name = menu_group.get('url_name')
+            url = '#'
+            if url_name:
+                try:
+                    url = reverse(url_name)
+                except NoReverseMatch:
+                    url = '#'
+            
+            is_active = menu_group.get('id') == active_id
+            
+            menu.append({
+                'id': menu_group.get('id'),
+                'label': menu_group.get('label'),
+                'icon': menu_group.get('icon'),
+                'url': url,
+                'active': is_active,
+            })
+            continue
+        
+        # 处理有子菜单的分组
         children = []
         for child in menu_group.get('children', []):
             # 检查子菜单权限
@@ -472,10 +600,16 @@ def _build_opportunity_management_menu(permission_set, active_id=None):
         # 判断父菜单是否激活（任意子菜单激活则父菜单激活）
         group_active = any(child.get('id') == active_id for child in menu_group.get('children', []))
         
+        # 获取父菜单URL（使用第一个子菜单的URL作为父菜单URL）
+        parent_url = '#'
+        if children:
+            parent_url = children[0].get('url', '#')
+        
         menu.append({
             'id': menu_group.get('id'),
             'label': menu_group.get('label'),
             'icon': menu_group.get('icon'),
+            'url': parent_url,
             'active': group_active,
             'expanded': group_active,  # 如果有激活项，默认展开（与客户管理格式一致）
             'children': children,
@@ -757,6 +891,23 @@ def _build_customer_management_menu(permission_set, active_id=None):
     return menu
 
 
+# ==================== 左侧栏菜单构建函数（统一格式，类似计划管理）====================
+
+def _build_customer_management_sidebar_nav(permission_set, request_path=None, active_id=None):
+    """生成客户管理左侧菜单（统一格式）"""
+    return _build_unified_sidebar_nav(CUSTOMER_MANAGEMENT_MENU, permission_set, active_id=active_id)
+
+
+def _build_opportunity_management_sidebar_nav(permission_set, request_path=None, active_id=None):
+    """生成商机管理左侧菜单（统一格式）"""
+    return _build_unified_sidebar_nav(OPPORTUNITY_MANAGEMENT_MENU, permission_set, active_id=active_id)
+
+
+def _build_contract_management_sidebar_nav(permission_set, request_path=None, active_id=None):
+    """生成合同管理左侧菜单（统一格式）"""
+    return _build_unified_sidebar_nav(CONTRACT_MANAGEMENT_MENU, permission_set, active_id=active_id)
+
+
 # 使用统一的顶部导航菜单生成函数（已从 backend.core.views 导入）
 
 
@@ -774,79 +925,113 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
         permission_set = get_user_permission_codes(request.user)
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         
-        # 如果是商机管理相关页面，自动生成左侧菜单
-        if request.path and '/business/opportunities' in request.path:
+        # 根据路径自动判断应该显示哪个模块的左侧栏菜单和标题
+        # 优先使用新的独立路径判断
+        if request.path and ('/opportunities/' in request.path or '/business/opportunities' in request.path):
+            # 设置侧边栏标题
+            context['sidebar_module_title'] = '商机管理'
+            context['sidebar_module_subtitle'] = 'Opportunity Management'
             # 根据路径确定激活的菜单项
             active_menu_id = None
-            if '/opportunities/evaluation-application' in request.path:
+            if '/evaluation-application' in request.path:
                 active_menu_id = 'evaluation_application'
-            elif '/opportunities/drawing-evaluation' in request.path:
+            elif '/drawing-evaluation' in request.path:
                 active_menu_id = 'drawing_evaluation'
-            elif '/opportunities/tech-meeting' in request.path:
+            elif '/tech-meeting' in request.path:
                 active_menu_id = 'tech_meeting'
-            elif '/opportunities/warehouse-list' in request.path or '/opportunities/warehouse-application' in request.path:
+            elif '/warehouse-list' in request.path or '/warehouse-application' in request.path:
                 active_menu_id = 'warehouse_list'
-            elif '/opportunities/bidding-quotation-application' in request.path:
+            elif '/bidding-quotation-application' in request.path:
                 active_menu_id = 'bidding_quotation_application'
-            elif '/opportunities/bidding-quotation' in request.path:
+            elif '/bidding-quotation' in request.path and '/bidding-quotation-application' not in request.path:
                 active_menu_id = 'bidding_quotation'
-            elif '/opportunities/bidding-document-preparation' in request.path:
+            elif '/bidding-document-preparation' in request.path:
                 active_menu_id = 'bidding_document_preparation'
-            elif '/opportunities/bidding-document-submission' in request.path:
+            elif '/bidding-document-submission' in request.path:
                 active_menu_id = 'bidding_document_submission'
-            elif '/opportunities/business-negotiation' in request.path:
+            elif '/business-negotiation' in request.path:
                 active_menu_id = 'business_negotiation'
-            elif '/opportunities/forecast' in request.path:
+            elif '/forecast' in request.path:
                 active_menu_id = 'sales_forecast'
-            elif '/opportunities/win-loss' in request.path:
+            elif '/win-loss' in request.path:
                 active_menu_id = 'win_loss'
-            elif '/opportunities/bid-bond-payment' in request.path:
+            elif '/bid-bond-payment' in request.path:
                 active_menu_id = 'bid_bond_payment'
-            elif '/opportunities/tender-fee-payment' in request.path:
+            elif '/tender-fee-payment' in request.path:
                 active_menu_id = 'tender_fee_payment'
-            elif '/opportunities/agency-fee-payment' in request.path:
+            elif '/agency-fee-payment' in request.path:
                 active_menu_id = 'tender_agent_fee_payment'
-            elif '/opportunities/' in request.path and '/opportunities/create' not in request.path:
+            elif request.path.endswith('/opportunities/') or request.path.endswith('/opportunities') or '/opportunities/list' in request.path:
                 active_menu_id = 'opportunity_list'
+            # 使用统一的侧边栏菜单格式
+            context['module_sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
+            # 保持向后兼容
             context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id=active_menu_id)
-        # 如果是业务委托书或合同管理相关页面，生成合同管理菜单
-        elif request.path and ('/business/authorization-letters' in request.path or '/business/authorization-letter-templates' in request.path or '/business/contracts' in request.path):
+        # 如果是业务委托书或合同管理相关页面，生成合同管理菜单（支持新路径 /contracts/ 和旧路径 /business/contracts）
+        elif request.path and ('/contracts/' in request.path or '/authorization-letters' in request.path or '/authorization-letter-templates' in request.path or '/business/authorization-letters' in request.path or '/business/authorization-letter-templates' in request.path or '/business/contracts' in request.path):
+            # 设置侧边栏标题
+            context['sidebar_module_title'] = '合同管理'
+            context['sidebar_module_subtitle'] = 'Contract Management'
             # 根据路径确定激活的菜单项
             if active_menu_id is None:
-                if '/business/contracts/management' in request.path:
+                if '/contracts/home' in request.path or request.path == '/contracts/' or request.path == '/contracts':
+                    active_menu_id = 'contract_home'
+                elif '/contracts/management' in request.path or '/management/' in request.path:
                     active_menu_id = 'contract_management_list'
-                elif '/business/contracts/dispute' in request.path:
+                elif '/contracts/dispute' in request.path or '/dispute/' in request.path:
                     active_menu_id = 'contract_dispute_list'
-                elif '/business/contracts/finalize' in request.path:
+                elif '/contracts/finalize' in request.path or '/finalize/' in request.path:
                     active_menu_id = 'contract_finalize_create' if '/create' in request.path else 'contract_finalize_list'
-                elif '/business/contracts/negotiation' in request.path:
+                elif '/contracts/negotiation' in request.path or '/negotiation/' in request.path:
                     active_menu_id = 'contract_negotiation_create' if '/create' in request.path else 'contract_negotiation_list'
-                elif '/business/contracts/performance' in request.path:
+                elif '/contracts/performance' in request.path or '/performance/' in request.path:
                     active_menu_id = 'contract_performance'
-                elif '/business/contracts/expiry-reminder' in request.path:
+                elif '/contracts/expiry-reminder' in request.path or '/expiry-reminder/' in request.path:
                     active_menu_id = 'contract_expiry_reminder'
-                elif '/business/contracts/payment-reminder' in request.path:
+                elif '/contracts/payment-reminder' in request.path or '/payment-reminder/' in request.path:
                     active_menu_id = 'contract_payment_reminder'
-                elif '/business/contracts/risk-warning' in request.path:
+                elif '/contracts/risk-warning' in request.path or '/risk-warning/' in request.path:
                     active_menu_id = 'contract_risk_warning'
-                elif '/business/contracts/create' in request.path:
+                elif '/contracts/create' in request.path or (request.path.endswith('/create/') and '/contracts/' in request.path):
                     active_menu_id = 'contract_management_list'  # 创建合同页面激活合同管理菜单
-                elif '/business/contracts/' in request.path and '/edit' in request.path:
+                elif '/contracts/' in request.path and '/edit' in request.path:
                     active_menu_id = 'contract_management_list'  # 编辑合同页面激活合同管理菜单
-                elif '/business/contracts/' in request.path and request.path.count('/') == 3:
-                    # 合同详情页（/business/contracts/<id>/）
+                elif '/contracts/' in request.path and request.path.count('/') >= 3 and not any(x in request.path for x in ['/edit', '/delete', '/create', '/management', '/dispute', '/finalize', '/negotiation', '/performance', '/expiry-reminder', '/payment-reminder', '/risk-warning', '/home']):
+                    # 合同详情页（/contracts/<id>/）
                     active_menu_id = 'contract_management_list'  # 合同详情页激活合同管理菜单
-                elif '/business/authorization-letters' in request.path:
+                elif '/authorization-letters' in request.path and '/authorization-letter-templates' not in request.path:
                     active_menu_id = 'authorization_letter_list'
+                elif '/authorization-letter-templates' in request.path:
+                    active_menu_id = 'authorization_letter_template_list'
+            # 使用统一的侧边栏菜单格式
+            context['module_sidebar_nav'] = _build_contract_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
+            # 保持向后兼容
             context['customer_menu'] = _build_contract_management_menu(permission_set, active_id=active_menu_id)
-        # 如果是客户管理相关页面，生成客户管理菜单
-        elif request.path and '/business/customers' in request.path:
+        # 如果是客户管理相关页面，生成客户管理菜单（支持新路径 /customers/ 和旧路径 /business/customers）
+        elif request.path and ('/customers/' in request.path or '/contacts/' in request.path or '/visit-plan/' in request.path or '/customer-visit/' in request.path or '/customer-relationship-' in request.path or '/business-expense-application' in request.path or '/business/customers' in request.path):
+            # 设置侧边栏标题
+            context['sidebar_module_title'] = '客户管理'
+            context['sidebar_module_subtitle'] = 'Customer Management'
+            # 根据路径确定激活的菜单项
+            if active_menu_id is None:
+                if '/customers/home' in request.path or (request.path == '/customers/' or request.path == '/customers'):
+                    active_menu_id = 'customer_home'
+            # 使用统一的侧边栏菜单格式
+            context['module_sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
+            # 保持向后兼容
             context['customer_menu'] = _build_customer_management_menu(permission_set, active_id=active_menu_id)
-        # 如果是客户管理首页（/business/），生成客户管理菜单
-        elif request.path == '/business/' or request.path == '/business':
+        # 如果是客户管理首页（/customers/ 或 /business/），生成客户管理菜单
+        elif request.path == '/customers/' or request.path == '/customers' or request.path == '/business/' or request.path == '/business':
+            # 设置侧边栏标题
+            context['sidebar_module_title'] = '客户管理'
+            context['sidebar_module_subtitle'] = 'Customer Management'
+            # 使用统一的侧边栏菜单格式
+            context['module_sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id='customer_home')
+            # 保持向后兼容
             context['customer_menu'] = _build_customer_management_menu(permission_set, active_id=None)
     else:
         context['full_top_nav'] = []
+        context['module_sidebar_nav'] = []
         context['customer_menu'] = []
     
     return context
@@ -1103,7 +1288,7 @@ def customer_management_home(request):
                     'label': '商机管理',
                     'icon': '💼',
                     'description': '管理商机信息，跟踪商机进展',
-                    'url': reverse('business_pages:opportunity_management'),
+                    'url': reverse('opportunity_pages:opportunity_management'),
                     'link_label': '进入模块 →'
                 })
             except NoReverseMatch:
@@ -1115,7 +1300,7 @@ def customer_management_home(request):
                     'label': '合同管理',
                     'icon': '📄',
                     'description': '管理合同信息，跟踪合同状态',
-                    'url': reverse('business_pages:contract_management_list'),
+                    'url': reverse('contract_pages:contract_management_list'),
                     'link_label': '进入模块 →'
                 })
             except NoReverseMatch:
@@ -1186,18 +1371,130 @@ def customer_management_home(request):
             logger = logging.getLogger(__name__)
             logger.exception('获取最近动态失败: %s', str(e))
         
-        # 构建上下文
-        context = _context(
-            "客户管理",
-            "👥",
-            "客户管理首页，管理客户信息、联系人、商机等业务数据。",
-            summary_cards=summary_cards,
-            sections=sections,
-            request=request,
-        )
+        # 转换为core_cards格式（与计划管理一致）
+        core_cards = []
+        for card in summary_cards:
+            core_cards.append({
+                'label': card.get('label', ''),
+                'icon': card.get('icon', '📊'),
+                'value': str(card.get('value', 0)),
+                'subvalue': card.get('hint', ''),
+                'url': card.get('url', '#'),
+            })
         
-        # 添加最近动态
-        context['recent_notices'] = recent_notices[:10]  # 最多显示10条
+        # 顶部操作栏
+        top_actions = []
+        if is_admin or _permission_granted('customer_management.client.create', permission_set):
+            try:
+                top_actions.append({
+                    'label': '创建客户',
+                    'icon': '➕',
+                    'url': reverse('customer_pages:customer_create'),
+                })
+            except NoReverseMatch:
+                pass
+        
+        if is_admin or _permission_granted('customer_management.client.create', permission_set):
+            try:
+                top_actions.append({
+                    'label': '创建联系人',
+                    'icon': '👤',
+                    'url': reverse('customer_pages:contact_create'),
+                })
+            except NoReverseMatch:
+                pass
+        
+        # 风险预警
+        risk_warnings = []
+        overdue_customers_count = 0
+        stale_customers_count = 0
+        # TODO: 添加具体的风险预警逻辑
+        
+        # 待办事项
+        todo_items = []
+        pending_approval_count = 0
+        upcoming_deadline_count = 0
+        # TODO: 添加具体的待办事项逻辑
+        
+        # 我的工作
+        my_work = {}
+        try:
+            my_customers = Client.objects.filter(business_manager=request.user).select_related('business_manager')[:5]
+            my_work['my_customers'] = [
+                {
+                    'name': c.name,
+                    'status': c.get_status_display() if hasattr(c, 'get_status_display') else '正常',
+                    'url': reverse('customer_pages:customer_detail', args=[c.id]),
+                }
+                for c in my_customers
+            ]
+            my_work['my_customers_count'] = Client.objects.filter(business_manager=request.user).count()
+        except Exception:
+            pass
+        
+        # 最近活动（统一为字典格式，与计划管理一致）
+        recent_activities = {}
+        # 最近创建的客户
+        try:
+            recent_customers = Client.objects.select_related('created_by', 'business_manager').order_by('-created_time')[:5]
+            recent_activities['recent_customers'] = [{
+                'title': c.name,
+                'creator': c.created_by.get_full_name() or c.created_by.username if c.created_by else '系统',
+                'time': c.created_time,
+                'url': reverse('customer_pages:customer_detail', args=[c.id])
+            } for c in recent_customers]
+        except Exception:
+            recent_activities['recent_customers'] = []
+        
+        # 最近创建的联系人
+        try:
+            recent_contacts = ClientContact.objects.select_related('client', 'created_by').order_by('-created_time')[:5]
+            recent_activities['recent_contacts'] = [{
+                'title': f'{c.name} - {c.client.name if c.client else "未知客户"}',
+                'creator': c.created_by.get_full_name() or c.created_by.username if c.created_by else '系统',
+                'time': c.created_time,
+                'url': reverse('customer_pages:contact_detail', args=[c.id])
+            } for c in recent_contacts]
+        except Exception:
+            recent_activities['recent_contacts'] = []
+        
+        # 构建上下文
+        # 构建上下文
+        context = {
+            'page_title': '客户管理',
+            'page_icon': '👥',
+            'description': '客户管理首页，管理客户信息、联系人、商机等业务数据。',
+            'core_cards': core_cards,
+            'top_actions': top_actions,
+            'risk_warnings': risk_warnings,
+            'todo_items': todo_items,
+            'my_work': my_work,
+            'recent_activities': recent_activities,
+            'overdue_customers_count': overdue_customers_count,
+            'stale_customers_count': stale_customers_count,
+            'pending_approval_count': pending_approval_count,
+            'upcoming_deadline_count': upcoming_deadline_count,
+            'todo_summary_url': reverse('customer_pages:customer_list'),
+            'summary_cards': summary_cards,  # 保持向后兼容
+            'sections': sections,
+            'recent_notices': recent_notices[:10],  # 最多显示10条
+            'sidebar_module_title': '客户管理',
+            'sidebar_module_subtitle': 'Customer Management',
+        }
+        
+        if request and request.user.is_authenticated:
+            permission_set = get_user_permission_codes(request.user)
+            context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
+            # 根据路径判断active_id
+            active_id = 'customer_home'
+            if '/customers/home' in request.path or request.path == '/customers/' or request.path == '/customers':
+                active_id = 'customer_home'
+            context['module_sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_id)
+            # 保持向后兼容
+            context['customer_menu'] = _build_customer_management_menu(permission_set, active_id=active_id)
+        else:
+            context['full_top_nav'] = []
+            context['module_sidebar_nav'] = []
         
         return render(request, "customer_management/home.html", context)
     except Exception as e:
@@ -1206,14 +1503,31 @@ def customer_management_home(request):
         messages.error(request, f'页面加载失败: {str(e)}')
         try:
             # 尝试返回一个基本的上下文
-            context = _context(
-                "客户管理",
-                "👥",
-                "客户管理首页",
-                summary_cards=[],
-                sections=[],
-                request=request,
-            )
+            # 构建上下文
+            context = {
+                'page_title': '客户管理',
+                'page_icon': '👥',
+                'description': '客户管理首页',
+                'summary_cards': summary_cards,
+                'sections': sections,
+                'sidebar_module_title': '客户管理',
+                'sidebar_module_subtitle': 'Customer Management',
+            }
+            
+            if request and request.user.is_authenticated:
+                permission_set = get_user_permission_codes(request.user)
+                context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
+                active_id = 'customer_home'
+                if '/customers/home' in request.path or request.path == '/customers/' or request.path == '/customers':
+                    active_id = 'customer_home'
+                context['module_sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_id)
+                # 保持向后兼容
+                context['customer_menu'] = _build_customer_management_menu(permission_set, active_id=active_id)
+            else:
+                context['full_top_nav'] = []
+                context['module_sidebar_nav'] = []
+                context['customer_menu'] = []
+            
             return render(request, "customer_management/home.html", context)
         except Exception as inner_e:
             logger.exception('渲染错误页面也失败: %s', str(inner_e))
@@ -4661,6 +4975,197 @@ def _apply_contract_filters(queryset, filters):
     return queryset
 
 @login_required
+def contract_management_home(request):
+    """合同管理首页 - 数据展示中心"""
+    permission_set = get_user_permission_codes(request.user)
+    
+    # 权限检查
+    if not _permission_granted('customer_management.contract.view', permission_set):
+        messages.error(request, '您没有权限访问合同管理')
+        return redirect('home')
+    
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models import Sum, Count, Q
+    from decimal import Decimal
+    
+    now = timezone.now()
+    today = now.date()
+    this_month_start = today.replace(day=1)
+    seven_days_ago = today - timedelta(days=7)
+    
+    try:
+        # 基础查询集（考虑权限）
+        base_queryset = BusinessContract.objects.all()
+        
+        # 统计信息
+        total_contracts = base_queryset.count()
+        draft_contracts = base_queryset.filter(status='draft').count()
+        pending_contracts = base_queryset.filter(status='pending_review').count()
+        signed_contracts = base_queryset.filter(status='signed').count()
+        total_amount = base_queryset.filter(status='signed').aggregate(
+            total=Sum('total_amount')
+        )['total'] or Decimal('0')
+        monthly_new = base_queryset.filter(
+            created_time__year=now.year,
+            created_time__month=now.month
+        ).count()
+        
+        # 状态统计
+        status_stats = base_queryset.values('status').annotate(count=Count('id'))
+        status_dict = {stat['status']: stat['count'] for stat in status_stats}
+        
+        # 最近合同
+        recent_contracts = base_queryset.select_related('client', 'project', 'created_by').order_by('-created_time')[:10]
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('获取合同统计信息失败: %s', str(e))
+        total_contracts = 0
+        draft_contracts = 0
+        pending_contracts = 0
+        signed_contracts = 0
+        total_amount = Decimal('0')
+        monthly_new = 0
+        status_dict = {}
+        recent_contracts = []
+    
+    # 构建统计卡片
+    summary_cards = []
+    try:
+        summary_cards.append({
+            'label': '合同总数',
+            'value': total_contracts,
+            'url': reverse('contract_pages:contract_management_list'),
+            'variant': 'info'
+        })
+        summary_cards.append({
+            'label': '草稿合同',
+            'value': draft_contracts,
+            'url': reverse('contract_pages:contract_management_list') + '?status=draft',
+            'variant': 'warning'
+        })
+        summary_cards.append({
+            'label': '待审核',
+            'value': pending_contracts,
+            'url': reverse('contract_pages:contract_management_list') + '?status=pending_review',
+            'variant': 'warning'
+        })
+        summary_cards.append({
+            'label': '已签署',
+            'value': signed_contracts,
+            'url': reverse('contract_pages:contract_management_list') + '?status=signed',
+            'variant': 'success'
+        })
+        summary_cards.append({
+            'label': '合同总额',
+            'value': f'{total_amount:,.0f}',
+            'url': reverse('contract_pages:contract_management_list') + '?status=signed',
+            'variant': 'primary'
+        })
+        summary_cards.append({
+            'label': '本月新增',
+            'value': monthly_new,
+            'url': reverse('contract_pages:contract_management_list'),
+            'variant': 'info'
+        })
+    except Exception as e:
+        logger.exception('构建统计卡片失败: %s', str(e))
+    
+    # 转换为core_cards格式（与计划管理一致）
+    core_cards = []
+    for card in summary_cards:
+        core_cards.append({
+            'label': card.get('label', ''),
+            'icon': '📄',
+            'value': str(card.get('value', 0)),
+            'subvalue': '',
+            'url': card.get('url', '#'),
+        })
+    
+    # 顶部操作栏
+    top_actions = []
+    if _permission_granted('customer_management.contract.create', permission_set):
+        try:
+            top_actions.append({
+                'label': '创建合同',
+                'icon': '➕',
+                'url': reverse('contract_pages:contract_create'),
+            })
+        except NoReverseMatch:
+            pass
+    
+    # 风险预警
+    risk_warnings = []
+    overdue_contracts_count = 0
+    stale_contracts_count = 0
+    # TODO: 添加具体的风险预警逻辑
+    
+    # 待办事项
+    todo_items = []
+    pending_approval_count = 0
+    upcoming_deadline_count = 0
+    # TODO: 添加具体的待办事项逻辑
+    
+    # 我的工作
+    my_work = {}
+    
+    # 最近活动（统一为字典格式，与计划管理一致）
+    recent_activities = {}
+    # 最近创建的合同
+    recent_activities['recent_contracts'] = [{
+        'title': contract.contract_name or contract.project_number or f'合同 #{contract.id}',
+        'creator': contract.created_by.get_full_name() or contract.created_by.username if contract.created_by else '系统',
+        'time': contract.created_time,
+        'status': contract.get_status_display(),
+        'url': reverse('contract_pages:contract_detail', args=[contract.id]),
+    } for contract in recent_contracts[:5]]
+    
+    # 构建上下文
+    context = {
+        'page_title': '合同管理',
+        'page_icon': '📄',
+        'description': '合同全生命周期管理，从起草到签署、执行、变更的全流程数字化管理。',
+        'core_cards': core_cards,
+        'top_actions': top_actions,
+        'risk_warnings': risk_warnings,
+        'todo_items': todo_items,
+        'my_work': my_work,
+        'recent_activities': recent_activities,
+        'overdue_contracts_count': overdue_contracts_count,
+        'stale_contracts_count': stale_contracts_count,
+        'pending_approval_count': pending_approval_count,
+        'upcoming_deadline_count': upcoming_deadline_count,
+        'todo_summary_url': reverse('contract_pages:contract_management_list'),
+        'summary_cards': summary_cards,  # 保持向后兼容
+        'sections': [],
+        'total_contracts': total_contracts,
+        'draft_contracts': draft_contracts,
+        'pending_contracts': pending_contracts,
+        'signed_contracts': signed_contracts,
+        'total_amount': total_amount,
+        'monthly_new': monthly_new,
+        'status_dict': status_dict,
+        'recent_contracts': recent_contracts,
+        'sidebar_module_title': '合同管理',
+        'sidebar_module_subtitle': 'Contract Management',
+    }
+    
+    if request and request.user.is_authenticated:
+        permission_set = get_user_permission_codes(request.user)
+        context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
+        context['module_sidebar_nav'] = _build_contract_management_sidebar_nav(permission_set, request.path, active_id='contract_home')
+        # 保持向后兼容
+        context['customer_menu'] = _build_contract_management_menu(permission_set, active_id='contract_home')
+    else:
+        context['full_top_nav'] = []
+        context['module_sidebar_nav'] = []
+    
+    return render(request, "customer_management/contract_home.html", context)
+
+
+@login_required
 def contract_management_list(request):
     """
     合同管理列表页面（显示所有状态的合同）
@@ -4805,7 +5310,7 @@ def contract_detail(request, contract_id):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.contract.view', permission_set):
         messages.error(request, '您没有权限查看合同详情')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     contract = get_object_or_404(
         BusinessContract.objects.select_related(
@@ -4949,7 +5454,7 @@ def contract_create(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.contract.create', permission_set):
         messages.error(request, '您没有权限创建合同')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 检查是否从业务委托书转换而来
     authorization_letter_id = request.GET.get('authorization_letter')
@@ -5005,7 +5510,7 @@ def contract_create(request):
                         # 如果保存结算方案失败，记录错误但不影响合同创建
                         logger.warning(f'保存结算方案失败: {str(e)}')
                 
-                return redirect('business_pages:contract_detail', contract_id=contract.id)
+                return redirect('contract_pages:contract_detail', contract_id=contract.id)
             else:
                 messages.error(request, '表单验证失败，请检查输入。')
         except Exception as e:
@@ -5178,7 +5683,7 @@ def contract_edit(request, contract_id):
     
     if not can_edit:
         messages.error(request, '您没有权限编辑此合同，或合同状态不允许编辑（仅草稿状态可编辑）')
-        return redirect('business_pages:contract_detail', contract_id=contract.id)
+        return redirect('contract_pages:contract_detail', contract_id=contract.id)
     
     if request.method == 'POST':
         # 处理表单提交
@@ -5194,7 +5699,7 @@ def contract_edit(request, contract_id):
                 messages.success(request, f'合同 {contract.contract_number} 更新成功。')
                 
                 messages.success(request, f'合同 {contract.contract_number} 更新成功。')
-                return redirect('business_pages:contract_detail', contract_id=contract.id)
+                return redirect('contract_pages:contract_detail', contract_id=contract.id)
             else:
                 messages.error(request, '表单验证失败，请检查输入。')
         except Exception as e:
@@ -5331,7 +5836,7 @@ def contract_delete(request, contract_id):
     
     if not can_delete:
         messages.error(request, '您没有权限删除此合同，或合同状态不允许删除（仅草稿状态可删除）')
-        return redirect('business_pages:contract_detail', contract_id=contract.id)
+        return redirect('contract_pages:contract_detail', contract_id=contract.id)
     
     if request.method == 'POST':
         try:
@@ -5347,17 +5852,17 @@ def contract_delete(request, contract_id):
                     error_msg += '回款计划、'
                 error_msg = error_msg.rstrip('、')
                 messages.error(request, error_msg)
-                return redirect('business_pages:contract_detail', contract_id=contract.id)
+                return redirect('contract_pages:contract_detail', contract_id=contract.id)
             
             contract_number = contract.contract_number
             contract.delete()
             messages.success(request, f'合同 {contract_number} 已删除')
-            return redirect('business_pages:contract_management_list')
+            return redirect('contract_pages:contract_management_list')
         except Exception as e:
             logger.exception('删除合同失败: %s', str(e))
             messages.error(request, f'删除合同失败：{str(e)}')
     
-    return redirect('business_pages:contract_detail', contract_id=contract.id)
+    return redirect('contract_pages:contract_detail', contract_id=contract.id)
 
 
 @login_required
@@ -5369,12 +5874,12 @@ def contract_submit_approval(request, contract_id):
     # 权限检查
     if not _check_customer_permission('customer_management.client.edit', permission_set):
         messages.error(request, '您没有权限提交合同审批')
-        return redirect('business_pages:contract_detail', contract_id=contract_id)
+        return redirect('contract_pages:contract_detail', contract_id=contract_id)
     
     # 状态检查：只有草稿或待审核状态的合同才能提交审批
     if contract.status not in ['draft', 'pending_review']:
         messages.error(request, f'合同状态为{contract.get_status_display()}，无法提交审批')
-        return redirect('business_pages:contract_detail', contract_id=contract_id)
+        return redirect('contract_pages:contract_detail', contract_id=contract_id)
     
     if request.method == 'POST':
         try:
@@ -5392,7 +5897,7 @@ def contract_submit_approval(request, contract_id):
             
             if existing_instance:
                 messages.warning(request, f'该合同已有正在进行的审批（审批编号：{existing_instance.instance_number}）')
-                return redirect('business_pages:contract_detail', contract_id=contract_id)
+                return redirect('contract_pages:contract_detail', contract_id=contract_id)
             
             # 获取审批流程模板
             try:
@@ -5409,7 +5914,7 @@ def contract_submit_approval(request, contract_id):
                     )
                 except WorkflowTemplate.DoesNotExist:
                     messages.error(request, '合同审批流程未配置，请联系管理员')
-                    return redirect('business_pages:contract_detail', contract_id=contract_id)
+                    return redirect('contract_pages:contract_detail', contract_id=contract_id)
             
             # 启动审批流程
             comment = request.POST.get('comment', f'申请审批合同：{contract.contract_number} - {contract.contract_name}')
@@ -5426,12 +5931,12 @@ def contract_submit_approval(request, contract_id):
                 contract.save()
             
             messages.success(request, f'合同审批已提交（审批编号：{instance.instance_number}）')
-            return redirect('business_pages:contract_detail', contract_id=contract_id)
+            return redirect('contract_pages:contract_detail', contract_id=contract_id)
             
         except Exception as e:
             logger.exception('提交合同审批失败: %s', str(e))
             messages.error(request, f'提交合同审批失败：{str(e)}')
-            return redirect('business_pages:contract_detail', contract_id=contract_id)
+            return redirect('contract_pages:contract_detail', contract_id=contract_id)
     
     # GET 请求，显示提交审批确认页面
     from django.contrib.contenttypes.models import ContentType
@@ -5481,7 +5986,7 @@ def contract_dispute_list(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.view', permission_set):
         messages.error(request, '您没有权限访问合同争议')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 获取筛选参数
     filters = {
@@ -5592,7 +6097,7 @@ def contract_finalize_list(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.view', permission_set):
         messages.error(request, '您没有权限访问合同定稿')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 获取筛选参数
     filters = {
@@ -5704,7 +6209,7 @@ def contract_negotiation_create(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.create', permission_set):
         messages.error(request, '您没有权限创建合同洽谈记录')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 获取关联合同ID（如果从合同详情页跳转）
     contract_id = request.GET.get('contract_id')
@@ -5738,9 +6243,9 @@ def contract_negotiation_create(request):
                 
                 # 根据来源决定跳转页面
                 if contract:
-                    return redirect('business_pages:contract_detail', contract_id=contract.id)
+                    return redirect('contract_pages:contract_detail', contract_id=contract.id)
                 else:
-                    return redirect('business_pages:contract_management_list')
+                    return redirect('contract_pages:contract_management_list')
             else:
                 messages.error(request, '表单验证失败，请检查输入。')
         except Exception as e:
@@ -5798,7 +6303,7 @@ def contract_negotiation_list(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.view', permission_set):
         messages.error(request, '您没有权限访问合同洽谈记录')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 获取筛选参数
     filters = {
@@ -5935,7 +6440,7 @@ def contract_negotiation_detail(request, negotiation_id):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.view', permission_set):
         messages.error(request, '您没有权限查看合同洽谈记录')
-        return redirect('business_pages:contract_negotiation_list')
+        return redirect('contract_pages:contract_negotiation_list')
     
     negotiation = get_object_or_404(
         ContractNegotiation.objects.select_related(
@@ -5983,7 +6488,7 @@ def contract_finalize_create(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.create', permission_set):
         messages.error(request, '您没有权限创建合同定稿')
-        return redirect('business_pages:contract_finalize_list')
+        return redirect('contract_pages:contract_finalize_list')
     
     # 检查是否从业务委托书转换而来
     authorization_letter_id = request.GET.get('authorization_letter')
@@ -6051,7 +6556,7 @@ def contract_finalize_create(request):
                     logger.warning(f'保存结算方案失败: {str(e)}')
                 
                 # 创建成功后跳转到合同定稿列表页面
-                return redirect('business_pages:contract_finalize_list')
+                return redirect('contract_pages:contract_finalize_list')
             else:
                 messages.error(request, '表单验证失败，请检查输入。')
         except Exception as e:
@@ -6172,7 +6677,7 @@ def contract_performance_track(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.view', permission_set):
         messages.error(request, '您没有权限访问履约跟踪')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 获取筛选参数
     filters = {
@@ -6279,7 +6784,7 @@ def contract_expiry_reminder(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.view', permission_set):
         messages.error(request, '您没有权限访问到期提醒')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 获取提醒天数（默认30天）
     days_ahead = int(request.GET.get('days', 30))
@@ -6393,7 +6898,7 @@ def contract_payment_reminder(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.view', permission_set):
         messages.error(request, '您没有权限访问付款提醒')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 获取筛选参数
     filters = {
@@ -6511,7 +7016,7 @@ def contract_risk_warning(request):
     permission_set = get_user_permission_codes(request.user)
     if not _permission_granted('customer_management.client.view', permission_set):
         messages.error(request, '您没有权限访问风险预警')
-        return redirect('business_pages:contract_management_list')
+        return redirect('contract_pages:contract_management_list')
     
     # 获取筛选参数
     filters = {
@@ -6752,10 +7257,210 @@ def _calc_ratio(value, base):
 # ==================== 商机管理视图 ====================
 
 @login_required
+def opportunity_management_home(request):
+    """商机管理首页 - 数据展示中心"""
+    permission_set = get_user_permission_codes(request.user)
+    
+    # 权限检查
+    if not _permission_granted('customer_management.opportunity.view', permission_set):
+        messages.error(request, '您没有权限访问商机管理')
+        return redirect('home')
+    
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models import Sum, Count, Q
+    from decimal import Decimal
+    
+    now = timezone.now()
+    today = now.date()
+    this_month_start = today.replace(day=1)
+    seven_days_ago = today - timedelta(days=7)
+    
+    try:
+        # 基础查询集（考虑权限）
+        base_queryset = BusinessOpportunity.objects.all()
+        if not _permission_granted('customer_management.opportunity.view_all', permission_set):
+            base_queryset = base_queryset.filter(business_manager=request.user)
+        
+        # 统计信息
+        total_opportunities = base_queryset.count()
+        active_opportunities = base_queryset.exclude(status__in=['won', 'lost', 'cancelled']).count()
+        total_estimated = base_queryset.exclude(status__in=['won', 'lost', 'cancelled']).aggregate(
+            total=Sum('estimated_amount')
+        )['total'] or Decimal('0')
+        total_weighted_amount = base_queryset.exclude(status__in=['won', 'lost', 'cancelled']).aggregate(
+            total=Sum('weighted_amount')
+        )['total'] or Decimal('0')
+        monthly_new = base_queryset.filter(
+            created_time__year=now.year,
+            created_time__month=now.month
+        ).count()
+        
+        # 状态统计
+        status_stats = base_queryset.values('status').annotate(count=Count('id'))
+        status_dict = {stat['status']: stat['count'] for stat in status_stats}
+        
+        # 最近商机
+        recent_opportunities = base_queryset.select_related('client', 'business_manager').order_by('-created_time')[:10]
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('获取商机统计信息失败: %s', str(e))
+        total_opportunities = 0
+        active_opportunities = 0
+        total_estimated = Decimal('0')
+        total_weighted_amount = Decimal('0')
+        monthly_new = 0
+        status_dict = {}
+        recent_opportunities = []
+    
+    # 构建统计卡片
+    summary_cards = []
+    try:
+        summary_cards.append({
+            'label': '商机总数',
+            'value': total_opportunities,
+            'url': reverse('opportunity_pages:opportunity_management'),
+            'variant': 'info'
+        })
+        summary_cards.append({
+            'label': '进行中',
+            'value': active_opportunities,
+            'url': reverse('opportunity_pages:opportunity_management'),
+            'variant': 'primary'
+        })
+        summary_cards.append({
+            'label': '预计总额',
+            'value': f'{total_estimated:,.0f}',
+            'url': reverse('opportunity_pages:opportunity_management'),
+            'variant': 'success'
+        })
+        summary_cards.append({
+            'label': '加权总额',
+            'value': f'{total_weighted_amount:,.0f}',
+            'url': reverse('opportunity_pages:opportunity_management'),
+            'variant': 'warning'
+        })
+        summary_cards.append({
+            'label': '本月新增',
+            'value': monthly_new,
+            'url': reverse('opportunity_pages:opportunity_management'),
+            'variant': 'info'
+        })
+    except Exception as e:
+        logger.exception('构建统计卡片失败: %s', str(e))
+    
+    # 转换为core_cards格式（与计划管理一致）
+    core_cards = []
+    for card in summary_cards:
+        core_cards.append({
+            'label': card.get('label', ''),
+            'icon': '💼',
+            'value': str(card.get('value', 0)),
+            'subvalue': '',
+            'url': card.get('url', '#'),
+        })
+    
+    # 顶部操作栏
+    top_actions = []
+    if _permission_granted('customer_management.opportunity.create', permission_set):
+        try:
+            top_actions.append({
+                'label': '创建商机',
+                'icon': '➕',
+                'url': reverse('opportunity_pages:opportunity_create'),
+            })
+        except NoReverseMatch:
+            pass
+    
+    # 风险预警
+    risk_warnings = []
+    overdue_opportunities_count = 0
+    stale_opportunities_count = 0
+    # TODO: 添加具体的风险预警逻辑
+    
+    # 待办事项
+    todo_items = []
+    pending_approval_count = 0
+    upcoming_deadline_count = 0
+    # TODO: 添加具体的待办事项逻辑
+    
+    # 我的工作
+    my_work = {}
+    
+    # 最近活动（统一为字典格式，与计划管理一致）
+    recent_activities = {}
+    # 最近创建的商机
+    recent_activities['recent_opportunities'] = [{
+        'title': opp.opportunity_name or f'商机 #{opp.id}',
+        'creator': opp.business_manager.get_full_name() or opp.business_manager.username if opp.business_manager else '系统',
+        'time': opp.created_time,
+        'status': opp.get_status_display(),
+        'estimated_amount': opp.estimated_amount or 0,
+        'url': reverse('opportunity_pages:opportunity_detail', args=[opp.id]),
+    } for opp in recent_opportunities[:5]]
+    
+    # 构建上下文
+    context = {
+        'page_title': '商机管理',
+        'page_icon': '💼',
+        'description': '从潜在客户到签约项目的全流程数字化管理，实现销售漏斗可视化和过程标准化。',
+        'core_cards': core_cards,
+        'top_actions': top_actions,
+        'risk_warnings': risk_warnings,
+        'todo_items': todo_items,
+        'my_work': my_work,
+        'recent_activities': recent_activities,
+        'overdue_opportunities_count': overdue_opportunities_count,
+        'stale_opportunities_count': stale_opportunities_count,
+        'pending_approval_count': pending_approval_count,
+        'upcoming_deadline_count': upcoming_deadline_count,
+        'todo_summary_url': reverse('opportunity_pages:opportunity_management'),
+        'summary_cards': summary_cards,  # 保持向后兼容
+        'sections': [],
+        'total_opportunities': total_opportunities,
+        'active_opportunities': active_opportunities,
+        'total_estimated': total_estimated,
+        'total_weighted_amount': total_weighted_amount,
+        'monthly_new': monthly_new,
+        'status_dict': status_dict,
+        'recent_opportunities': recent_opportunities,
+        'sidebar_module_title': '商机管理',
+        'sidebar_module_subtitle': 'Opportunity Management',
+    }
+    
+    if request and request.user.is_authenticated:
+        permission_set = get_user_permission_codes(request.user)
+        context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
+        context['module_sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id='opportunity_home')
+        # 保持向后兼容
+        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='opportunity_home')
+    else:
+        context['full_top_nav'] = []
+        context['module_sidebar_nav'] = []
+    
+    context.update({
+        'total_opportunities': total_opportunities,
+        'active_opportunities': active_opportunities,
+        'total_estimated': total_estimated,
+        'total_weighted_amount': total_weighted_amount,
+        'monthly_new': monthly_new,
+        'status_dict': status_dict,
+        'recent_opportunities': recent_opportunities,
+    })
+    
+    return render(request, "customer_management/opportunity_home.html", context)
+
+
+@login_required
 def opportunity_management(request):
     """商机管理列表页面（根据商机管理专项设计方案）"""
     from django.core.paginator import Paginator
     from datetime import datetime
+    from django.utils import timezone
+    from django.db.models import Sum, Q
+    from decimal import Decimal
     
     # 获取筛选参数
     search = request.GET.get('search', '')
@@ -6765,7 +7470,6 @@ def opportunity_management(request):
     urgency = request.GET.get('urgency', '')
     expected_sign_date_from = request.GET.get('expected_sign_date_from', '')
     expected_sign_date_to = request.GET.get('expected_sign_date_to', '')
-    tab = request.GET.get('tab', 'all')
     
     # 获取权限
     permission_set = get_user_permission_codes(request.user)
@@ -6780,12 +7484,6 @@ def opportunity_management(request):
         if not _permission_granted('customer_management.opportunity.view_all', permission_set):
             opportunities = opportunities.filter(business_manager=request.user)
         
-        # 标签页过滤
-        if tab == 'my':
-            opportunities = opportunities.filter(business_manager=request.user)
-        elif tab == 'subordinate':
-            # 下属负责的（需要根据实际业务逻辑实现）
-            pass
         
         # 应用筛选条件
         if search:
@@ -6858,6 +7556,11 @@ def opportunity_management(request):
         logger = logging.getLogger(__name__)
         logger.exception('获取统计信息失败: %s', str(e))
         summary_cards = []
+        total_opportunities = 0
+        active_opportunities = 0
+        total_estimated = Decimal('0')
+        total_weighted_amount = Decimal('0')
+        monthly_new = 0
     
     # 获取筛选选项
     clients = Client.objects.filter(is_active=True).order_by('name')
@@ -6869,10 +7572,9 @@ def opportunity_management(request):
         business_managers = request.user.__class__.objects.all().order_by('username')[:50]
     
     context = _context(
-        "商机管理",
+        "商机列表",
         "💼",
-        "从潜在客户到签约项目的全流程数字化管理，实现销售漏斗可视化和过程标准化。",
-        summary_cards=summary_cards,
+        "查看和管理所有商机",
         request=request,
     )
     # 使用完整的顶部菜单
@@ -6892,12 +7594,26 @@ def opportunity_management(request):
         'urgency': urgency,
         'expected_sign_date_from': expected_sign_date_from,
         'expected_sign_date_to': expected_sign_date_to,
-        'tab': tab,
         'clients': clients,
         'business_managers': business_managers,
         'status_choices': BusinessOpportunity.STATUS_CHOICES,
         'urgency_choices': BusinessOpportunity.URGENCY_CHOICES,
         'can_create': _permission_granted('customer_management.opportunity.create', permission_set),
+        'user': request.user,
+        # 统计信息
+        'total_opportunities': total_opportunities,
+        'active_opportunities': active_opportunities,
+        'total_estimated': total_estimated,
+        'total_weighted_amount': total_weighted_amount,
+        'monthly_new': monthly_new,
+        # 共享模板需要的数据格式
+        'stats': [
+            {'title': '商机总数', 'value': total_opportunities, 'cols': 2},
+            {'title': '活跃商机', 'value': active_opportunities, 'cols': 2},
+            {'title': '预计金额（万元）', 'value': f'{total_estimated:.2f}', 'cols': 2},
+            {'title': '加权金额（万元）', 'value': f'{total_weighted_amount:.2f}', 'cols': 2},
+            {'title': '本月新增', 'value': monthly_new, 'cols': 2},
+        ],
     })
     return render(request, "customer_management/opportunity_list.html", context)
 
@@ -6915,7 +7631,7 @@ def opportunity_detail(request, opportunity_id):
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         if opportunity.business_manager != request.user:
             messages.error(request, '您没有权限查看此商机')
-            return redirect('business_pages:opportunity_management')
+            return redirect('opportunity_pages:opportunity_management')
     
     # 获取关联数据
     followups = opportunity.followups.select_related('created_by').order_by('-follow_date', '-created_time')
@@ -6965,8 +7681,8 @@ def opportunity_detail(request, opportunity_id):
     )
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
-        # 生成左侧菜单（商机详情页面，无激活项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id=None)
+        # 生成左侧菜单（商机详情页面，激活商机列表）
+        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='opportunity_list')
     else:
         context['full_top_nav'] = []
         context['customer_menu'] = []
@@ -6992,13 +7708,13 @@ def opportunity_create(request):
         permission_set = get_user_permission_codes(request.user)
         if not _permission_granted('customer_management.opportunity.create', permission_set):
             messages.error(request, '您没有权限创建商机')
-            return redirect('business_pages:opportunity_management')
+            return redirect('opportunity_pages:opportunity_management')
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)
         logger.exception('权限检查失败: %s', str(e))
         messages.error(request, f'权限检查失败：{str(e)}')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     if request.method == 'POST':
         try:
@@ -7007,7 +7723,7 @@ def opportunity_create(request):
             
             if not client_id:
                 messages.error(request, '请选择关联客户')
-                return redirect('business_pages:opportunity_create')
+                return redirect('opportunity_pages:opportunity_create')
             
             # 获取客户信息
             client = Client.objects.get(id=client_id)
@@ -7061,7 +7777,7 @@ def opportunity_create(request):
             opportunity.weighted_amount = estimated_amount * Decimal(success_probability) / Decimal('100')
             opportunity.save()
             messages.success(request, f'商机 "{opportunity.name}" 创建成功')
-            return redirect('business_pages:opportunity_detail', opportunity_id=opportunity.id)
+            return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity.id)
         except ValueError as e:
             messages.error(request, f'数据格式错误：{str(e)}')
         except Exception as e:
@@ -7124,7 +7840,7 @@ def opportunity_create(request):
         logger = logging.getLogger(__name__)
         logger.exception('创建商机表单加载失败: %s', str(e))
         messages.error(request, f'加载创建商机表单失败：{str(e)}')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
 
 
 @login_required
@@ -7137,7 +7853,7 @@ def opportunity_edit(request, opportunity_id):
     if not _permission_granted('customer_management.opportunity.edit', permission_set):
         if opportunity.business_manager != request.user:
             messages.error(request, '您没有权限编辑此商机')
-            return redirect('business_pages:opportunity_detail', opportunity_id=opportunity.id)
+            return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity.id)
     
     if request.method == 'POST':
         try:
@@ -7147,7 +7863,7 @@ def opportunity_edit(request, opportunity_id):
             
             if not client_id:
                 messages.error(request, '请选择关联客户')
-                return redirect('business_pages:opportunity_edit', opportunity_id=opportunity.id)
+                return redirect('opportunity_pages:opportunity_edit', opportunity_id=opportunity.id)
             
             # 获取客户信息
             client = Client.objects.get(id=client_id)
@@ -7198,7 +7914,7 @@ def opportunity_edit(request, opportunity_id):
             opportunity.weighted_amount = estimated_amount * Decimal(success_probability) / Decimal('100')
             opportunity.save()
             messages.success(request, f'商机 "{opportunity.name}" 更新成功')
-            return redirect('business_pages:opportunity_detail', opportunity_id=opportunity.id)
+            return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity.id)
         except ValueError as e:
             messages.error(request, f'数据格式错误：{str(e)}')
         except Exception as e:
@@ -7245,14 +7961,14 @@ def opportunity_delete(request, opportunity_id):
     if not _permission_granted('customer_management.opportunity.delete', permission_set):
         if opportunity.business_manager != request.user:
             messages.error(request, '您没有权限删除此商机')
-            return redirect('business_pages:opportunity_detail', opportunity_id=opportunity.id)
+            return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity.id)
     
     if request.method == 'POST':
         try:
             opportunity_name = opportunity.name
             opportunity.delete()
             messages.success(request, f'商机 "{opportunity_name}" 已删除')
-            return redirect('business_pages:opportunity_management')
+            return redirect('opportunity_pages:opportunity_management')
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
@@ -7291,7 +8007,7 @@ def opportunity_status_transition(request, opportunity_id):
     if not _permission_granted('customer_management.opportunity.edit', permission_set):
         if opportunity.business_manager != request.user:
             messages.error(request, '您没有权限修改此商机状态')
-            return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+            return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
     
     # 获取可流转的状态
     valid_transitions = BusinessOpportunity.get_valid_transitions(opportunity.status)
@@ -7313,7 +8029,7 @@ def opportunity_status_transition(request, opportunity_id):
             try:
                 opportunity.transition_to(target_status, actor=request.user, comment=comment)
                 messages.success(request, f'商机状态已从 {opportunity.get_status_display()} 流转到 {dict(BusinessOpportunity.STATUS_CHOICES).get(target_status, target_status)}')
-                return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+                return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
             except ValueError as e:
                 messages.error(request, str(e))
             except Exception as e:
@@ -7354,7 +8070,7 @@ def opportunity_followup_create(request, opportunity_id):
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         if opportunity.business_manager != request.user:
             messages.error(request, '您没有权限为此商机创建跟进记录')
-            return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+            return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
     
     if request.method == 'POST':
         try:
@@ -7384,7 +8100,7 @@ def opportunity_followup_create(request, opportunity_id):
                     created_by=request.user,
                 )
                 messages.success(request, '跟进记录创建成功')
-                return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+                return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
@@ -7422,7 +8138,7 @@ def opportunity_followup_edit(request, opportunity_id, followup_id):
     permission_set = get_user_permission_codes(request.user)
     if followup.created_by != request.user and not _permission_granted('customer_management.opportunity.edit', permission_set):
         messages.error(request, '您没有权限编辑此跟进记录')
-        return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+        return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
     
     if request.method == 'POST':
         try:
@@ -7449,7 +8165,7 @@ def opportunity_followup_edit(request, opportunity_id, followup_id):
                 followup.next_follow_date = next_follow_date
                 followup.save()
                 messages.success(request, '跟进记录已更新')
-                return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+                return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
@@ -7486,13 +8202,13 @@ def opportunity_followup_delete(request, opportunity_id, followup_id):
     permission_set = get_user_permission_codes(request.user)
     if followup.created_by != request.user and not _permission_granted('customer_management.opportunity.delete', permission_set):
         messages.error(request, '您没有权限删除此跟进记录')
-        return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+        return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
     
     if request.method == 'POST':
         try:
             followup.delete()
             messages.success(request, '跟进记录已删除')
-            return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+            return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
@@ -7524,7 +8240,7 @@ def opportunity_evaluation_application(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问评估申请功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -7534,7 +8250,7 @@ def opportunity_evaluation_application(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '评估申请已提交')
-        return redirect('business_pages:opportunity_evaluation_application')
+        return redirect('opportunity_pages:opportunity_evaluation_application')
     
     context = _context(
         "评估申请",
@@ -7558,7 +8274,7 @@ def opportunity_warehouse_application(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问入库申请功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -7569,7 +8285,7 @@ def opportunity_warehouse_application(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '入库申请已提交')
-        return redirect('business_pages:opportunity_warehouse_application')
+        return redirect('opportunity_pages:opportunity_warehouse_application')
     
     context = _context(
         "入库申请",
@@ -7595,7 +8311,7 @@ def opportunity_warehouse_list(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问入库列表')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取筛选参数
     search = request.GET.get('search', '').strip()
@@ -7677,7 +8393,7 @@ def opportunity_bid_bond_payment(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问投标保证金支付申请功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -7688,7 +8404,7 @@ def opportunity_bid_bond_payment(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '投标保证金支付申请已提交')
-        return redirect('business_pages:opportunity_bid_bond_payment')
+        return redirect('opportunity_pages:opportunity_bid_bond_payment')
     
     context = _context(
         "投标保证金支付申请",
@@ -7712,7 +8428,7 @@ def opportunity_tender_fee_payment(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问标书费支付申请功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -7723,7 +8439,7 @@ def opportunity_tender_fee_payment(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '标书费支付申请已提交')
-        return redirect('business_pages:opportunity_tender_fee_payment')
+        return redirect('opportunity_pages:opportunity_tender_fee_payment')
     
     context = _context(
         "标书费支付申请",
@@ -7747,7 +8463,7 @@ def opportunity_agency_fee_payment(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问招标代理费支付申请功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -7758,7 +8474,7 @@ def opportunity_agency_fee_payment(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '招标代理费支付申请已提交')
-        return redirect('business_pages:opportunity_agency_fee_payment')
+        return redirect('opportunity_pages:opportunity_agency_fee_payment')
     
     context = _context(
         "招标代理费支付申请",
@@ -7784,7 +8500,7 @@ def opportunity_drawing_evaluation(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问图纸评估功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -7797,7 +8513,7 @@ def opportunity_drawing_evaluation(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '图纸评估记录已保存')
-        return redirect('business_pages:opportunity_drawing_evaluation')
+        return redirect('opportunity_pages:opportunity_drawing_evaluation')
     
     context = _context(
         "图纸评估",
@@ -7821,7 +8537,7 @@ def opportunity_drawing_evaluation(request):
 
 @login_required
 def opportunity_bidding_quotation(request):
-    """投标报价页面（根据总体设计方案，整合资源管理信息）"""
+    """投标报价页面"""
     permission_set = get_user_permission_codes(request.user)
     
     # 获取筛选参数
@@ -7868,43 +8584,16 @@ def opportunity_bidding_quotation(request):
         messages.error(request, f'获取投标报价列表失败：{str(e)}')
         page_obj = None
     
-    # 获取资源管理信息（用于投标报价）
-    try:
-        # 获取已完成项目（类似业绩）
-        from backend.apps.production_management.models import Project
-        completed_projects = Project.objects.filter(
-            status__in=['completed', 'delivered']
-        ).select_related('client').order_by('-end_date')[:50]
-        
-        # 获取员工档案（用于人员证书）
-        from backend.apps.personnel_management.models import Employee, EmployeeArchive
-        employees = Employee.objects.filter(status='active').select_related('department')[:100]
-        employee_certificates = EmployeeArchive.objects.filter(
-            category__in=['certificate', 'qualification', 'license', 'education']
-        ).select_related('employee')[:100]
-        
-        # 获取技术方案（从资源标准模块）
-        from backend.apps.resource_standard.models import TechnicalSolution
-        technical_solutions = TechnicalSolution.objects.all()[:50]
-    except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.exception('获取资源管理信息失败: %s', str(e))
-        completed_projects = []
-        employees = []
-        employee_certificates = []
-        technical_solutions = []
-    
     context = _context(
         "投标报价",
         "💰",
-        "商机投标报价管理（整合资源管理信息）",
+        "商机投标报价管理",
         request=request,
     )
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
-        # 生成左侧菜单（投标报价申请页面，激活"投标报价申请"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='bidding_quotation_application')
+        # 生成左侧菜单（投标报价页面，激活"投标报价"菜单项）
+        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='bidding_quotation')
     else:
         context['full_top_nav'] = []
         context['customer_menu'] = []
@@ -7920,7 +8609,23 @@ def opportunity_bidding_quotation(request):
     # 获取状态选项
     from backend.apps.customer_management.models import BiddingQuotation
     from django.utils import timezone
+    from django.db.models import Count, Q
     status_choices = BiddingQuotation.STATUS_CHOICES
+    
+    # 计算统计信息
+    all_bidding_quotations = BiddingQuotation.objects.select_related('opportunity', 'created_by')
+    if not _permission_granted('customer_management.opportunity.view_all', permission_set):
+        all_bidding_quotations = all_bidding_quotations.filter(
+            Q(created_by=request.user) |
+            Q(opportunity__business_manager=request.user)
+        )
+    
+    total_count = all_bidding_quotations.count()
+    draft_count = all_bidding_quotations.filter(status='draft').count()
+    preparing_count = all_bidding_quotations.filter(status='preparing').count()
+    submitted_count = all_bidding_quotations.filter(status='submitted').count()
+    won_count = all_bidding_quotations.filter(status='won').count()
+    lost_count = all_bidding_quotations.filter(status='lost').count()
     
     context.update({
         'page_obj': page_obj,
@@ -7930,10 +8635,12 @@ def opportunity_bidding_quotation(request):
         'opportunities': opportunities,
         'status_choices': status_choices,
         'today': timezone.now().date(),
-        'completed_projects': completed_projects,
-        'employees': employees,
-        'employee_certificates': employee_certificates,
-        'technical_solutions': technical_solutions,
+        'total_count': total_count,
+        'draft_count': draft_count,
+        'preparing_count': preparing_count,
+        'submitted_count': submitted_count,
+        'won_count': won_count,
+        'lost_count': lost_count,
     })
     return render(request, "customer_management/opportunity_bidding_quotation.html", context)
 
@@ -7946,7 +8653,7 @@ def opportunity_bidding_quotation_application(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问投标报价申请功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -7957,7 +8664,7 @@ def opportunity_bidding_quotation_application(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '投标报价申请已提交')
-        return redirect('business_pages:opportunity_bidding_quotation_application')
+        return redirect('opportunity_pages:opportunity_bidding_quotation_application')
     
     context = _context(
         "投标报价申请",
@@ -7981,7 +8688,7 @@ def opportunity_bidding_document_preparation(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问编制投标文件功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -7992,7 +8699,7 @@ def opportunity_bidding_document_preparation(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '投标文件编制信息已保存')
-        return redirect('business_pages:opportunity_bidding_document_preparation')
+        return redirect('opportunity_pages:opportunity_bidding_document_preparation')
     
     context = _context(
         "编制投标文件",
@@ -8016,7 +8723,7 @@ def opportunity_bidding_document_submission(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问递交投标文件功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -8027,7 +8734,7 @@ def opportunity_bidding_document_submission(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '投标文件递交信息已保存')
-        return redirect('business_pages:opportunity_bidding_document_submission')
+        return redirect('opportunity_pages:opportunity_bidding_document_submission')
     
     context = _context(
         "递交投标文件",
@@ -8057,13 +8764,13 @@ def bidding_quotation_create(request):
             
             if not opportunity_id:
                 messages.error(request, '请选择关联商机')
-                return redirect('business_pages:bidding_quotation_create')
+                return redirect('opportunity_pages:opportunity_bidding_quotation_create')
             if not bidding_date:
                 messages.error(request, '投标日期不能为空')
-                return redirect('business_pages:bidding_quotation_create')
+                return redirect('opportunity_pages:opportunity_bidding_quotation_create')
             if not submission_deadline:
                 messages.error(request, '提交截止日期不能为空')
-                return redirect('business_pages:bidding_quotation_create')
+                return redirect('opportunity_pages:opportunity_bidding_quotation_create')
             
             # 获取商机
             opportunity = get_object_or_404(BusinessOpportunity, id=opportunity_id)
@@ -8081,7 +8788,7 @@ def bidding_quotation_create(request):
             )
             
             messages.success(request, f'投标报价 "{bidding_quotation.bidding_number or "新建"}" 创建成功')
-            return redirect('business_pages:opportunity_bidding_quotation')
+            return redirect('opportunity_pages:opportunity_bidding_quotation')
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
@@ -8124,7 +8831,7 @@ def bidding_quotation_detail(request, bidding_id):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限查看投标报价详情')
-        return redirect('business_pages:opportunity_bidding_quotation')
+        return redirect('opportunity_pages:opportunity_bidding_quotation')
     
     try:
         from django.shortcuts import get_object_or_404
@@ -8140,7 +8847,7 @@ def bidding_quotation_detail(request, bidding_id):
         if not _permission_granted('customer_management.opportunity.view_all', permission_set):
             if bidding_quotation.created_by != request.user and bidding_quotation.opportunity.business_manager != request.user:
                 messages.error(request, '您没有权限查看此投标报价')
-                return redirect('business_pages:opportunity_bidding_quotation')
+                return redirect('opportunity_pages:opportunity_bidding_quotation')
         
         # 获取关联的类似业绩
         similar_projects = bidding_quotation.similar_projects.select_related('client')[:20]
@@ -8167,7 +8874,7 @@ def bidding_quotation_detail(request, bidding_id):
         logger = logging.getLogger(__name__)
         logger.exception('查看投标报价详情失败: %s', str(e))
         messages.error(request, f'查看投标报价详情失败：{str(e)}')
-        return redirect('business_pages:opportunity_bidding_quotation')
+        return redirect('opportunity_pages:opportunity_bidding_quotation')
 
 
 @login_required
@@ -8178,7 +8885,7 @@ def bidding_quotation_edit(request, bidding_id):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限编辑投标报价')
-        return redirect('business_pages:opportunity_bidding_quotation')
+        return redirect('opportunity_pages:opportunity_bidding_quotation')
     
     try:
         from django.shortcuts import get_object_or_404
@@ -8192,7 +8899,7 @@ def bidding_quotation_edit(request, bidding_id):
         if not _permission_granted('customer_management.opportunity.view_all', permission_set):
             if bidding_quotation.created_by != request.user and bidding_quotation.opportunity.business_manager != request.user:
                 messages.error(request, '您没有权限编辑此投标报价')
-                return redirect('business_pages:opportunity_bidding_quotation')
+                return redirect('opportunity_pages:opportunity_bidding_quotation')
         
         if request.method == 'POST':
             # 处理表单提交
@@ -8241,7 +8948,7 @@ def bidding_quotation_edit(request, bidding_id):
                 bidding_quotation.similar_projects.set(similar_projects)
             
             messages.success(request, f'投标报价 "{bidding_quotation.bidding_number or "未编号"}" 更新成功')
-            return redirect('business_pages:bidding_quotation_detail', bidding_id=bidding_quotation.id)
+            return redirect('opportunity_pages:opportunity_bidding_quotation_detail', bidding_id=bidding_quotation.id)
         
         # GET请求，显示编辑表单
         # 获取可用的商机列表
@@ -8282,7 +8989,7 @@ def bidding_quotation_edit(request, bidding_id):
         logger = logging.getLogger(__name__)
         logger.exception('编辑投标报价失败: %s', str(e))
         messages.error(request, f'编辑投标报价失败：{str(e)}')
-        return redirect('business_pages:opportunity_bidding_quotation')
+        return redirect('opportunity_pages:opportunity_bidding_quotation')
 
 
 @login_required
@@ -8293,7 +9000,7 @@ def opportunity_tech_meeting(request):
     # 权限检查
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限访问技术沟通会功能')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取商机列表（用于表单下拉框）
     opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -8303,7 +9010,7 @@ def opportunity_tech_meeting(request):
     if request.method == 'POST':
         # TODO: 处理表单提交
         messages.success(request, '技术沟通会记录已保存')
-        return redirect('business_pages:opportunity_tech_meeting')
+        return redirect('opportunity_pages:opportunity_tech_meeting')
     
     context = _context(
         "技术沟通会",
@@ -8526,7 +9233,7 @@ def opportunity_win_loss(request):
     
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限查看赢单与输单信息')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 获取赢单和输单商机列表
     try:
@@ -8658,7 +9365,7 @@ def opportunity_win_loss_select(request):
     target_status = request.GET.get('target_status', '')
     if target_status not in ['won', 'lost']:
         messages.error(request, '无效的目标状态')
-        return redirect('business_pages:opportunity_win_loss')
+        return redirect('opportunity_pages:opportunity_win_loss')
     
     # 获取筛选参数
     search = request.GET.get('search', '')
@@ -8670,7 +9377,7 @@ def opportunity_win_loss_select(request):
     
     if not _permission_granted('customer_management.opportunity.edit', permission_set):
         messages.error(request, '您没有权限标记商机为赢单/输单')
-        return redirect('business_pages:opportunity_win_loss')
+        return redirect('opportunity_pages:opportunity_win_loss')
     
     # 获取可以转换为赢单/输单的商机
     # 包括：1) 状态为"商务谈判"的商机 2) 有商务洽谈记录的商机（无论状态）
@@ -8771,13 +9478,13 @@ def opportunity_mark_win_loss(request, opportunity_id):
     if not _permission_granted('customer_management.opportunity.edit', permission_set):
         if opportunity.business_manager != request.user:
             messages.error(request, '您没有权限修改此商机状态')
-            return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+            return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
     
     # 获取目标状态
     target_status = request.GET.get('target_status', '')
     if target_status not in ['won', 'lost']:
         messages.error(request, '无效的目标状态')
-        return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+        return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
     
     # 检查是否可以转换
     # 允许转换的情况：1) 状态转换规则允许 2) 有商务洽谈记录（说明已进入商务阶段）
@@ -8786,7 +9493,7 @@ def opportunity_mark_win_loss(request, opportunity_id):
     
     if not can_transition and not has_negotiation:
         messages.error(request, f'当前商机状态为"{opportunity.get_status_display()}"，无法直接标记为{"赢单" if target_status == "won" else "输单"}。请先将商机状态转换为"商务谈判"，或创建商务洽谈记录。')
-        return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+        return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
     
     # 如果有商务洽谈记录但状态不允许直接转换，先更新状态为"商务谈判"
     if not can_transition and has_negotiation and opportunity.status != 'negotiation':
@@ -8842,11 +9549,11 @@ def opportunity_mark_win_loss(request, opportunity_id):
                 logger = logging.getLogger(__name__)
                 logger.error(f'状态更新失败：期望状态={target_status}，实际状态={opportunity.status}')
                 messages.error(request, '状态更新失败，请重试')
-                return redirect('business_pages:opportunity_detail', opportunity_id=opportunity_id)
+                return redirect('opportunity_pages:opportunity_detail', opportunity_id=opportunity_id)
             
             status_label = '赢单' if target_status == 'won' else '输单'
             messages.success(request, f'商机已成功标记为{status_label}')
-            return redirect('business_pages:opportunity_win_loss')
+            return redirect('opportunity_pages:opportunity_win_loss')
         except ValueError as e:
             messages.error(request, str(e))
         except Exception as e:
@@ -8966,7 +9673,7 @@ def opportunity_business_negotiation_form(request, opportunity_id=None):
         if not _permission_granted('customer_management.opportunity.view', permission_set):
             if opportunity.business_manager != request.user:
                 messages.error(request, '您没有权限查看此商机')
-                return redirect('business_pages:opportunity_business_negotiation')
+                return redirect('opportunity_pages:opportunity_business_negotiation')
     else:
         opportunity = None
     
@@ -8976,7 +9683,7 @@ def opportunity_business_negotiation_form(request, opportunity_id=None):
             opportunity_id = request.POST.get('opportunity_id')
             if not opportunity_id:
                 messages.error(request, '请选择关联商机')
-                return redirect('business_pages:opportunity_business_negotiation_form', opportunity_id=opportunity_id) if opportunity_id else redirect('business_pages:opportunity_business_negotiation_form')
+                return redirect('opportunity_pages:opportunity_business_negotiation_form', opportunity_id=opportunity_id) if opportunity_id else redirect('opportunity_pages:opportunity_business_negotiation_form')
             
             opp = get_object_or_404(BusinessOpportunity, id=opportunity_id)
             
@@ -8984,7 +9691,7 @@ def opportunity_business_negotiation_form(request, opportunity_id=None):
             if not _permission_granted('customer_management.opportunity.view', permission_set):
                 if opp.business_manager != request.user:
                     messages.error(request, '您没有权限为此商机创建洽谈登记')
-                    return redirect('business_pages:opportunity_business_negotiation')
+                    return redirect('opportunity_pages:opportunity_business_negotiation')
             
             # 创建商务洽谈记录
             negotiation = BusinessNegotiation.objects.create(
@@ -9002,7 +9709,7 @@ def opportunity_business_negotiation_form(request, opportunity_id=None):
             )
             
             messages.success(request, '商务洽谈登记已保存')
-            return redirect('business_pages:opportunity_business_negotiation')
+            return redirect('opportunity_pages:opportunity_business_negotiation')
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
@@ -10411,13 +11118,16 @@ def opportunity_import(request):
     from django.http import HttpResponse
     from django.db import transaction
     from backend.apps.system_management.models import User
+    from backend.apps.production_management.models import ServiceType, DesignStage
+    import csv
+    import io
     
     permission_set = get_user_permission_codes(request.user)
     
     # 检查权限：需要商机管理权限
     if not _permission_granted('customer_management.opportunity.view', permission_set):
         messages.error(request, '您没有权限执行商机导入操作')
-        return redirect('business_pages:opportunity_management')
+        return redirect('opportunity_pages:opportunity_management')
     
     # 下载模板
     if request.GET.get('download') == 'template':
@@ -10541,22 +11251,22 @@ def opportunity_import(request):
                     reader = csv.DictReader(text_io)
                     
                     field_aliases = {
-                        'opportunity_number': {'商机编号（可留空自动生成）', '商机编号', 'opportunity_number'},
+                        'opportunity_number': {'商机编号（可留空自动生成）', '商机编号(可留空自动生成)', '商机编号', 'opportunity_number'},
                         'name': {'商机名称', 'name'},
-                        'client_name': {'客户名称（必填）', '客户名称', 'client_name'},
-                        'business_manager_phone': {'负责商务手机号（必填）', '负责商务手机号', '商务经理手机号', 'business_manager_phone'},
+                        'client_name': {'客户名称（必填）', '客户名称(必填)', '客户名称', 'client_name'},
+                        'business_manager_phone': {'负责商务手机号（必填）', '负责商务手机号(必填)', '负责商务手机号', '商务经理手机号', 'business_manager_phone'},
                         'opportunity_type': {'商机类型', 'opportunity_type'},
-                        'service_type': {'服务类型（可填编码或名称）', '服务类型', 'service_type'},
+                        'service_type': {'服务类型（可填编码或名称）', '服务类型(可填编码或名称)', '服务类型', 'service_type'},
                         'project_name': {'项目名称', 'project_name'},
                         'project_address': {'项目地址', 'project_address'},
                         'project_type': {'项目业态', 'project_type'},
-                        'building_area': {'建筑面积（平方米）', '建筑面积', 'building_area'},
-                        'drawing_stage': {'图纸阶段（可填编码或名称）', '图纸阶段', 'drawing_stage'},
-                        'estimated_amount': {'预计金额（万元）', '预计金额', 'estimated_amount'},
-                        'success_probability': {'成功概率（%）', '成功概率', 'success_probability'},
+                        'building_area': {'建筑面积（平方米）', '建筑面积(平方米)', '建筑面积', 'building_area'},
+                        'drawing_stage': {'图纸阶段（可填编码或名称）', '图纸阶段(可填编码或名称)', '图纸阶段', 'drawing_stage'},
+                        'estimated_amount': {'预计金额（万元）', '预计金额(万元)', '预计金额', 'estimated_amount'},
+                        'success_probability': {'成功概率（%）', '成功概率(%)', '成功概率', 'success_probability'},
                         'status': {'商机状态', 'status'},
                         'urgency': {'紧急程度', 'urgency'},
-                        'expected_sign_date': {'预计签约时间（YYYY-MM-DD）', '预计签约时间', 'expected_sign_date'},
+                        'expected_sign_date': {'预计签约时间（YYYY-MM-DD）', '预计签约时间(YYYY-MM-DD)', '预计签约时间', 'expected_sign_date'},
                         'description': {'商机描述', 'description'},
                         'notes': {'备注', 'notes'},
                     }
@@ -10569,19 +11279,54 @@ def opportunity_import(request):
                     
                     missing_labels = []
                     headers = set(reader.fieldnames or [])
+                    headers_lower = {h.strip().lower(): h for h in headers}
+                    
+                    # 检查必要字段是否存在（支持模糊匹配）
                     for field in required_fields:
-                        if not any(alias in headers for alias in field_aliases[field]):
-                            missing_labels.append(next(iter(field_aliases[field])))
+                        found = False
+                        for alias in field_aliases[field]:
+                            # 精确匹配
+                            if alias in headers:
+                                found = True
+                                break
+                            # 模糊匹配（忽略空格和大小写）
+                            alias_lower = alias.strip().lower()
+                            if alias_lower in headers_lower:
+                                found = True
+                                break
+                        
+                        if not found:
+                            # 显示期望的字段名
+                            expected_names = list(field_aliases[field])[:3]  # 显示前3个期望的格式
+                            missing_labels.append(f"{next(iter(field_aliases[field]))}（期望格式：{', '.join(expected_names)}）")
                     
                     if missing_labels:
-                        messages.error(request, f'CSV 缺少必要字段：{", ".join(missing_labels)}。')
+                        # 显示CSV文件中的实际列名，帮助用户对比
+                        actual_headers = list(headers)[:10]  # 显示前10个实际列名
+                        error_msg = f'CSV 文件格式不正确，缺少必要字段：\n\n'
+                        error_msg += f'缺少的字段：\n{chr(10).join(f"  - {label}" for label in missing_labels)}\n\n'
+                        error_msg += f'CSV 文件中的列名（前10个）：\n{chr(10).join(f"  - {h}" for h in actual_headers)}\n\n'
+                        error_msg += f'请检查CSV文件的列名是否与模板文件一致。'
+                        messages.error(request, error_msg)
                     else:
                         def get_value(row, field):
+                            # 首先尝试精确匹配
                             for alias in field_aliases[field]:
                                 if alias in row and row[alias] is not None:
                                     value = str(row.get(alias, '')).strip()
                                     if value:
                                         return value
+                            
+                            # 如果精确匹配失败，尝试忽略空格和大小写的模糊匹配
+                            row_keys_lower = {k.strip().lower(): k for k in row.keys()}
+                            for alias in field_aliases[field]:
+                                alias_lower = alias.strip().lower()
+                                if alias_lower in row_keys_lower:
+                                    original_key = row_keys_lower[alias_lower]
+                                    value = str(row.get(original_key, '')).strip()
+                                    if value:
+                                        return value
+                            
                             return ''
                         
                         # 构建查找映射
@@ -10608,12 +11353,21 @@ def opportunity_import(request):
                         
                         for row_index, row in enumerate(reader, start=2):
                             row_result = {'row': row_index, 'status': 'success', 'message': ''}
+                            
+                            # 跳过完全空白的行
+                            if not any(str(v).strip() for v in row.values() if v):
+                                continue
+                            
                             try:
                                 with transaction.atomic():
                                     # 必填字段验证
                                     opportunity_name = get_value(row, 'name')
                                     if not opportunity_name:
-                                        raise ValueError('商机名称不能为空')
+                                        # 调试信息：显示可用的列名和值
+                                        available_cols = list(row.keys())
+                                        available_values = {k: v for k, v in row.items() if v and str(v).strip()}
+                                        debug_info = f'可用列名: {available_cols}, 有值的列: {list(available_values.keys())}'
+                                        raise ValueError(f'商机名称不能为空。{debug_info}')
                                     
                                     client_name = get_value(row, 'client_name')
                                     if not client_name:
@@ -10755,14 +11509,24 @@ def opportunity_import(request):
                                         notes=notes,
                                         created_by=request.user,
                                     )
+                                    
+                                    # 验证模型数据
+                                    opportunity.full_clean()
+                                    
+                                    # 保存商机
                                     opportunity.save()
                                     
                                     success_count += 1
                                     row_result['message'] = f'导入成功，商机编号：{opportunity.opportunity_number}'
                             except Exception as exc:
+                                import traceback
+                                import logging
+                                logger = logging.getLogger(__name__)
+                                logger.error(f'导入第{row_index}行失败: {str(exc)}')
+                                logger.error(traceback.format_exc())
                                 failure_count += 1
                                 row_result['status'] = 'failed'
-                                row_result['message'] = str(exc)
+                                row_result['message'] = f'{str(exc)}'
                             results.append(row_result)
                         
                         context['import_results'] = {
@@ -10776,15 +11540,14 @@ def opportunity_import(request):
                         if failure_count:
                             messages.warning(request, f'{failure_count} 条记录导入失败，请查看结果列表。')
     
-    # 生成左侧菜单
-    menu = _build_opportunity_management_menu(permission_set, 'opportunity_import')
+    # 添加左侧菜单
+    context['module_sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id='opportunity_import')
     
     return render(
         request,
         'customer_management/opportunity_import.html',
         {
             **context,
-            'menu': menu,
             'page_title': '商机批量导入',
             'page_description': '通过上传 CSV 或 Excel 文件批量导入商机数据',
         }

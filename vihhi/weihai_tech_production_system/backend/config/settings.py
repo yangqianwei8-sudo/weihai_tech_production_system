@@ -12,7 +12,10 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 # Default allowed hosts - 生产环境只允许公网域名
 # 重要：生产环境必须通过环境变量 ALLOWED_HOSTS 设置，只包含公网域名
-DEFAULT_ALLOWED_HOSTS = 'hrozezgtxwhk.sealosbja.site'
+# 当前配置的公网域名：
+# - rasdmangrhdn.sealosbja.site (Port 8001, 可访问)
+# - dbjhjowayeto.sealosbja.site (Port 8000, 准备中)
+DEFAULT_ALLOWED_HOSTS = 'rasdmangrhdn.sealosbja.site,dbjhjowayeto.sealosbja.site'
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', DEFAULT_ALLOWED_HOSTS).split(',') if h.strip()]
 # 开发环境：允许本地和测试客户端
 if DEBUG:
@@ -20,7 +23,8 @@ if DEBUG:
 
 # CSRF trusted origins (must include scheme)
 # 生产环境只允许公网域名，开发环境允许本地访问
-DEFAULT_CSRF_ORIGINS = 'https://hrozezgtxwhk.sealosbja.site,http://hrozezgtxwhk.sealosbja.site'
+# 注意：生产环境应优先使用 HTTPS，HTTP 仅用于测试
+DEFAULT_CSRF_ORIGINS = 'https://rasdmangrhdn.sealosbja.site,http://rasdmangrhdn.sealosbja.site,https://dbjhjowayeto.sealosbja.site,http://dbjhjowayeto.sealosbja.site'
 if DEBUG:
     DEFAULT_CSRF_ORIGINS += ',http://localhost:8001,http://127.0.0.1:8001,http://localhost:8000,http://127.0.0.1:8000'
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', DEFAULT_CSRF_ORIGINS).split(',') if o.strip()]
@@ -205,12 +209,20 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings
+# 开发环境允许本地访问
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+# 生产环境：添加公网域名到 CORS 允许列表
+if not DEBUG:
+    CORS_ALLOWED_ORIGINS += [
+        "https://rasdmangrhdn.sealosbja.site",
+        "https://dbjhjowayeto.sealosbja.site",
+    ]
 
 CORS_ALLOW_CREDENTIALS = True
 

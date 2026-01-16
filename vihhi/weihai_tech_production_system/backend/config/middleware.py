@@ -44,13 +44,6 @@ class HostGuardMiddleware(MiddlewareMixin):
     防止通过 Service IP、Pod IP、内部域名等方式绕过访问控制
     """
     
-    # 允许的 Host 列表（从环境变量读取，生产环境必须设置）
-    ALLOWED_HOSTS = [
-        host.strip() 
-        for host in os.getenv('ALLOWED_HOSTS', 'hrozezgtxwhk.sealosbja.site').split(',')
-        if host.strip()
-    ]
-    
     # 健康检查路径（允许任何 Host，用于 K8s 健康检查）
     HEALTH_CHECK_PATHS = ['/__health', '/health', '/healthz', '/ready', '/readiness']
     
@@ -59,11 +52,15 @@ class HostGuardMiddleware(MiddlewareMixin):
         if any(request.path.startswith(path) for path in self.HEALTH_CHECK_PATHS):
             return None
         
+        # 从 Django settings 获取允许的 Host 列表（与 ALLOWED_HOSTS 保持一致）
+        from django.conf import settings
+        allowed_hosts = getattr(settings, 'ALLOWED_HOSTS', [])
+        
         # 获取请求的 Host（不包含端口）
         request_host = request.get_host().split(':')[0]
         
         # 严格匹配：Host 必须完全等于允许的域名之一
-        if request_host not in self.ALLOWED_HOSTS:
+        if request_host not in allowed_hosts:
             # 记录拒绝的请求（用于安全审计）
             import logging
             logger = logging.getLogger('backend.config.middleware')

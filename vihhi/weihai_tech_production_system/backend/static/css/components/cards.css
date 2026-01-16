@@ -118,6 +118,14 @@
     gap: var(--spacing-sm);
 }
 
+.info-card-value {
+    font-size: var(--info-value-font-size, 1.5rem);
+    font-weight: var(--info-value-font-weight, 600);
+    line-height: var(--info-value-line-height, 1.2);
+    color: var(--info-value-color, var(--vh-text-primary));
+    margin: 0;
+}
+
 .info-card-title::before {
     content: '';
     width: 4px;

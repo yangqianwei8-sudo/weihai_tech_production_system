@@ -123,7 +123,9 @@ urlpatterns = [
     path("payments/", views_pages.payment_tracking, name="payment_tracking"),
     
     # 商机管理（根据总体设计方案）
-    path("opportunities/", views_pages.opportunity_management, name="opportunity_management"),
+    path("opportunities/", views_pages.opportunity_management_home, name="opportunity_management_home"),
+    path("opportunities/home/", views_pages.opportunity_management_home, name="opportunity_management_home"),
+    path("opportunities/list/", views_pages.opportunity_management, name="opportunity_management"),
     path("opportunities/import/", views_pages.opportunity_import, name="opportunity_import"),
     path("opportunities/create/", views_pages.opportunity_create, name="opportunity_create"),
     path("opportunities/<int:opportunity_id>/", views_pages.opportunity_detail, name="opportunity_detail"),

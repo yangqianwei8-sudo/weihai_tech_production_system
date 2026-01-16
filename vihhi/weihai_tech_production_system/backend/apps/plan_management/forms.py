@@ -12,6 +12,7 @@ from .models import (
 )
 from backend.apps.system_management.models import User, Department
 from backend.apps.production_management.models import Project
+from backend.apps.customer_management.models import BusinessOpportunity
 
 
 def set_date_fields_default_today(form_instance):
@@ -487,7 +488,6 @@ class PlanForm(forms.ModelForm):
                 'required': True
             }),
             'parent_plan': forms.Select(attrs={'class': 'form-select'}),
-            'related_project': forms.Select(attrs={'class': 'form-select'}),
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': '6',
@@ -547,6 +547,10 @@ class PlanForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
+        # 确保删除可能存在的 related_opportunity 字段（如果迁移后仍有残留）
+        if 'related_opportunity' in self.fields:
+            del self.fields['related_opportunity']
+        
         # 设置负责人和协作人员查询集
         self.fields['responsible_person'].queryset = User.objects.filter(is_active=True)
         self.fields['participants'].queryset = User.objects.filter(is_active=True)
@@ -575,8 +579,47 @@ class PlanForm(forms.ModelForm):
         else:
             self.fields['parent_plan'].queryset = Plan.objects.all()
         
-        # 设置关联项目查询集
-        self.fields['related_project'].queryset = Project.objects.all()
+        # 设置关联项目字段：从商机中获取项目信息
+        # 获取所有有项目名称的商机，提取项目信息作为选项
+        opportunities_with_projects = BusinessOpportunity.objects.filter(
+            project_name__isnull=False
+        ).exclude(project_name='').select_related('client').order_by('-created_time')
+        
+        # 创建项目选项列表（从商机中提取）
+        project_choices = [('', '-------')]  # 空选项
+        seen_projects = set()  # 用于去重
+        
+        for opp in opportunities_with_projects:
+            project_name = opp.project_name.strip() if opp.project_name else ''
+            if project_name and project_name not in seen_projects:
+                # 显示格式：项目名称（商机：商机名称）
+                display_text = project_name
+                if opp.name:
+                    display_text += f"（商机：{opp.name}）"
+                project_choices.append((project_name, display_text))
+                seen_projects.add(project_name)
+        
+        # 如果没有找到有项目名称的商机，尝试显示所有商机（使用商机名称作为项目名称）
+        if len(project_choices) == 1:  # 只有空选项
+            all_opportunities = BusinessOpportunity.objects.filter(is_active=True).select_related('client').order_by('-created_time')[:50]
+            for opp in all_opportunities:
+                # 如果没有项目名称，使用商机名称作为项目名称
+                project_name = opp.project_name.strip() if opp.project_name else opp.name
+                if project_name and project_name not in seen_projects:
+                    display_text = project_name
+                    if opp.name and opp.name != project_name:
+                        display_text += f"（商机：{opp.name}）"
+                    project_choices.append((project_name, display_text))
+                    seen_projects.add(project_name)
+        
+        # 将 related_project 改为 ChoiceField，使用商机中的项目数据
+        self.fields['related_project'] = forms.ChoiceField(
+            choices=project_choices,
+            required=False,
+            widget=forms.Select(attrs={'class': 'form-select'}),
+            label='关联项目',
+            help_text='项目信息来源于商机管理'
+        )
         
         # 计划编号字段处理：完全由系统自动生成，但必须显示
         # 新建和编辑时都显示，但都是只读的

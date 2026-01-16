@@ -1,20 +1,18 @@
-{% extends "customer_management/base.html" %}
+{% extends "customer_management/_base.html" %}
 
-{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
 
 {% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
 {% endblock %}
 
-{% block breadcrumb_items %}
-<li class="breadcrumb-item"><a href="{% url 'business_pages:opportunity_win_loss' %}">赢单与输单</a></li>
-<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
-{% endblock %}
 
-{% block content %}
-<div class="workspace-content">
-    <div class="list-page-container">
+
+{% block cm_title %}选择输赢{% endblock %}
+
+{% block cm_content %}
+<div class="list-page-container">
         
         <div class="list-page-header">
             <div>
@@ -24,7 +22,7 @@
                 <p class="text-muted mb-0 mt-2">请选择要标记为{{ status_label }}的商机（显示状态为"商务谈判"或有商务洽谈记录的商机）</p>
             </div>
             <div class="list-page-actions">
-                <a href="{% url 'business_pages:opportunity_win_loss' %}" class="btn btn-outline-secondary">
+                <a href="{% url 'opportunity_pages:opportunity_win_loss' %}" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left"></i> 返回
                 </a>
             </div>
@@ -67,7 +65,7 @@
                         <button type="submit" class="btn btn-sm btn-primary">
                             <i class="bi bi-search"></i> 搜索
                         </button>
-                        <a href="{% url 'business_pages:opportunity_win_loss_select' %}?target_status={{ target_status }}" class="btn btn-sm btn-outline-secondary">重置</a>
+                        <a href="{% url 'opportunity_pages:opportunity_win_loss_select' %}?target_status={{ target_status }}" class="btn btn-sm btn-outline-secondary">重置</a>
                     </div>
                 </div>
             </form>
@@ -93,7 +91,7 @@
                         {% for opportunity in page_obj %}
                         <tr>
                             <td>
-                                <a href="{% url 'business_pages:opportunity_detail' opportunity.id %}" class="info-value-link">
+                                <a href="{% url 'opportunity_pages:opportunity_detail' opportunity.id %}" class="info-value-link">
                                     {{ opportunity.name }}
                                 </a>
                             </td>
@@ -112,7 +110,7 @@
                             </td>
                             <td style="text-align: center;">{{ opportunity.updated_time|date:'Y-m-d H:i' }}</td>
                             <td style="text-align: center;">
-                                <a href="{% url 'business_pages:opportunity_mark_win_loss' opportunity.id %}?target_status={{ target_status }}" 
+                                <a href="{% url 'opportunity_pages:opportunity_mark_win_loss' opportunity.id %}?target_status={{ target_status }}" 
                                    class="btn btn-sm {% if target_status == 'won' %}btn-success{% else %}btn-danger{% endif %}">
                                     <i class="bi {% if target_status == 'won' %}bi-check-circle{% else %}bi-x-circle{% endif %}"></i> 
                                     标记为{{ status_label }}
@@ -168,5 +166,4 @@
         </div>
         {% endif %}
     </div>
-</div>
 {% endblock %}

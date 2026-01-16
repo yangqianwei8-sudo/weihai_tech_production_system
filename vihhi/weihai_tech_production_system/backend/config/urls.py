@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
+from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from backend.core.api_views import api_root, api_docs, notification_list, mark_notification_read
@@ -30,11 +31,11 @@ admin_site = admin.site
 admin_site.site_header = '维海科技信息化管理平台'
 admin_site.site_title = '维海科技信息化管理后台'
 admin_site.index_title = '系统管理后台'
-# 配置站点URL，用于"查看站点"功能（指向首页）
-admin_site.site_url = '/'
+# 配置站点URL，用于"查看站点"功能（指向dashboard）
+admin_site.site_url = '/dashboard/'
 
 urlpatterns = [
-    path('', home, name='home'),
+    path('', RedirectView.as_view(url='/dashboard/', permanent=False), name='home'),
     path('dashboard/', dashboard, name='dashboard'),
     path('favicon.ico', favicon_view, name='favicon'),
     path('login/', login_view, name='login'),
@@ -77,7 +78,12 @@ urlpatterns = [
     # path('project/', include(('backend.apps.project_center.urls', 'project'), namespace='project_pages')),  # 已删除：迁移到production_management
     path('resource/', include(('backend.apps.resource_standard.urls', 'resource_standard'), namespace='resource_standard_pages')),
     path('delivery/', include(('backend.apps.delivery_customer.urls', 'delivery'), namespace='delivery_pages')),
-    path('business/', include(('backend.apps.customer_management.urls_pages', 'business'), namespace='business_pages')),  # 客户管理页面
+    # 客户管理、商机管理、合同管理分离为独立路径
+    path('customers/', include(('backend.apps.customer_management.customer_urls', 'customer'), namespace='customer_pages')),  # 客户管理页面
+    path('opportunities/', include(('backend.apps.customer_management.opportunity_urls', 'opportunity'), namespace='opportunity_pages')),  # 商机管理页面
+    path('contracts/', include(('backend.apps.customer_management.contract_urls', 'contract'), namespace='contract_pages')),  # 合同管理页面
+    # 保持向后兼容：business/路径重定向到customers/
+    path('business/', include(('backend.apps.customer_management.customer_urls', 'business'), namespace='business_pages')),  # 向后兼容重定向
     path('collaboration/', include(('backend.apps.task_collaboration.urls', 'task_collaboration'), namespace='collaboration_pages')),
     path('system-center/', include(('backend.apps.system_management.urls_pages', 'system_pages'), namespace='system_pages')),
     path('settlement/', include(('backend.apps.settlement_center.urls_pages', 'settlement_pages'), namespace='settlement_pages')),  # 结算管理（使用settlement_center模块）

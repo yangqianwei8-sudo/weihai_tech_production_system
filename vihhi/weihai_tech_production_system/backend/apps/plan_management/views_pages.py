@@ -853,9 +853,10 @@ def plan_list(request):
     
     # 查询计划
     # 注意：related_goal 现在允许为空（null=True），Django 会自动使用 LEFT OUTER JOIN
+    # 注意：related_project 是 CharField，不是关系字段，不能用于 select_related
     plans = Plan.objects.select_related(
         'responsible_person', 'responsible_department', 'related_goal',
-        'related_project', 'parent_plan', 'created_by'
+        'parent_plan', 'created_by'
     ).prefetch_related('participants').all()
     
     # 应用筛选
@@ -1143,7 +1144,7 @@ def plan_detail(request, plan_id):
     plan = get_object_or_404(
         Plan.objects.select_related(
             'responsible_person', 'responsible_department', 'related_goal',
-            'related_project', 'parent_plan', 'created_by'
+            'parent_plan', 'created_by'
         ).prefetch_related('participants', 'child_plans'),
         id=plan_id
     )

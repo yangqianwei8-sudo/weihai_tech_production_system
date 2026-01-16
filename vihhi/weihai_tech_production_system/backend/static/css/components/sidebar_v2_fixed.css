@@ -280,8 +280,8 @@
 
 /* 5) 主内容区：自动让出左侧宽度 */
 .vh-main{
-  margin-left: 232px;
+  margin-left: 0;
   min-height: calc(100vh - 56px);
   padding-top: 0;
-  width: calc(100% - 232px);
+  width: 100%;
 }

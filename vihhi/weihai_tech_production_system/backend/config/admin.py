@@ -337,10 +337,20 @@ def custom_app_index(self, request, app_label, extra_context=None):
         'administrative_management',
         'plan_management',
         'litigation_management',
-        'system_management',
-        'permission_management',
+        # 'system_management',  # 已移除：应用索引页面为空，直接重定向到用户列表页
+        # 'permission_management',  # 已移除：应用索引页面为空，直接使用默认行为或重定向
         'workflow_engine',
     ]
+    
+    # permission_management 应用索引页面重定向到模型列表页
+    if app_label == 'permission_management':
+        from django.shortcuts import redirect
+        return redirect('admin:permission_management_permissionitem_changelist')
+    
+    # system_management 应用索引页面重定向到用户列表页
+    if app_label == 'system_management':
+        from django.shortcuts import redirect
+        return redirect('admin:system_management_user_changelist')
     
     # 如果是需要自定义首页的应用，显示自定义首页
     if app_label in apps_with_custom_index:
@@ -360,25 +370,35 @@ def custom_app_index(self, request, app_label, extra_context=None):
         # 获取该应用的模型列表
         try:
             app_dict = admin.site._build_app_dict(request, app_label)
-            if 'models' in app_dict:
-                from django.apps import apps
-                for model_info in app_dict['models']:
-                    try:
-                        model = apps.get_model(app_label, model_info['object_name'])
-                        model_info['count'] = model.objects.count()
-                    except Exception:
-                        model_info['count'] = 0
-            
-            extra_context.update({
-                'app_label': app_label,
-                'app_dict': app_dict,
-                'title': f'{app_dict.get("name", app_label)}管理',
-            })
+            # _build_app_dict 返回的是 {app_label: {...}} 格式
+            if app_label in app_dict:
+                app_info = app_dict[app_label]
+                if 'models' in app_info:
+                    from django.apps import apps
+                    for model_info in app_info['models']:
+                        try:
+                            model = apps.get_model(app_label, model_info['object_name'])
+                            model_info['count'] = model.objects.count()
+                        except Exception:
+                            model_info['count'] = 0
+                
+                extra_context.update({
+                    'app_label': app_label,
+                    'app_dict': app_info,  # 使用 app_info 而不是整个 app_dict
+                    'title': f'{app_info.get("name", app_label)}管理',
+                })
+            else:
+                # 如果没有找到应用信息，使用默认值
+                extra_context.update({
+                    'app_label': app_label,
+                    'app_dict': {'models': []},
+                    'title': f'{app_label}管理',
+                })
         except Exception:
             extra_context.update({
                 'app_label': app_label,
                 'app_dict': {'models': []},
-                'title': '客户管理',
+                'title': f'{app_label}管理',
             })
         
         

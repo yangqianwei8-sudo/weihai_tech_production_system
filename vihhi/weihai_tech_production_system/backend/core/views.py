@@ -88,9 +88,9 @@ HOME_ACTION_DEFINITIONS = [
 # 菜单结构：直接对应home页左侧菜单，取消所有"中心"概念
 HOME_NAV_STRUCTURE = [
     # 按数据库模块定义顺序排列，确保与数据库一致
-    {'label': '客户管理', 'icon': '👥', 'url_name': 'business_pages:customer_management_home', 'permission': 'customer_management.client.view'},
-    {'label': '商机管理', 'icon': '💼', 'url_name': 'business_pages:opportunity_management', 'permission': 'customer_success.opportunity.view'},
-    {'label': '合同管理', 'icon': '📄', 'url_name': 'business_pages:contract_management_list', 'permission': 'customer_management.contract.view'},
+    {'label': '客户管理', 'icon': '👥', 'url_name': 'customer_pages:customer_management_home_alt', 'permission': 'customer_management.client.view'},
+    {'label': '商机管理', 'icon': '💼', 'url_name': 'opportunity_pages:opportunity_management_home_alt', 'permission': 'customer_success.opportunity.view'},
+    {'label': '合同管理', 'icon': '📄', 'url_name': 'contract_pages:contract_management_home_alt', 'permission': 'customer_management.contract.view'},
     {'label': '回款管理', 'icon': '💰', 'url_name': 'settlement_pages:payment_plan_list', 'permission': 'payment_management.payment_plan.view'},  # 回款管理独立模块
     {'label': '生产管理', 'icon': '🏗️', 'url_name': 'production_pages:project_list', 'permission': 'production_management.view_assigned'},
     {'label': '资源管理', 'icon': '🗂️', 'url_name': 'resource_standard_pages:standard_list', 'permission': 'resource_center.view'},
@@ -559,6 +559,54 @@ def home(request):
                 'url': task.get('url', '#')
             })
         
+        # ========== 我的工作 ==========
+        my_work = {}
+        try:
+            from backend.apps.production_management.models import Project, ProjectTask
+            
+            # 我负责的任务
+            my_tasks = ProjectTask.objects.filter(
+                assigned_to=user,
+                status__in=['pending', 'in_progress']
+            ).select_related('project')[:5]
+            
+            my_work['my_tasks'] = [{
+                'title': task.title,
+                'status': task.get_status_display(),
+                'progress': getattr(task, 'progress', 0) or 0,
+                'url': reverse('production_pages:project_detail', args=[task.project.id]) if task.project else '#'
+            } for task in my_tasks]
+            my_work['my_tasks_count'] = ProjectTask.objects.filter(
+                assigned_to=user,
+                status__in=['pending', 'in_progress']
+            ).count()
+            
+            # 我参与的项目
+            participating_projects = Project.objects.filter(
+                Q(project_manager=user) | Q(team_members__user=user)
+            ).distinct()[:5]
+            
+            my_work['participating_projects'] = []
+            for project in participating_projects:
+                role = '项目经理' if project.project_manager == user else '团队成员'
+                my_work['participating_projects'].append({
+                    'title': project.name,
+                    'role': role,
+                    'progress': getattr(project, 'progress', 0) or 0,
+                    'url': reverse('production_pages:project_detail', args=[project.id])
+                })
+            my_work['participating_projects_count'] = Project.objects.filter(
+                Q(project_manager=user) | Q(team_members__user=user)
+            ).distinct().count()
+        except Exception as e:
+            logger.exception('获取我的工作数据失败: %s', str(e))
+            my_work = {
+                'my_tasks': [],
+                'my_tasks_count': 0,
+                'participating_projects': [],
+                'participating_projects_count': 0
+            }
+        
         # ========== 顶部操作栏 ==========
         top_actions = []
         try:
@@ -604,14 +652,15 @@ def home(request):
             'pending_tasks_count': pending_tasks_count,
             'recent_activities': recent_activities,
             'top_actions': top_actions,
+            'my_work': my_work,
         }
         
         # 尝试渲染模板，如果模板不存在则返回简单HTML
         try:
-            resp = render(request, 'home.html', context)
+            resp = render(request, 'dashboard.html', context)
             resp["X-Hit-Home-View"] = "1"
-            resp["X-Home-Branch"] = "render-home"
-            resp["X-Build-Probe"] = "HOME_HDR_PROBE_20260113_1"
+            resp["X-Home-Branch"] = "render-dashboard"
+            resp["X-Build-Probe"] = "DASHBOARD_HDR_PROBE_20260113_1"
             return resp
         except Exception as template_error:
             logger.warning(f'模板渲染失败，返回简单HTML: {template_error}')

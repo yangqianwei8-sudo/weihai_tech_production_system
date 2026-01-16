@@ -109,11 +109,13 @@ class PermissionItemAdmin(LinkAdminMixin, BaseModelAdmin):
     def get_actions(self, request):
         """自定义批量操作名称"""
         actions = super().get_actions(request)
-        # 重命名批量操作
+        # 重命名批量操作（actions 中的值是元组，需要创建新元组）
         if 'activate_items' in actions:
-            actions['activate_items'][1] = '激活选中的权限'
+            func, name, description = actions['activate_items']
+            actions['activate_items'] = (func, '激活选中的权限', description)
         if 'deactivate_items' in actions:
-            actions['deactivate_items'][1] = '停用选中的权限'
+            func, name, description = actions['deactivate_items']
+            actions['deactivate_items'] = (func, '停用选中的权限', description)
         return actions
 
 

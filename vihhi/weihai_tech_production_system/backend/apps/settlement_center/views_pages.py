@@ -21,8 +21,124 @@ from backend.apps.system_management.models import User
 from backend.apps.system_management.services import get_user_permission_codes
 from backend.core.views import _permission_granted, _build_full_top_nav
 from backend.apps.production_management.models import BusinessContract
+from django.urls import reverse, NoReverseMatch
 from django.core.paginator import Paginator
 from django.db.models import Max
+
+
+
+# ==================== 回款管理模块左侧菜单结构 =====================
+SETTLEMENT_MENU = [
+    {
+        'id': 'payment_plan',
+        'label': '回款计划',
+        'icon': '💳',
+        'url_name': 'settlement_pages:payment_plan_list',
+        'permission': 'payment_management.payment_plan.view',
+    },
+    {
+        'id': 'output_value',
+        'label': '产值管理',
+        'icon': '📊',
+        'permission': 'settlement_center.view_output_value',
+        'children': [
+            {
+                'id': 'output_value_template',
+                'label': '产值模板',
+                'icon': '📋',
+                'url_name': 'settlement_pages:output_value_template_manage',
+                'permission': 'settlement_center.manage_output',
+            },
+            {
+                'id': 'output_value_record',
+                'label': '产值记录',
+                'icon': '📝',
+                'url_name': 'settlement_pages:output_value_record_list',
+                'permission': 'settlement_center.view_output_value',
+            },
+            {
+                'id': 'output_value_statistics',
+                'label': '产值统计',
+                'icon': '📈',
+                'url_name': 'settlement_pages:output_value_statistics',
+                'permission': 'settlement_center.view_output_value',
+            },
+        ]
+    },
+    {
+        'id': 'project_settlement',
+        'label': '项目结算',
+        'icon': '💰',
+        'url_name': 'settlement_pages:project_settlement_list',
+        'permission': 'settlement_management.view_settlement',
+    },
+]
+
+
+def _build_settlement_sidebar_nav(permission_set, request_path=None, active_id=None):
+    """生成回款管理左侧菜单（统一格式）"""
+    # 尝试导入统一的构建函数
+    try:
+        from backend.core.views import _build_unified_sidebar_nav
+        return _build_unified_sidebar_nav(SETTLEMENT_MENU, permission_set, active_id=active_id)
+    except ImportError:
+        # Fallback: 如果 _build_unified_sidebar_nav 不存在，提供简单实现
+        nav = []
+        for item in SETTLEMENT_MENU:
+            if item.get('permission'):
+                if not _permission_granted(item['permission'], permission_set):
+                    continue
+            
+            # 处理 URL：优先使用 url_name 转换为真实 URL
+            url = '#'
+            url_name = item.get('url_name')
+            if url_name:
+                try:
+                    url = reverse(url_name)
+                except NoReverseMatch:
+                    url = item.get('url', '#')
+            else:
+                url = item.get('url', '#')
+            
+            nav_item = {
+                'label': item.get('label', ''),
+                'icon': item.get('icon', ''),
+                'url': url,
+                'active': item.get('id') == active_id if active_id else False,
+            }
+            
+            # 处理子菜单
+            if 'children' in item:
+                children = []
+                for child in item['children']:
+                    # 检查子菜单权限
+                    if child.get('permission'):
+                        if not _permission_granted(child['permission'], permission_set):
+                            continue
+                    
+                    # 处理子菜单 URL
+                    child_url = '#'
+                    child_url_name = child.get('url_name')
+                    if child_url_name:
+                        try:
+                            child_url = reverse(child_url_name)
+                        except NoReverseMatch:
+                            child_url = child.get('url', '#')
+                    else:
+                        child_url = child.get('url', '#')
+                    
+                    children.append({
+                        'label': child.get('label', ''),
+                        'icon': child.get('icon', ''),
+                        'url': child_url,
+                        'active': child.get('id') == active_id if active_id else False,
+                    })
+                
+                nav_item['children'] = children
+            
+            nav.append(nav_item)
+        
+        return nav
 
 
 def _context(page_title, page_icon, description, summary_cards=None, sections=None, request=None):
@@ -35,18 +151,22 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
         "sections": sections or [],
     }
     
-    # 添加顶部导航栏
+    # 添加顶部导航栏和左侧菜单
     if request and request.user.is_authenticated:
         try:
             permission_set = get_user_permission_codes(request.user)
             context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
+            # 添加左侧菜单
+            context['module_sidebar_nav'] = _build_settlement_sidebar_nav(permission_set, request.path)
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
-            logger.exception('构建顶部导航栏失败: %s', str(e))
+            logger.exception('构建导航栏失败: %s', str(e))
             context['full_top_nav'] = []
+            context['module_sidebar_nav'] = []
     else:
         context['full_top_nav'] = []
+        context['module_sidebar_nav'] = []
     
     return context
 
@@ -267,7 +387,6 @@ def output_value_record_list(request):
         records = records.filter(status=status)
     
     # 分页（简单实现）
-    from django.core.paginator import Paginator
     paginator = Paginator(records, 20)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)

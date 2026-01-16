@@ -298,10 +298,10 @@
 .list-btn {
   padding: 4px 8px;
   font-size: 12px;
-  border: 1px solid #E0E0E0;
+  border: 1px solid #1A1A1A;
   border-radius: 0;
-  background: #FFFFFF;
-  color: #666666;
+  background: #1A1A1A;
+  color: #FFFFFF;
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
@@ -311,9 +311,9 @@
 }
 
 .list-btn:hover {
-  background: #F5F5F5;
-  color: #1A1A1A;
-  border-color: #CCCCCC;
+  background: #333333;
+  color: #FFFFFF;
+  border-color: #333333;
 }
 
 .list-btn-primary {
@@ -323,6 +323,18 @@
 }
 
 .list-btn-primary:hover {
+  background: #333333;
+  border-color: #333333;
+  color: #FFFFFF;
+}
+
+.list-btn-secondary {
+  background: #1A1A1A;
+  color: #FFFFFF;
+  border-color: #1A1A1A;
+}
+
+.list-btn-secondary:hover {
   background: #333333;
   border-color: #333333;
   color: #FFFFFF;

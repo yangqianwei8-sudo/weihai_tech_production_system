@@ -18,7 +18,24 @@
 <link rel="stylesheet" href="{% static 'css/components/list_layout.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/navigation.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/pm_page_header.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/pm_page_header_override.css' %}">
 <style>
+
+  /* 最高优先级：必须在所有其他规则之前，覆盖Bootstrap RFS calc() */
+  body .plan-content .pm-page-header .pm-page-header-title-wrapper h1 {
+    font-size: 24px !important;
+  }
+  
+  html body .plan-content .pm-page-header .pm-page-header-title-wrapper h1 {
+    font-size: 24px !important;
+  }
+  
+  /* 覆盖所有可能的Bootstrap RFS规则 */
+  .plan-content .pm-page-header .pm-page-header-title-wrapper h1[style*="font-size"] {
+    font-size: 24px !important;
+  }
+  
+
   .plan-content-wrapper {
     background: #F5F5F5;
     padding: 8px 24px 24px 24px;
@@ -56,7 +73,8 @@
   }
   
   .plan-content .pm-page-header .pm-page-header-title-wrapper h1 {
-    font-size: 12px !important;
+    font-size: 24px !important;
+    font-size: 24px !important; /* 强制覆盖 Bootstrap RFS */
     font-weight: 600 !important;
     color: #1A1A1A !important;
     margin: 0 !important;
@@ -66,6 +84,13 @@
     line-height: 1.2 !important;
   }
   
+  
+  /* 强制覆盖 Bootstrap RFS - 使用更具体的选择器 */
+  .plan-content .pm-page-header .pm-page-header-title-wrapper h1,
+  .plan-content .pm-page-header .pm-page-header-title-wrapper h1[class],
+  .plan-content .pm-page-header .pm-page-header-title-wrapper h1:not([style*="font-size"]) {
+    font-size: 24px !important;
+  }
   .plan-content .pm-page-header .pm-page-header-title-wrapper .pm-subtitle {
     font-size: 11px !important;
     color: #999999 !important;
@@ -90,6 +115,18 @@
     border-bottom: 1px solid #E0E0E0 !important;
     margin-bottom: 8px !important;
   }
+
+  
+  /* 最强优先级：覆盖所有Bootstrap RFS规则 */
+  .plan-content .pm-page-header .pm-page-header-title-wrapper h1,
+  .plan-content .pm-page-header .pm-page-header-title-wrapper h1[class],
+  .plan-content .pm-page-header .pm-page-header-title-wrapper h1:not([style]),
+  .plan-content .pm-page-header .pm-page-header-title-wrapper h1:not([style*="font-size"]),
+  body .plan-content .pm-page-header .pm-page-header-title-wrapper h1 {
+    font-size: 24px !important;
+    font-size: 24px !important; /* 双重声明确保覆盖 */
+  }
+  
 </style>
 {% endblock %}
 

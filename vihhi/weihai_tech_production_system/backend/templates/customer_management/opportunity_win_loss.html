@@ -1,20 +1,18 @@
-{% extends "customer_management/base.html" %}
+{% extends "customer_management/_base.html" %}
 
-{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+
 
 {% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
 {% endblock %}
 
-{% block breadcrumb_items %}
-<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
-{% endblock %}
 
-{% block content %}
-<div class="workspace-content">
-    
-    <div class="list-page-container">
+
+{% block cm_title %}输赢记录{% endblock %}
+
+{% block cm_content %}
+<div class="list-page-container">
     
         <div class="list-page-header">
             <div>
@@ -28,10 +26,10 @@
                         + 新增赢单/输单
                     </button>
                     <ul class="dropdown-menu" aria-labelledby="addWinLossDropdown">
-                        <li><a class="dropdown-item" href="{% url 'business_pages:opportunity_win_loss_select' %}?target_status=won">
+                        <li><a class="dropdown-item" href="{% url 'opportunity_pages:opportunity_win_loss_select' %}?target_status=won">
                             <i class="bi bi-check-circle text-success"></i> 标记为赢单
                         </a></li>
-                        <li><a class="dropdown-item" href="{% url 'business_pages:opportunity_win_loss_select' %}?target_status=lost">
+                        <li><a class="dropdown-item" href="{% url 'opportunity_pages:opportunity_win_loss_select' %}?target_status=lost">
                             <i class="bi bi-x-circle text-danger"></i> 标记为输单
                         </a></li>
                     </ul>
@@ -108,7 +106,7 @@
                         <button type="submit" class="btn btn-sm btn-primary">
                             <i class="bi bi-search"></i> 搜索
                 </button>
-                        <a href="{% url 'business_pages:opportunity_win_loss' %}" class="btn btn-sm btn-outline-secondary">重置</a>
+                        <a href="{% url 'opportunity_pages:opportunity_win_loss' %}" class="btn btn-sm btn-outline-secondary">重置</a>
                     </div>
             </div>
         </form>
@@ -136,7 +134,7 @@
                 {% for opportunity in page_obj %}
                 <tr>
                             <td>
-                                <a href="{% url 'business_pages:opportunity_detail' opportunity.id %}" class="info-value-link">
+                                <a href="{% url 'opportunity_pages:opportunity_detail' opportunity.id %}" class="info-value-link">
                                     {{ opportunity.name }}
                                 </a>
                     </td>
@@ -178,7 +176,7 @@
                             </td>
                             <td style="text-align: center;">
                                 <div class="btn-group" role="group">
-                                    <a href="{% url 'business_pages:opportunity_detail' opportunity.id %}" class="btn btn-sm btn-outline-primary" title="查看详情">
+                                    <a href="{% url 'opportunity_pages:opportunity_detail' opportunity.id %}" class="btn btn-sm btn-outline-primary" title="查看详情">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                 </div>
@@ -232,5 +230,4 @@
         </div>
         {% endif %}
     </div>
-</div>
 {% endblock %}
