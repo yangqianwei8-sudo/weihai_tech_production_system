@@ -7,6 +7,23 @@
    extends "shared/_partials/_shared_form_wrapper.html"
    load static
    
+   ⚠️ 重要：使用此模板前，必须删除所有老设计元素！
+   
+   需要删除的老设计元素：
+   1. 旧的页面标题样式（如：.page-title, .page-header 等）
+   2. 旧的表单容器样式（如：.form-wrapper, .form-box 等）
+   3. 旧的按钮样式（如：.btn-primary, .btn-secondary 等，除非是通用按钮）
+   4. 旧的布局样式（如：.row, .col-* 等 Bootstrap 网格，除非必要）
+   5. 重复的样式定义（检查是否有重复的 CSS 规则）
+   6. 旧的侧边栏或导航元素（如果页面已有侧边栏）
+   7. 旧的页脚或底部元素（除非是页面特定内容）
+   
+   保留的元素：
+   - 表单字段本身（input, select, textarea 等）
+   - 表单验证逻辑和 JavaScript
+   - 业务特定的样式和脚本
+   - 页面特定的内容块
+   
    上下文变量说明：
    - form: Django表单对象（必需）
    - page_title: 页面标题（可选）
@@ -17,8 +34,15 @@
    - extra_form_actions: 额外的表单操作按钮（可选）
    - form_help_text: 表单帮助文本（可选）
    - form_js_file: 额外的JavaScript文件路径（可选）
-   - base_template: 基础模板路径（可选，默认使用goal_management/_base.html）
-   - sidebar_template: 侧边栏模板路径（可选，默认使用plan_management/_sidebar.html）
+   - form_page_subtitle_text: 表单页面副标题文本（可选）
+   
+   模板特性：
+   - 主标题字体大小：24px
+   - 副标题字体大小：12px
+   - 主标题下划线：纯黑色，延伸到屏幕边缘
+   - 表单字段布局：4列网格（响应式）
+   - 必填字段标记：纯黑色星号
+   - 主标题和副标题底部对齐
 #}
 
 
