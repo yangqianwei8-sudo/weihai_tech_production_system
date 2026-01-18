@@ -19,7 +19,9 @@ from .models import (
     VisitReview,
     BusinessOpportunity,
     AuthorizationLetter,
-    AuthorizationLetterTemplate
+    AuthorizationLetterTemplate,
+    CustomerLead,
+    CustomerFiling
 )
 # 尝试导入 ContactInfoChange（如果模型存在）
 try:
@@ -1205,8 +1207,179 @@ class VisitPlanForm(forms.ModelForm):
         return instance
 
 
+class VisitPlanWithChecklistForm(forms.ModelForm):
+    """创建拜访计划表单（合并拜访计划和沟通清单准备）"""
+    
+    class Meta:
+        model = VisitPlan
+        fields = [
+            'department', 'responsible_user', 'client', 'plan_date', 'location', 'related_opportunity', 'communication_checklist'
+        ]
+        widgets = {
+            'department': forms.Select(attrs={
+                'class': 'form-select',
+                'disabled': True,
+                'id': 'id_department'
+            }),
+            'responsible_user': forms.Select(attrs={
+                'class': 'form-select',
+                'disabled': True,
+                'id': 'id_responsible_user'
+            }),
+            'client': forms.Select(attrs={'class': 'form-select', 'required': True, 'id': 'id_client'}),
+            'plan_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'required': True}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'readonly': True, 'id': 'id_location', 'placeholder': '将根据客户办公地址自动填充'}),
+            'related_opportunity': forms.Select(attrs={'class': 'form-select'}),
+            'communication_checklist': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 10, 
+                'required': True,
+                'placeholder': '请输入沟通清单内容，包括：\n1. 需要沟通的关键问题\n2. 需要准备的资料和文件\n3. 需要展示的产品或方案\n4. 其他注意事项'
+            }),
+        }
+        labels = {
+            'communication_checklist': '沟通清单',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        permission_set = kwargs.pop('permission_set', None)
+        super().__init__(*args, **kwargs)
+        
+        # 设置所属部门和负责人的默认值（只读，不可修改）
+        if user:
+            from backend.apps.system_management.models import Department, User
+            
+            # 设置所属部门（ForeignKey，设置为用户所属的部门）
+            if user.department:
+                self.fields['department'].initial = user.department.id
+                self.fields['department'].queryset = Department.objects.filter(id=user.department.id)
+            else:
+                self.fields['department'].queryset = Department.objects.none()
+            
+            # 设置负责人（ForeignKey，设置为当前用户）
+            self.fields['responsible_user'].initial = user.id
+            self.fields['responsible_user'].queryset = User.objects.filter(id=user.id)
+            
+            # 设置字段为只读（通过 disabled 属性）
+            self.fields['department'].widget.attrs['disabled'] = True
+            self.fields['responsible_user'].widget.attrs['disabled'] = True
+        
+        # 根据用户过滤客户：只显示该用户作为负责人的、已审批通过的客户
+        if user:
+            from django.contrib.contenttypes.models import ContentType
+            from backend.apps.workflow_engine.models import ApprovalInstance
+            
+            # 1. 只显示该用户作为负责人的客户
+            base_queryset = Client.objects.filter(
+                is_active=True,
+                responsible_user=user
+            )
+            
+            # 2. 只显示已审批通过的客户（通过 ApprovalInstance 判断）
+            client_content_type = ContentType.objects.get_for_model(Client)
+            approved_instance_ids = ApprovalInstance.objects.filter(
+                content_type=client_content_type,
+                status='approved'
+            ).values_list('object_id', flat=True)
+            
+            # 只显示有审批通过记录的客户
+            if approved_instance_ids:
+                approved_clients = base_queryset.filter(id__in=approved_instance_ids)
+                self.fields['client'].queryset = approved_clients.distinct().order_by('name')
+            else:
+                # 如果没有审批通过的客户，显示空列表
+                self.fields['client'].queryset = Client.objects.none()
+        else:
+            # 没有用户信息，显示所有已审批通过的激活客户
+            from django.contrib.contenttypes.models import ContentType
+            from backend.apps.workflow_engine.models import ApprovalInstance
+            
+            client_content_type = ContentType.objects.get_for_model(Client)
+            approved_instance_ids = ApprovalInstance.objects.filter(
+                content_type=client_content_type,
+                status='approved'
+            ).values_list('object_id', flat=True)
+            
+            if approved_instance_ids:
+                approved_clients = Client.objects.filter(
+                    is_active=True,
+                    id__in=approved_instance_ids
+                )
+                self.fields['client'].queryset = approved_clients.distinct().order_by('name')
+            else:
+                self.fields['client'].queryset = Client.objects.none()
+        
+        self.fields['client'].empty_label = '-- 选择客户 --'
+        
+        # 如果是编辑，将datetime字段转换为date显示
+        if self.instance and self.instance.pk and self.instance.plan_date:
+            self.fields['plan_date'].initial = self.instance.plan_date.date()
+        else:
+            # 新建时，设置日期字段默认值为当天
+            from datetime import date
+            today = date.today()
+            self.fields['plan_date'].initial = today
+        
+        # 关联商机会根据选择的客户动态过滤（在模板中通过 JavaScript 实现）
+        # 这里先设置一个空的查询集，实际选项会在前端根据客户选择动态更新
+        self.fields['related_opportunity'].queryset = BusinessOpportunity.objects.none()
+        self.fields['related_opportunity'].empty_label = '-- 请先选择客户 --'
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        plan_date = cleaned_data.get('plan_date')
+        
+        # 将日期转换为datetime（设置为当天的开始时间 00:00:00）
+        if plan_date:
+            from django.utils import timezone
+            from datetime import datetime
+            if isinstance(plan_date, datetime):
+                # 如果已经是datetime，只保留日期部分，时间设为00:00:00
+                cleaned_data['plan_date'] = datetime.combine(plan_date.date(), datetime.min.time())
+                cleaned_data['plan_date'] = timezone.make_aware(cleaned_data['plan_date'])
+            elif hasattr(plan_date, 'date'):
+                # 如果是date对象，转换为datetime
+                cleaned_data['plan_date'] = datetime.combine(plan_date, datetime.min.time())
+                cleaned_data['plan_date'] = timezone.make_aware(cleaned_data['plan_date'])
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # 处理 disabled 字段：从 POST 数据或 initial 中获取值
+        # 因为 disabled 字段不会在 POST 数据中，需要从 initial 值获取
+        if hasattr(self, 'initial') and 'department' in self.initial:
+            instance.department_id = self.initial['department']
+        elif hasattr(self, 'data') and 'department' in self.data:
+            instance.department_id = self.data['department']
+        
+        if hasattr(self, 'initial') and 'responsible_user' in self.initial:
+            instance.responsible_user_id = self.initial['responsible_user']
+        elif hasattr(self, 'data') and 'responsible_user' in self.data:
+            instance.responsible_user_id = self.data['responsible_user']
+        
+        # 自动生成计划标题（如果未提供）
+        if not instance.plan_title:
+            client_name = instance.client.name if instance.client else '客户'
+            plan_date_str = instance.plan_date.strftime('%Y-%m-%d') if instance.plan_date else ''
+            instance.plan_title = f"{client_name} - {plan_date_str} 拜访计划"
+        
+        # 自动生成拜访目的（如果未提供）
+        if not instance.plan_purpose:
+            instance.plan_purpose = '客户拜访'
+        
+        # 标记沟通清单已准备
+        instance.checklist_prepared = True
+        
+        if commit:
+            instance.save()
+        return instance
+
+
 class VisitChecklistForm(forms.ModelForm):
-    """沟通清单准备表单（第二步：沟通清单准备）"""
+    """沟通清单准备表单（第二步：沟通清单准备）- 保留用于向后兼容"""
     
     class Meta:
         model = VisitPlan
@@ -1227,15 +1400,18 @@ class VisitChecklistForm(forms.ModelForm):
 class VisitCheckinForm(forms.ModelForm):
     """拜访定位打卡表单（第三步：拜访定位打卡）"""
     
+    def __init__(self, *args, **kwargs):
+        self.visit_plan = kwargs.pop('visit_plan', None)
+        super().__init__(*args, **kwargs)
+    
     class Meta:
         model = VisitCheckin
-        fields = ['checkin_time', 'checkin_location', 'latitude', 'longitude', 'notes']
+        fields = ['checkin_time', 'checkin_location', 'latitude', 'longitude']
         widgets = {
-            'checkin_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local', 'required': True}),
-            'checkin_location': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'readonly': True, 'placeholder': '自动获取或手动输入'}),
-            'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': '自动获取或手动输入'}),
-            'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': '自动获取或手动输入'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': '请输入备注信息（可选）'}),
+            'checkin_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local', 'required': True, 'readonly': True, 'id': 'id_checkin_time', 'style': 'display: none;'}),
+            'checkin_location': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'readonly': True, 'placeholder': '自动获取，不可修改', 'id': 'id_checkin_location', 'style': 'display: none;'}),
+            'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': '自动获取', 'id': 'id_latitude', 'readonly': True}),
+            'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': '自动获取', 'id': 'id_longitude', 'readonly': True}),
         }
         labels = {
             'checkin_time': '打卡时间',
@@ -1244,6 +1420,87 @@ class VisitCheckinForm(forms.ModelForm):
             'longitude': '经度',
             'notes': '备注',
         }
+    
+    def clean(self):
+        """验证打卡位置与客户办公地址的距离"""
+        cleaned_data = super().clean()
+        latitude = cleaned_data.get('latitude')
+        longitude = cleaned_data.get('longitude')
+        
+        # 如果没有经纬度，跳过距离验证
+        if not latitude or not longitude:
+            return cleaned_data
+        
+        # 如果没有 visit_plan，跳过距离验证（在视图中会处理）
+        if not self.visit_plan:
+            return cleaned_data
+        
+        # 获取客户办公地址
+        client = self.visit_plan.client
+        client_address = client.company_address or client.region or ''
+        
+        if not client_address:
+            # 如果客户没有办公地址，跳过距离验证
+            return cleaned_data
+        
+        # 计算距离
+        try:
+            from backend.apps.customer_management.services import AmapAPIService
+            import math
+            
+            # 获取客户办公地址的经纬度
+            amap_service = AmapAPIService()
+            client_geocode = amap_service.geocode(client_address)
+            
+            if not client_geocode:
+                # 如果无法获取客户地址的经纬度，跳过距离验证
+                return cleaned_data
+            
+            client_lat = client_geocode['latitude']
+            client_lon = client_geocode['longitude']
+            
+            # 使用 Haversine 公式计算两点之间的距离（单位：米）
+            def haversine_distance(lat1, lon1, lat2, lon2):
+                """计算两点之间的距离（米）"""
+                R = 6371000  # 地球半径（米）
+                phi1 = math.radians(lat1)
+                phi2 = math.radians(lat2)
+                delta_phi = math.radians(lat2 - lat1)
+                delta_lambda = math.radians(lon2 - lon1)
+                
+                a = math.sin(delta_phi / 2) ** 2 + \
+                    math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                
+                return R * c
+            
+            # 计算距离
+            distance = haversine_distance(
+                float(latitude),
+                float(longitude),
+                client_lat,
+                client_lon
+            )
+            
+            # 如果距离超过200米，抛出验证错误
+            if distance > 200:
+                raise forms.ValidationError({
+                    '__all__': [
+                        f'⚠️ 打卡位置距离客户办公地址 {distance:.0f} 米，超过允许范围（200米）。'
+                        f'请确保在客户办公地址附近200米范围内打卡。'
+                    ]
+                })
+            
+        except forms.ValidationError:
+            raise
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception('距离验证失败: %s', str(e))
+            # 如果距离验证失败，不阻止提交（避免因API问题影响正常使用）
+            pass
+        
+        return cleaned_data
 
 
 class VisitReviewForm(forms.ModelForm):
@@ -1899,3 +2156,326 @@ class ContactInfoChangeForm(forms.ModelForm):
                 })
         
         return cleaned_data
+
+
+class CustomerLeadForm(forms.ModelForm):
+    """客户线索表单"""
+    
+    class Meta:
+        model = CustomerLead
+        fields = [
+            'department', 'responsible_user',
+            'lead_number',
+            'company_name', 'province', 'city', 'district',
+            'lead_source',
+        ]
+        widgets = {
+            'department': forms.TextInput(attrs={'class': 'form-control'}),
+            'responsible_user': forms.Select(attrs={'class': 'form-select'}),
+            'lead_number': forms.TextInput(attrs={'class': 'form-control', 'readonly': True}),
+            'company_name': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'province': forms.TextInput(attrs={'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'district': forms.TextInput(attrs={'class': 'form-control'}),
+            'lead_source': forms.Select(attrs={'class': 'form-select'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # 设置字段标签（按顺序）
+        self.fields['department'].label = '所属部门'
+        self.fields['responsible_user'].label = '负责人'
+        self.fields['lead_number'].label = '客户编号'
+        self.fields['company_name'].label = '公司名称'
+        self.fields['province'].label = '省份'
+        self.fields['city'].label = '城市'
+        self.fields['district'].label = '区县'
+        self.fields['lead_source'].label = '线索来源'
+        
+        # 设置空选项
+        self.fields['lead_source'].empty_label = '-- 选择来源 --'
+        
+        # 设置负责人字段
+        from backend.apps.system_management.models import User
+        self.fields['responsible_user'].queryset = User.objects.filter(is_active=True).order_by('username')
+        self.fields['responsible_user'].empty_label = '-- 选择负责人 --'
+        
+        # 如果是创建模式（没有instance或instance没有pk），设置默认值并禁用字段
+        if user and (not self.instance or not self.instance.pk):
+            # 设置默认负责人为当前用户
+            self.fields['responsible_user'].initial = user
+            # 设置默认部门为当前用户的部门
+            if user.department:
+                self.fields['department'].initial = user.department.name
+            else:
+                self.fields['department'].initial = ''
+            
+            # 生成客户编号预览（实际编号在保存时生成）
+            from datetime import datetime
+            from django.db.models import Max
+            from backend.apps.customer_management.models import CustomerLead
+            
+            current_date = datetime.now().strftime('%Y%m%d')
+            date_prefix = f'XS-{current_date}-'
+            
+            # 查找当天最大编号
+            max_lead = CustomerLead.objects.filter(
+                lead_number__startswith=date_prefix
+            ).aggregate(max_num=Max('lead_number'))['max_num']
+            
+            if max_lead:
+                try:
+                    seq = int(max_lead.split('-')[-1]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            else:
+                seq = 1
+            
+            preview_number = f'{date_prefix}{seq:04d}'
+            self.fields['lead_number'].initial = preview_number
+            
+            # 禁用字段，使其不可修改
+            self.fields['department'].disabled = True
+            self.fields['responsible_user'].disabled = True
+            self.fields['lead_number'].disabled = True
+        else:
+            # 编辑模式：客户编号也是只读，显示已有编号
+            if self.instance and self.instance.lead_number:
+                self.fields['lead_number'].initial = self.instance.lead_number
+            self.fields['lead_number'].disabled = True
+    
+    def clean(self):
+        """表单验证"""
+        cleaned_data = super().clean()
+        company_name = cleaned_data.get('company_name')
+        
+        # 验证必填字段
+        if not company_name:
+            raise forms.ValidationError({'company_name': '公司名称不能为空'})
+        
+        return cleaned_data
+
+
+class CustomerFilingForm(forms.ModelForm):
+    """客户备案表单"""
+    
+    class Meta:
+        model = CustomerFiling
+        fields = [
+            'client', 'filing_date', 'filing_type', 'filing_number',
+            'filing_content', 'filing_purpose', 'filing_notes',
+            'related_opportunity',
+        ]
+        widgets = {
+            'client': forms.Select(attrs={'class': 'form-select', 'required': True}),
+            'filing_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'required': True}),
+            'filing_type': forms.Select(attrs={'class': 'form-select', 'required': True}),
+            'filing_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '留空将自动生成'}),
+            'filing_content': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'required': True}),
+            'filing_purpose': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'filing_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'related_opportunity': forms.Select(attrs={'class': 'form-select'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # 设置字段标签
+        self.fields['client'].label = '客户'
+        self.fields['filing_date'].label = '备案日期'
+        self.fields['filing_type'].label = '备案类型'
+        self.fields['filing_number'].label = '备案编号'
+        self.fields['filing_content'].label = '备案内容'
+        self.fields['filing_purpose'].label = '备案目的'
+        self.fields['filing_notes'].label = '备注说明'
+        self.fields['related_opportunity'].label = '关联商机'
+        
+        # 设置空选项
+        self.fields['client'].empty_label = '-- 选择客户 --'
+        self.fields['filing_type'].empty_label = '-- 选择类型 --'
+        self.fields['related_opportunity'].empty_label = '-- 选择商机（可选） --'
+        
+        # 设置客户查询集（根据权限过滤）
+        from backend.apps.customer_management.models import Client
+        from backend.apps.system_management.services import get_user_permission_codes
+        from backend.apps.customer_management.views_pages import _filter_clients_by_permission
+        
+        if user:
+            permission_set = get_user_permission_codes(user)
+            clients = Client.objects.filter(is_active=True)
+            clients = _filter_clients_by_permission(clients, user, permission_set)
+            self.fields['client'].queryset = clients.order_by('name')
+        else:
+            self.fields['client'].queryset = Client.objects.filter(is_active=True).order_by('name')
+        
+        # 设置商机查询集
+        self.fields['related_opportunity'].queryset = BusinessOpportunity.objects.filter(
+            is_active=True
+        ).order_by('-created_time')
+        
+        # 设置默认值
+        if not self.instance or not self.instance.pk:
+            from django.utils import timezone
+            self.fields['filing_date'].initial = timezone.now().date()
+            self.fields['filing_type'].initial = 'initial'
+    
+    def clean(self):
+        """表单验证"""
+        cleaned_data = super().clean()
+        client = cleaned_data.get('client')
+        filing_date = cleaned_data.get('filing_date')
+        filing_content = cleaned_data.get('filing_content')
+        
+        # 验证必填字段
+        if not client:
+            raise forms.ValidationError({'client': '请选择客户'})
+        
+        if not filing_date:
+            raise forms.ValidationError({'filing_date': '请选择备案日期'})
+        
+        if not filing_content:
+            raise forms.ValidationError({'filing_content': '备案内容不能为空'})
+        
+        return cleaned_data
+
+
+class FirstVisitForm(forms.ModelForm):
+    """首次拜访表单（不需要人员信息）"""
+    
+    class Meta:
+        model = VisitPlan
+        fields = [
+            'client', 'plan_date', 'plan_title', 'plan_purpose', 'location', 'related_opportunity'
+        ]
+        widgets = {
+            'client': forms.Select(attrs={'class': 'form-select', 'required': True}),
+            'plan_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'required': True}),
+            'plan_title': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'placeholder': '请输入拜访标题'}),
+            'plan_purpose': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'required': True, 'placeholder': '请输入拜访目的'}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '拜访地点'}),
+            'related_opportunity': forms.Select(attrs={'class': 'form-select'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        permission_set = kwargs.pop('permission_set', None)
+        super().__init__(*args, **kwargs)
+        
+        # 设置字段标签
+        self.fields['client'].label = '客户'
+        self.fields['plan_date'].label = '拜访日期'
+        self.fields['plan_title'].label = '拜访标题'
+        self.fields['plan_purpose'].label = '拜访目的'
+        self.fields['location'].label = '拜访地点'
+        self.fields['related_opportunity'].label = '关联商机'
+        
+        # 根据用户过滤客户：只显示该用户作为负责人的、已审批通过的客户
+        if user:
+            from django.contrib.contenttypes.models import ContentType
+            from backend.apps.workflow_engine.models import ApprovalInstance
+            
+            # 只显示该用户作为负责人的客户
+            base_queryset = Client.objects.filter(
+                is_active=True,
+                responsible_user=user
+            )
+            
+            # 只显示已审批通过的客户
+            client_content_type = ContentType.objects.get_for_model(Client)
+            approved_instance_ids = ApprovalInstance.objects.filter(
+                content_type=client_content_type,
+                status='approved'
+            ).values_list('object_id', flat=True)
+            
+            if approved_instance_ids:
+                approved_clients = base_queryset.filter(id__in=approved_instance_ids)
+                self.fields['client'].queryset = approved_clients.distinct().order_by('name')
+            else:
+                self.fields['client'].queryset = Client.objects.none()
+        else:
+            # 没有用户信息，显示所有已审批通过的激活客户
+            from django.contrib.contenttypes.models import ContentType
+            from backend.apps.workflow_engine.models import ApprovalInstance
+            
+            client_content_type = ContentType.objects.get_for_model(Client)
+            approved_instance_ids = ApprovalInstance.objects.filter(
+                content_type=client_content_type,
+                status='approved'
+            ).values_list('object_id', flat=True)
+            
+            if approved_instance_ids:
+                approved_clients = Client.objects.filter(
+                    is_active=True,
+                    id__in=approved_instance_ids
+                )
+                self.fields['client'].queryset = approved_clients.distinct().order_by('name')
+            else:
+                self.fields['client'].queryset = Client.objects.none()
+        
+        self.fields['client'].empty_label = '-- 选择客户 --'
+        
+        # 设置日期字段默认值为当天
+        from datetime import date
+        today = date.today()
+        self.fields['plan_date'].initial = today
+        
+        # 关联商机会根据选择的客户动态过滤（在模板中通过 JavaScript 实现）
+        self.fields['related_opportunity'].queryset = BusinessOpportunity.objects.none()
+        self.fields['related_opportunity'].empty_label = '-- 请先选择客户 (可选) --'
+        self.fields['related_opportunity'].required = False
+        
+        # 设置默认标题和目的
+        if not self.instance or not self.instance.pk:
+            self.fields['plan_title'].initial = '首次拜访'
+            self.fields['plan_purpose'].initial = '首次拜访客户，了解客户需求'
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        plan_date = cleaned_data.get('plan_date')
+        client = cleaned_data.get('client')
+        plan_title = cleaned_data.get('plan_title')
+        plan_purpose = cleaned_data.get('plan_purpose')
+        
+        if not client:
+            raise forms.ValidationError({'client': '请选择客户'})
+        
+        if not plan_date:
+            raise forms.ValidationError({'plan_date': '请选择拜访日期'})
+        
+        if not plan_title:
+            raise forms.ValidationError({'plan_title': '请输入拜访标题'})
+        
+        if not plan_purpose:
+            raise forms.ValidationError({'plan_purpose': '请输入拜访目的'})
+        
+        # 将日期转换为datetime（设置为当天的开始时间 00:00:00）
+        if plan_date:
+            from django.utils import timezone
+            from datetime import datetime
+            if isinstance(plan_date, datetime):
+                cleaned_data['plan_date'] = datetime.combine(plan_date.date(), datetime.min.time())
+                cleaned_data['plan_date'] = timezone.make_aware(cleaned_data['plan_date'])
+            elif hasattr(plan_date, 'date'):
+                cleaned_data['plan_date'] = datetime.combine(plan_date, datetime.min.time())
+                cleaned_data['plan_date'] = timezone.make_aware(cleaned_data['plan_date'])
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # 设置状态为已计划
+        instance.status = 'planned'
+        
+        # 如果没有提供标题，自动生成
+        if not instance.plan_title:
+            client_name = instance.client.name if instance.client else '客户'
+            plan_date_str = instance.plan_date.strftime('%Y-%m-%d') if instance.plan_date else ''
+            instance.plan_title = f"{client_name} - {plan_date_str} 首次拜访"
+        
+        if commit:
+            instance.save()
+        return instance

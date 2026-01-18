@@ -2,37 +2,41 @@
   <table class="list-table">
     <thead>
       <tr>
-        <th>客户名称</th>
-        <th>拜访类型</th>
-        <th>跟进方式</th>
-        <th>拜访日期</th>
-        <th>跟进人</th>
-        <th>创建时间</th>
+        <th>拜访计划标题</th>
+        <th>客户</th>
+        <th>计划日期</th>
+        <th>拜访地点</th>
+        <th>状态</th>
+        <th>创建人</th>
         <th>操作</th>
       </tr>
     </thead>
     <tbody>
-      {% for relationship in page_obj %}
+      {% for visit_plan in page_obj %}
       <tr>
         <td>
-          <a href="{% url 'business_pages:customer_detail' relationship.client.id %}">
-            {{ relationship.client.name }}
+          <strong>{{ visit_plan.plan_title|default:"未设置标题" }}</strong>
+        </td>
+        <td>
+          <a href="{% url 'customer_pages:customer_detail' visit_plan.client.id %}">
+            {{ visit_plan.client.name }}
           </a>
         </td>
+        <td>{{ visit_plan.plan_date|date:"Y-m-d H:i" }}</td>
+        <td>{{ visit_plan.location|default:"—" }}</td>
         <td>
-          {% if relationship.visit_type %}
-          <span class="list-badge">{{ relationship.get_visit_type_display }}</span>
-          {% else %}
-          <span style="color: #999999;">—</span>
-          {% endif %}
+          <span class="list-badge
+            {% if visit_plan.status == 'planned' %}list-badge-info
+            {% elif visit_plan.status == 'in_progress' %}list-badge-warning
+            {% elif visit_plan.status == 'completed' %}list-badge-success
+            {% else %}list-badge-secondary{% endif %}">
+            {{ visit_plan.get_status_display }}
+          </span>
         </td>
-        <td>{{ relationship.get_followup_method_display }}</td>
-        <td>{{ relationship.followup_time|date:"Y-m-d" }}</td>
-        <td>{{ relationship.followup_person.get_full_name|default:relationship.followup_person.username }}</td>
-        <td style="color: #666666;">{{ relationship.created_time|date:"Y-m-d" }}</td>
+        <td>{{ visit_plan.created_by.get_full_name|default:visit_plan.created_by.username }}</td>
         <td>
           <div class="list-actions">
-            <a href="#" class="list-btn" title="查看">查看</a>
+            <a href="{% url 'customer_pages:visit_plan_detail' visit_plan.id %}" class="list-btn" title="查看">查看</a>
           </div>
         </td>
       </tr>
@@ -40,8 +44,8 @@
       <tr>
         <td colspan="7" class="list-empty">
           <div class="list-empty-icon">▢</div>
-          <div class="list-empty-text">暂无拜访记录</div>
-          <div class="list-empty-hint">请创建第一个拜访记录开始使用</div>
+          <div class="list-empty-text">暂无拜访计划</div>
+          <div class="list-empty-hint">请创建第一个拜访计划开始使用</div>
         </td>
       </tr>
       {% endfor %}
@@ -56,21 +60,25 @@
   </div>
   <div class="list-pagination-nav">
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if client_id %}&client={{ client_id }}{% endif %}{% if visit_type %}&visit_type={{ visit_type }}{% endif %}" class="list-pagination-btn">上一页</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if client_id %}&client={{ client_id }}{% endif %}" class="list-pagination-btn">上一页</a>
     {% else %}
     <span class="list-pagination-btn disabled">上一页</span>
     {% endif %}
-    
+
     {% for num in page_obj.paginator.page_range %}
     {% if page_obj.number == num %}
     <span class="list-pagination-btn active">{{ num }}</span>
     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-    <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if client_id %}&client={{ client_id }}{% endif %}{% if visit_type %}&visit_type={{ visit_type }}{% endif %}" class="list-pagination-btn">{{ num }}</a>
+    <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if client_id %}&client={{ client_id }}{% endif %}" class="list-pagination-btn">{{ num }}</a>
+    {% elif num == 1 or num == page_obj.paginator.num_pages %}
+    <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if client_id %}&client={{ client_id }}{% endif %}" class="list-pagination-btn">{{ num }}</a>
+    {% elif num == page_obj.number|add:'-4' or num == page_obj.number|add:'4' %}
+    <span class="list-pagination-btn disabled">...</span>
     {% endif %}
     {% endfor %}
-    
+
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if client_id %}&client={{ client_id }}{% endif %}{% if visit_type %}&visit_type={{ visit_type }}{% endif %}" class="list-pagination-btn">下一页</a>
+    <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if client_id %}&client={{ client_id }}{% endif %}" class="list-pagination-btn">下一页</a>
     {% else %}
     <span class="list-pagination-btn disabled">下一页</span>
     {% endif %}

@@ -36,11 +36,29 @@ logger = logging.getLogger(__name__)
 from backend.core.views import _build_full_top_nav
 
 
-def _build_litigation_sidebar_nav(permission_set, request_path=None):
+def _build_litigation_sidebar_nav(permission_set, request_path=None, active_id=None):
     """生成诉讼管理左侧菜单"""
     nav_items = []
     
-    # 案件管理分组（首页）
+    # 诉讼管理首页
+    try:
+        home_url = reverse('litigation_pages:litigation_management_home')
+        is_home_active = (
+            request_path == home_url or
+            request_path == reverse('litigation_pages:litigation_home') or
+            active_id == 'litigation_home'
+        )
+        nav_items.append({
+            'label': '案件管理',
+            'icon': '📋',
+            'url': home_url,
+            'active': is_home_active,
+            'is_home': True,
+        })
+    except NoReverseMatch:
+        pass
+    
+    # 案件管理分组
     case_items = []
     
     # 基础权限检查：只要有诉讼管理查看权限就可以看到案件列表
@@ -69,11 +87,13 @@ def _build_litigation_sidebar_nav(permission_set, request_path=None):
             pass
     
     if case_items:
+        has_active = any(item.get('active') for item in case_items)
         nav_items.append({
             'label': '案件管理',
             'icon': '📋',
-            'items': case_items,
-            'collapsed': not any(item.get('active') for item in case_items),
+            'children': case_items,  # 使用 children 而不是 items
+            'expanded': has_active,  # 如果有激活项，默认展开
+            'active': has_active,
         })
     
     # 诉讼流程分组 - 指向案件列表页面（通过process_type筛选）
@@ -125,11 +145,13 @@ def _build_litigation_sidebar_nav(permission_set, request_path=None):
             pass
     
     if process_items:
+        has_active = any(item.get('active') for item in process_items)
         nav_items.append({
             'label': '诉讼流程',
             'icon': '⚖️',
-            'items': process_items,
-            'collapsed': not any(item.get('active') for item in process_items),
+            'children': process_items,  # 使用 children 而不是 items
+            'expanded': has_active,  # 如果有激活项，默认展开
+            'active': has_active,
         })
     
     # 保全续封分组（⚠️ 极高优先级）- 指向全局保全续封列表页面
@@ -159,11 +181,13 @@ def _build_litigation_sidebar_nav(permission_set, request_path=None):
             pass
     
     if preservation_items:
+        has_active = any(item.get('active') for item in preservation_items)
         nav_items.append({
             'label': '保全续封',
             'icon': '🔒',
-            'items': preservation_items,
-            'collapsed': not any(item.get('active') for item in preservation_items),
+            'children': preservation_items,  # 使用 children 而不是 items
+            'expanded': has_active,  # 如果有激活项，默认展开
+            'active': has_active,
         })
     
     # 诉讼文档分组 - 指向全局文档列表页面
@@ -204,11 +228,13 @@ def _build_litigation_sidebar_nav(permission_set, request_path=None):
             pass
     
     if document_items:
+        has_active = any(item.get('active') for item in document_items)
         nav_items.append({
             'label': '诉讼文档',
             'icon': '📄',
-            'items': document_items,
-            'collapsed': not any(item.get('active') for item in document_items),
+            'children': document_items,  # 使用 children 而不是 items
+            'expanded': has_active,  # 如果有激活项，默认展开
+            'active': has_active,
         })
     
     # 费用管理分组 - 指向全局费用列表页面
@@ -249,11 +275,13 @@ def _build_litigation_sidebar_nav(permission_set, request_path=None):
             pass
     
     if expense_items:
+        has_active = any(item.get('active') for item in expense_items)
         nav_items.append({
             'label': '费用管理',
             'icon': '💰',
-            'items': expense_items,
-            'collapsed': not any(item.get('active') for item in expense_items),
+            'children': expense_items,  # 使用 children 而不是 items
+            'expanded': has_active,  # 如果有激活项，默认展开
+            'active': has_active,
         })
     
     # 人员管理分组 - 指向全局人员列表页面
@@ -294,11 +322,13 @@ def _build_litigation_sidebar_nav(permission_set, request_path=None):
             pass
     
     if person_items:
+        has_active = any(item.get('active') for item in person_items)
         nav_items.append({
             'label': '人员管理',
             'icon': '👥',
-            'items': person_items,
-            'collapsed': not any(item.get('active') for item in person_items),
+            'children': person_items,  # 使用 children 而不是 items
+            'expanded': has_active,  # 如果有激活项，默认展开
+            'active': has_active,
         })
     
     # 时间管理分组 - 指向全局时间节点列表页面或日历视图
@@ -339,11 +369,13 @@ def _build_litigation_sidebar_nav(permission_set, request_path=None):
             pass
     
     if timeline_items:
+        has_active = any(item.get('active') for item in timeline_items)
         nav_items.append({
             'label': '时间管理',
             'icon': '📅',
-            'items': timeline_items,
-            'collapsed': not any(item.get('active') for item in timeline_items),
+            'children': timeline_items,  # 使用 children 而不是 items
+            'expanded': has_active,  # 如果有激活项，默认展开
+            'active': has_active,
         })
     
     # 案件统计
@@ -379,16 +411,41 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
         
         # 添加左侧菜单
         request_path = request.path
-        context['litigation_sidebar_nav'] = _build_litigation_sidebar_nav(permission_set, request_path)
+        context['sidebar_nav'] = _build_litigation_sidebar_nav(permission_set, request_path)
+    else:
+        context['full_top_nav'] = []
+        context['sidebar_nav'] = []
+    
+    # 为所有可能的侧边栏变量设置默认值，避免模板错误
+    # 这些变量可能在其他模块的模板中被引用
+    context.setdefault('plan_menu', [])
+    context.setdefault('module_sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('customer_menu', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
     
     return context
 
 
 # ==================== 诉讼管理首页 ====================
 
+def _format_user_display(user, default='—'):
+    """格式化用户显示名称"""
+    if not user:
+        return default
+    if hasattr(user, 'get_full_name') and user.get_full_name():
+        return user.get_full_name()
+    return user.username if hasattr(user, 'username') else str(user)
+
+
 @login_required
 def litigation_home(request):
-    """诉讼管理首页"""
+    """诉讼管理首页 - 数据展示中心"""
     permission_codes = get_user_permission_codes(request.user)
     
     # 检查权限
@@ -396,166 +453,293 @@ def litigation_home(request):
         messages.error(request, '您没有权限访问诉讼管理')
         return redirect('admin:index')
     
-    # 获取案件列表
-    cases = LitigationCase.objects.select_related(
-        'project', 'client', 'contract', 'case_manager', 'registered_by'
-    ).all()
+    now = timezone.now()
+    today = now.date()
+    this_month_start = today.replace(day=1)
+    seven_days_ago = today - timedelta(days=7)
     
-    # 权限过滤
-    if not _permission_granted('litigation_management.case.view_all', permission_codes):
-        cases = cases.filter(Q(case_manager=request.user) | Q(registered_by=request.user))
+    context = {}
     
-    # 统计信息
-    total_cases = cases.count()
-    pending_filing = cases.filter(status='pending_filing').count()
-    trial = cases.filter(status='trial').count()
-    closed = cases.filter(status='closed').count()
-    urgent = cases.filter(priority='urgent').count()
-    
-    # 检查即将到期的时间节点和保全续封
-    today = timezone.now().date()
-    # timeline_date是DateTimeField，需要转换为datetime范围
-    today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
-    today_end = timezone.make_aware(datetime.combine(today + timedelta(days=7), datetime.max.time()))
-    expiring_timelines = LitigationTimeline.objects.filter(
-        case__in=cases,
-        reminder_enabled=True,
-        timeline_date__lte=today_end,
-        timeline_date__gte=today_start,
-        status__in=['pending', 'in_progress']
-    ).count()
-    
-    expiring_seals = PreservationSeal.objects.filter(
-        case__in=cases,
-        status='active',
-        end_date__lte=today + timedelta(days=7),
-        end_date__gte=today
-    ).count()
-    
-    urgent_count = expiring_timelines + expiring_seals
-    
-    # 费用统计
-    total_expenses = LitigationExpense.objects.filter(case__in=cases).aggregate(
-        total=Sum('amount')
-    )['total'] or Decimal('0')
-    
-    # 统计卡片
-    summary_cards = []
-    
-    if _permission_granted('litigation_management.case.view', permission_codes):
-        summary_cards.append({
+    try:
+        # 获取案件列表
+        cases = LitigationCase.objects.select_related(
+            'project', 'client', 'contract', 'case_manager', 'registered_by'
+        ).all()
+        
+        # 权限过滤
+        if not _permission_granted('litigation_management.case.view_all', permission_codes):
+            cases = cases.filter(Q(case_manager=request.user) | Q(registered_by=request.user))
+        
+        # ========== 核心指标卡片 ==========
+        core_cards = []
+        
+        # 案件统计
+        total_cases = cases.count()
+        pending_filing = cases.filter(status='pending_filing').count()
+        filed = cases.filter(status='filed').count()
+        trial = cases.filter(status='trial').count()
+        judged = cases.filter(status='judged').count()
+        executing = cases.filter(status='executing').count()
+        closed = cases.filter(status='closed').count()
+        this_month_cases = cases.filter(created_at__gte=this_month_start).count()
+        
+        # 检查即将到期的时间节点和保全续封
+        today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+        today_end = timezone.make_aware(datetime.combine(today + timedelta(days=7), datetime.max.time()))
+        expiring_timelines = LitigationTimeline.objects.filter(
+            case__in=cases,
+            reminder_enabled=True,
+            timeline_date__lte=today_end,
+            timeline_date__gte=today_start,
+            status__in=['pending', 'in_progress']
+        ).count()
+        
+        expiring_seals = PreservationSeal.objects.filter(
+            case__in=cases,
+            status='active',
+            end_date__lte=today + timedelta(days=7),
+            end_date__gte=today
+        ).count()
+        
+        urgent_count = expiring_timelines + expiring_seals
+        
+        # 费用统计
+        total_expenses = LitigationExpense.objects.filter(case__in=cases).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0')
+        
+        # 卡片1：案件总数
+        core_cards.append({
             'label': '案件总数',
-            'value': total_cases,
-            'hint': '所有案件数量'
+            'icon': '⚖️',
+            'value': str(total_cases),
+            'subvalue': f'待立案 {pending_filing} | 审理中 {trial} | 已结案 {closed}',
+            'url': reverse('litigation_pages:case_list'),
+            'variant': 'secondary'
         })
-    
-    if _permission_granted('litigation_management.case.view', permission_codes):
-        summary_cards.append({
-            'label': '待立案',
-            'value': pending_filing,
-            'hint': '待立案案件'
+        
+        # 卡片2：待立案案件
+        core_cards.append({
+            'label': '待立案案件',
+            'icon': '📋',
+            'value': str(pending_filing),
+            'subvalue': f'等待立案审批',
+            'url': reverse('litigation_pages:case_list') + '?status=pending_filing',
+            'variant': 'dark' if pending_filing > 0 else 'secondary'
         })
-    
-    if _permission_granted('litigation_management.case.view', permission_codes):
-        summary_cards.append({
-            'label': '审理中',
-            'value': trial,
-            'hint': '正在审理的案件'
+        
+        # 卡片3：审理中案件
+        core_cards.append({
+            'label': '审理中案件',
+            'icon': '⚖️',
+            'value': str(trial),
+            'subvalue': f'正在审理中',
+            'url': reverse('litigation_pages:case_list') + '?status=trial',
+            'variant': 'secondary'
         })
-    
-    if _permission_granted('litigation_management.case.view', permission_codes):
-        summary_cards.append({
+        
+        # 卡片4：紧急事项
+        core_cards.append({
             'label': '紧急事项',
-            'value': urgent_count,
-            'hint': '即将到期的时间节点和保全续封'
+            'icon': '⚠️',
+            'value': str(urgent_count),
+            'subvalue': f'即将到期的时间节点 {expiring_timelines} | 保全续封 {expiring_seals}',
+            'url': reverse('litigation_pages:case_list') + '?urgent=1',
+            'variant': 'dark' if urgent_count > 0 else 'secondary'
         })
+        
+        # 卡片5：诉讼费用
+        core_cards.append({
+            'label': '诉讼费用',
+            'icon': '💰',
+            'value': f'{total_expenses:,.0f}',
+            'subvalue': f'累计费用总额',
+            'url': reverse('litigation_pages:expense_list_all'),
+            'variant': 'secondary'
+        })
+        
+        # 卡片6：已结案
+        core_cards.append({
+            'label': '已结案',
+            'icon': '✅',
+            'value': str(closed),
+            'subvalue': f'本月结案 {this_month_cases} 个',
+            'url': reverse('litigation_pages:case_list') + '?status=closed',
+            'variant': 'secondary'
+        })
+        
+        context['core_cards'] = core_cards
+        
+        # ========== 风险预警 ==========
+        risk_warnings = []
+        
+        # 即将到期的时间节点
+        upcoming_timelines = LitigationTimeline.objects.filter(
+            case__in=cases,
+            reminder_enabled=True,
+            timeline_date__lte=today_end,
+            timeline_date__gte=today_start,
+            status__in=['pending', 'in_progress']
+        ).select_related('case', 'case__case_manager')[:5]
+        
+        for timeline in upcoming_timelines:
+            days_until = (timeline.timeline_date.date() - today).days
+            manager_name = _format_user_display(timeline.case.case_manager) if timeline.case.case_manager else '未知'
+            risk_warnings.append({
+                'type': 'timeline',
+                'title': f'{timeline.case.case_number} - {timeline.timeline_name}',
+                'responsible': manager_name,
+                'days': days_until,
+                'url': reverse('litigation_pages:case_detail', args=[timeline.case.id])
+            })
+        
+        # 即将到期的保全续封
+        upcoming_seals = PreservationSeal.objects.filter(
+            case__in=cases,
+            status='active',
+            end_date__lte=today + timedelta(days=7),
+            end_date__gte=today
+        ).select_related('case', 'case__case_manager')[:5]
+        
+        for seal in upcoming_seals:
+            days_until = (seal.end_date - today).days
+            manager_name = _format_user_display(seal.case.case_manager) if seal.case.case_manager else '未知'
+            risk_warnings.append({
+                'type': 'seal',
+                'title': f'{seal.case.case_number} - {seal.get_seal_type_display()}',
+                'responsible': manager_name,
+                'days': days_until,
+                'url': reverse('litigation_pages:case_detail', args=[seal.case.id])
+            })
+        
+        context['risk_warnings'] = risk_warnings[:5]
+        context['expiring_timelines_count'] = expiring_timelines
+        context['expiring_seals_count'] = expiring_seals
+        
+        # ========== 待办事项 ==========
+        todo_items = []
+        
+        # 待立案案件
+        pending_filing_cases = cases.filter(status='pending_filing').select_related('registered_by')[:5]
+        for case in pending_filing_cases:
+            registered_by_name = _format_user_display(case.registered_by) if case.registered_by else '未知'
+            todo_items.append({
+                'type': 'filing',
+                'title': case.case_number,
+                'case_number': case.case_number,
+                'responsible': registered_by_name,
+                'url': reverse('litigation_pages:case_detail', args=[case.id])
+            })
+        
+        # 待处理的时间节点
+        pending_timelines = LitigationTimeline.objects.filter(
+            case__in=cases,
+            status='pending',
+            timeline_date__lte=today_end
+        ).select_related('case', 'case__case_manager')[:5]
+        
+        for timeline in pending_timelines:
+            manager_name = _format_user_display(timeline.case.case_manager) if timeline.case.case_manager else '未知'
+            todo_items.append({
+                'type': 'timeline',
+                'title': f'{timeline.case.case_number} - {timeline.timeline_name}',
+                'case_number': timeline.case.case_number,
+                'responsible': manager_name,
+                'url': reverse('litigation_pages:case_detail', args=[timeline.case.id])
+            })
+        
+        context['todo_items'] = todo_items[:10]
+        context['pending_approval_count'] = pending_filing + len(pending_timelines)
+        context['todo_summary_url'] = reverse('litigation_pages:case_list') + '?status=pending_filing'
+        
+        # ========== 我的工作 ==========
+        my_work = {}
+        
+        # 我负责的案件
+        my_cases = cases.filter(case_manager=request.user).order_by('-created_at')[:3]
+        my_work['my_cases'] = [{
+            'title': case.case_number,
+            'status': case.get_status_display(),
+            'url': reverse('litigation_pages:case_detail', args=[case.id])
+        } for case in my_cases]
+        my_work['my_cases_count'] = cases.filter(case_manager=request.user).count()
+        
+        # 我登记的案件
+        my_registered_cases = cases.filter(registered_by=request.user).order_by('-created_at')[:3]
+        my_work['my_registered_cases'] = [{
+            'title': case.case_number,
+            'status': case.get_status_display(),
+            'url': reverse('litigation_pages:case_detail', args=[case.id])
+        } for case in my_registered_cases]
+        my_work['my_registered_cases_count'] = cases.filter(registered_by=request.user).count()
+        
+        my_work['summary_url'] = reverse('litigation_pages:case_list')
+        
+        context['my_work'] = my_work
+        
+        # ========== 最近活动 ==========
+        recent_activities = {}
+        
+        # 最近创建的案件
+        recent_cases = cases.select_related('registered_by').order_by('-created_at')[:5]
+        recent_activities['recent_cases'] = [{
+            'title': case.case_number,
+            'creator': _format_user_display(case.registered_by),
+            'time': case.created_at,
+            'url': reverse('litigation_pages:case_detail', args=[case.id])
+        } for case in recent_cases]
+        
+        # 最近更新的案件
+        recent_updated_cases = cases.select_related('case_manager').order_by('-updated_at')[:5]
+        recent_activities['recent_updates'] = [{
+            'title': case.case_number,
+            'creator': _format_user_display(case.case_manager),
+            'time': case.updated_at,
+            'url': reverse('litigation_pages:case_detail', args=[case.id])
+        } for case in recent_updated_cases]
+        
+        context['recent_activities'] = recent_activities
+        
+    except Exception as e:
+        logger.exception('获取诉讼管理统计数据失败: %s', str(e))
+        context.setdefault('core_cards', [])
+        context.setdefault('risk_warnings', [])
+        context.setdefault('todo_items', [])
+        context.setdefault('my_work', {})
+        context.setdefault('recent_activities', {})
     
-    # 最近案件
-    recent_cases = cases.order_by('-created_at')[:5]
-    
-    # 即将到期的时间节点（timeline_date是DateTimeField，需要转换为datetime范围）
-    today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
-    today_end = timezone.make_aware(datetime.combine(today + timedelta(days=7), datetime.max.time()))
-    upcoming_timelines = LitigationTimeline.objects.filter(
-        case__in=cases,
-        reminder_enabled=True,
-        timeline_date__lte=today_end,
-        timeline_date__gte=today_start,
-        status__in=['pending', 'in_progress']
-    ).select_related('case').order_by('timeline_date')[:5]
-    
-    # 即将到期的保全续封
-    upcoming_seals = PreservationSeal.objects.filter(
-        case__in=cases,
-        status='active',
-        end_date__lte=today + timedelta(days=7),
-        end_date__gte=today
-    ).select_related('case').order_by('end_date')[:5]
-    
-    # 功能模块区域
-    sections = []
-    
-    # 快捷操作区域
-    quick_actions = []
-    
+    # 顶部操作栏
+    top_actions = []
     if _permission_granted('litigation_management.case.create', permission_codes):
         try:
-            quick_actions.append({
+            top_actions.append({
                 'label': '登记案件',
-                'icon': '➕',
-                'description': '登记新的诉讼案件',
                 'url': reverse('litigation_pages:case_create'),
-                'link_label': '登记案件 →'
+                'icon': '➕'
             })
-        except NoReverseMatch:
+        except Exception:
             pass
     
-    if quick_actions:
-        sections.append({
-            'title': '快捷操作',
-            'description': '常用的快速操作入口',
-            'items': quick_actions
-        })
+    context['top_actions'] = top_actions
     
-    # 功能模块区域
-    modules = []
-    
-    if _permission_granted('litigation_management.case.view', permission_codes):
-        try:
-            modules.append({
-                'label': '案件管理',
-                'icon': '⚖️',
-                'description': '管理诉讼案件信息',
-                'url': reverse('litigation_pages:case_list'),
-                'link_label': '进入模块 →'
-            })
-        except NoReverseMatch:
-            pass
-    
-    if modules:
-        sections.append({
-            'title': '功能模块',
-            'description': '诉讼管理的各个功能模块入口',
-            'items': modules
-        })
-    
-    context = _context(
+    # 构建上下文
+    page_context = _context(
         "诉讼管理",
         "⚖️",
-        "全面管理企业的诉讼案件，包括案件登记、诉讼流程跟踪、诉讼文档管理、诉讼费用管理等",
-        summary_cards=summary_cards,
-        sections=sections,
-        request=request
+        "数据展示中心 - 集中展示诉讼关键指标、状态与风险",
+        request=request,
     )
     
-    context.update({
-        'recent_cases': recent_cases,
-        'upcoming_timelines': upcoming_timelines,
-        'upcoming_seals': upcoming_seals,
-        'urgent_count': urgent_count,
-    })
+    # 设置侧边栏导航
+    litigation_sidebar_nav = _build_litigation_sidebar_nav(permission_codes, request.path, active_id='litigation_home')
+    page_context['sidebar_nav'] = litigation_sidebar_nav
+    page_context['sidebar_title'] = '诉讼管理'
+    page_context['sidebar_subtitle'] = 'Litigation Management'
     
-    return render(request, 'litigation_management/home.html', context)
+    # 合并所有数据
+    page_context.update(context)
+    
+    return render(request, "litigation_management/home.html", page_context)
 
 
 # ==================== 案件管理 ====================
@@ -582,16 +766,27 @@ def case_list(request):
     urgent = request.GET.get('urgent', '')
     tab = request.GET.get('tab', '')
     
-    # 获取案件列表
-    cases = LitigationCase.objects.select_related(
+    # 获取案件列表（用于统计，在筛选之前）
+    base_cases = LitigationCase.objects.select_related(
         'project', 'client', 'contract', 'case_manager', 'registered_by', 'registered_department'
     ).all()
     
     # 权限过滤：普通用户只能查看自己负责的案件
     if not _permission_granted('litigation_management.case.view_all', permission_codes):
-        cases = cases.filter(Q(case_manager=request.user) | Q(registered_by=request.user))
+        base_cases = base_cases.filter(Q(case_manager=request.user) | Q(registered_by=request.user))
+    
+    # 统计数据（在过滤之前获取，显示全部数据统计）
+    total_count = base_cases.count()
+    pending_filing_count = base_cases.filter(status='pending_filing').count()
+    filed_count = base_cases.filter(status='filed').count()
+    trial_count = base_cases.filter(status='trial').count()
+    judged_count = base_cases.filter(status='judged').count()
+    executing_count = base_cases.filter(status='executing').count()
+    closed_count = base_cases.filter(status='closed').count()
     
     # 应用筛选
+    cases = base_cases
+    
     if search:
         cases = cases.filter(
             Q(case_number__icontains=search) |
@@ -638,31 +833,26 @@ def case_list(request):
     sort_by = request.GET.get('sort', '-registration_date')
     cases = cases.order_by(sort_by)
     
-    # 分页
-    page_size = request.GET.get('page_size', '10')
-    try:
-        per_page = int(page_size)
-        if per_page not in [10, 20, 50]:
-            per_page = 10
-    except (ValueError, TypeError):
-        per_page = 10
-    paginator = Paginator(cases, per_page)
+    # 分页（每页20条）
+    paginator = Paginator(cases, 20)
     page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
+    try:
+        page_obj = paginator.get_page(page_number)
+    except:
+        page_obj = paginator.get_page(1)
     
-    # 统计信息
-    total_cases = cases.count()
+    # 统计信息（用于筛选显示）
     stats_by_type = cases.values('case_type').annotate(count=Count('id'))
     stats_by_status = cases.values('status').annotate(count=Count('id'))
     stats_by_nature = cases.values('case_nature').annotate(count=Count('id'))
     
-    summary_cards = []
+    # 生成左侧菜单
+    litigation_sidebar_nav = _build_litigation_sidebar_nav(permission_codes, request.path)
     
     context = _context(
         "案件列表",
         "📋",
         "管理所有诉讼案件",
-        summary_cards=summary_cards,
         request=request
     )
     
@@ -682,11 +872,14 @@ def case_list(request):
     
     context.update({
         'cases': page_obj,
+        'page': page_obj,  # 兼容模板中的变量名
         'search': search,
         'case_type': case_type,
         'case_nature': case_nature,
         'status': status,
+        'status_filter': status,  # 兼容模板中的变量名
         'priority': priority,
+        'priority_filter': priority,  # 兼容模板中的变量名
         'process_type': process_type,
         'preservation': preservation,
         'preservation_expiring': preservation_expiring,
@@ -700,6 +893,21 @@ def case_list(request):
         'clients': clients,
         'contracts': contracts,
         'case_managers': case_managers,
+        'total_count': total_count,
+        'pending_filing_count': pending_filing_count,
+        'filed_count': filed_count,
+        'trial_count': trial_count,
+        'judged_count': judged_count,
+        'executing_count': executing_count,
+        'closed_count': closed_count,
+        'litigation_sidebar_nav': litigation_sidebar_nav,
+        'module_sidebar_nav': litigation_sidebar_nav,  # 兼容模板中的变量名
+        'sidebar_title': '诉讼管理',  # 侧边栏标题
+        'sidebar_subtitle': 'Litigation Management',  # 侧边栏副标题
+        'case_type_choices': LitigationCase.CASE_TYPE_CHOICES,
+        'case_nature_choices': LitigationCase.CASE_NATURE_CHOICES,
+        'status_choices': LitigationCase.STATUS_CHOICES,
+        'priority_choices': LitigationCase.PRIORITY_CHOICES,
     })
     
     return render(request, 'litigation_management/case_list.html', context)

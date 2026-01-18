@@ -1,198 +1,239 @@
-{% extends "administrative_management/base.html" %}
+{% extends "shared/list_page_base.html" %}
+{% comment %}
+供应商列表页面模板 (Supplier List Template)
 
-{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+功能说明：
+- 展示供应商记录的列表页面
+- 支持按评级、状态等多维度筛选
+- 支持供应商的查看、编辑、删除操作
+- 包含复选框功能，支持批量操作
 
-{% block breadcrumb_items %}
-<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
+主要功能：
+1. 筛选功能：
+   - 评级筛选：A、B、C、D
+   - 状态筛选：全部、启用、停用
+2. 表格展示：编码、名称、联系人、联系电话、评级、累计采购额、状态、操作
+3. 复选框功能：支持全选和批量操作（继承自list_page_base.html）
+4. 操作功能：查看详情、编辑、删除
+{% endcomment %}
+{% load static %}
+
+{% block list_page_title %}供应商管理{% endblock %}
+
+{% block list_page_actions %}
+{% if can_create %}
+<a href="{% url 'admin_pages:supplier_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> 创建供应商
+</a>
+{% endif %}
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    .center-hero {
-        background: linear-gradient(135deg, rgba(20,47,91,0.95), rgba(31,62,124,0.92));
-        border-radius: 24px;
-        padding: 32px 36px;
-        color: #fff;
-        box-shadow: 0 24px 60px rgba(20, 47, 91, 0.18);
-        margin-bottom: 24px;
-    }
-    .hero-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 16px;
-        background: rgba(255,255,255,0.18);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        margin-bottom: 12px;
-    }
-    .content-card {
-        background: var(--vh-card-bg);
-        border-radius: var(--radius-xl);
-        padding: var(--spacing-lg);
-        box-shadow: var(--shadow-lg);
-        border: 1px solid rgba(20, 47, 91, 0.08);
-    }
-    .rating-badge {
-        padding: 2px 8px;
-        border-radius: 8px;
-        font-size: var(--font-size-xs);
-        font-weight: 600;
-    }
-    .rating-A { background: #d1e7dd; color: #0f5132; }
-    .rating-B { background: #cfe2ff; color: #084298; }
-    .rating-C { background: #fff3cd; color: #856404; }
-    .rating-D { background: #f8d7da; color: #842029; }
-</style>
+{% block search_placeholder %}搜索供应商名称、联系人、电话...{% endblock %}
+
+{% block reset_url %}{% url 'admin_pages:supplier_list' %}{% endblock %}
+
+<!-- 表格复选框列 -->
+{% block list_page_table_checkbox_header %}
+<th style="width: 40px;">
+    <input type="checkbox" id="selectAll" title="全选/取消全选">
+</th>
 {% endblock %}
 
-{% block content %}
-<div class="container-fluid py-4">
-    <div class="center-hero">
-        <h1 class="hero-title">{{ page_title }}</h1>
-        <p class="hero-subtitle">{{ description }}</p>
+{% block list_page_table_headers %}
+<th style="width: 10%;">供应商编码</th>
+<th style="width: 15%;">供应商名称</th>
+<th style="width: 10%;">联系人</th>
+<th style="width: 12%;">联系电话</th>
+<th style="width: 8%;">评级</th>
+<th style="width: 12%;">累计采购额</th>
+<th style="width: 8%;">状态</th>
+{% endblock %}
+
+{% block list_page_table_checkbox_cell %}
+<td>
+    <input type="checkbox" class="row-checkbox" value="{{ item.id }}" title="选择此项">
+</td>
+{% endblock %}
+
+{% block list_page_table_row_content %}
+<td><code>{{ item.code }}</code></td>
+<td>{{ item.name }}</td>
+<td>{{ item.contact_person|default:"-" }}</td>
+<td>{{ item.contact_phone|default:"-" }}</td>
+<td>
+    <span class="badge {% if item.rating == 'A' %}bg-success{% elif item.rating == 'B' %}bg-primary{% elif item.rating == 'C' %}bg-warning{% else %}bg-danger{% endif %}">
+        {{ item.get_rating_display }}
+    </span>
+</td>
+<td>¥{{ item.total_purchase_amount|floatformat:2 }}</td>
+<td>
+    {% if item.is_active %}
+        <span class="badge bg-success">启用</span>
+    {% else %}
+        <span class="badge bg-secondary">停用</span>
+    {% endif %}
+</td>
+<td>
+    <div class="list-page-table-actions">
+        <a href="{% url 'admin_pages:supplier_detail' supplier_id=item.id %}" class="action-view" title="查看">
+            <i class="bi bi-eye"></i>
+        </a>
+        <span class="action-separator">|</span>
+        <a href="{% url 'admin_pages:supplier_update' supplier_id=item.id %}" class="action-edit" title="编辑">
+            <i class="bi bi-pencil"></i>
+        </a>
+        <span class="action-separator">|</span>
+        <a href="{% url 'admin_pages:supplier_list' %}" class="action-delete" title="删除" onclick="return confirm('确定要删除供应商 {{ item.name }} 吗？此操作不可撤销。');" data-delete-url="{% url 'admin_pages:supplier_list' %}" data-item-id="{{ item.id }}">
+            <i class="bi bi-trash"></i>
+        </a>
     </div>
+</td>
+{% endblock %}
 
-    <div class="content-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="mb-0">供应商列表</h3>
-            <a href="{% url 'admin_pages:supplier_create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> 创建供应商
-            </a>
-        </div>
+{% block empty_colspan %}9{% endblock %}
 
-        <form method="get" class="mb-4">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="search" class="form-control" placeholder="搜索供应商名称、联系人、电话..." value="{{ search }}">
-                </div>
-                <div class="col-md-2">
-                    <select name="rating" class="form-select">
-                        <option value="">全部评级</option>
-                        {% for code, label in rating_choices %}
-                        <option value="{{ code }}" {% if rating == code %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="is_active" class="form-select">
-                        <option value="">全部状态</option>
-                        <option value="true" {% if is_active == 'true' %}selected{% endif %}>启用</option>
-                        <option value="false" {% if is_active == 'false' %}selected{% endif %}>停用</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="bi bi-search"></i> 搜索
-                    </button>
-                    <a href="{% url 'admin_pages:supplier_list' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-x-circle"></i> 重置
-                    </a>
-                </div>
-            </div>
-        </form>
+{% block empty_table_message %}暂无数据{% endblock %}
 
-        {% if page_obj %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>供应商编码</th>
-                        <th>供应商名称</th>
-                        <th>联系人</th>
-                        <th>联系电话</th>
-                        <th>评级</th>
-                        <th>累计采购额</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for supplier in page_obj %}
-                    <tr>
-                        <td><code>{{ supplier.code }}</code></td>
-                        <td>{{ supplier.name }}</td>
-                        <td>{{ supplier.contact_person|default:"-" }}</td>
-                        <td>{{ supplier.contact_phone|default:"-" }}</td>
-                        <td>
-                            <span class="rating-badge rating-{{ supplier.rating }}">
-                                {{ supplier.get_rating_display }}
-                            </span>
-                        </td>
-                        <td>¥{{ supplier.total_purchase_amount|floatformat:2 }}</td>
-                        <td>
-                            {% if supplier.is_active %}
-                            <span class="badge bg-success">启用</span>
-                            {% else %}
-                            <span class="badge bg-secondary">停用</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'admin_pages:supplier_detail' supplier.id %}" class="btn btn-sm btn-outline-primary" title="查看详情">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="{% url 'admin_pages:supplier_update' supplier.id %}" class="btn btn-sm btn-outline-secondary" title="编辑">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center py-5">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">🏢</div>
-                                <div class="empty-state-title">暂无数据</div>
-                                <div class="empty-state-text">
-                                    当前筛选条件下没有找到供应商，请调整筛选条件或创建新供应商。
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+{% block empty_message %}暂无数据{% endblock %}
 
-        {% if page_obj.has_other_pages %}
-        <nav aria-label="分页导航">
-            <ul class="pagination justify-content-center mt-4">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">首页</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">上一页</a>
-                </li>
-                {% endif %}
-                
-                <li class="page-item active">
-                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-                </li>
-                
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">下一页</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">末页</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-        {% else %}
-        <div class="empty-state">
-            <div class="empty-state-icon">🏢</div>
-            <div class="empty-state-title">暂无数据</div>
-            <div class="empty-state-text">
-                当前没有供应商数据，请先添加供应商。
-            </div>
-            <a href="{% url 'admin_pages:supplier_create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> 添加第一个供应商
-            </a>
-        </div>
-        {% endif %}
-    </div>
-</div>
+{% block empty_create_url %}{% url 'admin_pages:supplier_create' %}{% endblock %}
+
+{% block list_page_batch_delete_js %}
+// 批量删除功能
+document.addEventListener('DOMContentLoaded', function() {
+    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    if (batchDeleteBtn) {
+        batchDeleteBtn.addEventListener('click', function() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            if (checked.length === 0) {
+                showError('请先选择要删除的数据');
+                return;
+            }
+            
+            if (!confirm(`确定要删除选中的 ${checked.length} 个供应商吗？此操作不可撤销。`)) {
+                return;
+            }
+            
+            const ids = Array.from(checked).map(cb => cb.value);
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "admin_pages:supplier_list" %}';
+            
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfToken) {
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = csrfToken.value;
+                form.appendChild(csrfInput);
+            }
+            
+            ids.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'delete_ids';
+                input.value = id;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
+});
+{% endblock %}
+
+{% block list_page_batch_export_js %}
+// 批量导出功能
+document.addEventListener('DOMContentLoaded', function() {
+    const batchExportBtn = document.getElementById('batchExportBtn');
+    if (batchExportBtn) {
+        batchExportBtn.addEventListener('click', function() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            if (checked.length === 0) {
+                showError('请先选择要导出的数据');
+                return;
+            }
+            
+            const ids = Array.from(checked).map(cb => cb.value);
+            const format = this.dataset.exportFormat || 'excel';
+            const url = '{% url "admin_pages:supplier_list" %}?export=1&format=' + format + '&ids=' + ids.join(',');
+            window.location.href = url;
+        });
+    }
+});
+{% endblock %}
+
+{% block list_page_batch_dropdown_items %}
+<li><a class="dropdown-item" href="#" id="batchStatusActiveBtn"><i class="bi bi-check-circle"></i> 批量设为启用</a></li>
+<li><a class="dropdown-item" href="#" id="batchStatusInactiveBtn"><i class="bi bi-x-circle"></i> 批量设为停用</a></li>
+<li><hr class="dropdown-divider"></li>
+<li><a class="dropdown-item" href="#" id="batchPrintBtn"><i class="bi bi-printer"></i> 打印选中</a></li>
+{% endblock %}
+
+{% block list_page_custom_js %}
+// 批量状态更新功能
+function batchUpdateStatus(isActive) {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) {
+        showError('请先选择要操作的数据');
+        return;
+    }
+    
+    const statusLabel = isActive ? '启用' : '停用';
+    if (!confirm(`确定要将选中的 ${checked.length} 个供应商状态更新为"${statusLabel}"吗？`)) {
+        return;
+    }
+    
+    const ids = Array.from(checked).map(cb => cb.value);
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "admin_pages:supplier_list" %}';
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken.value;
+        form.appendChild(csrfInput);
+    }
+    
+    const statusInput = document.createElement('input');
+    statusInput.type = 'hidden';
+    statusInput.name = 'batch_is_active';
+    statusInput.value = isActive ? 'true' : 'false';
+    form.appendChild(statusInput);
+    
+    ids.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'update_ids';
+        input.value = id;
+        form.appendChild(input);
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// 绑定批量状态更新按钮
+document.addEventListener('DOMContentLoaded', function() {
+    const batchStatusActiveBtn = document.getElementById('batchStatusActiveBtn');
+    const batchStatusInactiveBtn = document.getElementById('batchStatusInactiveBtn');
+    
+    if (batchStatusActiveBtn) {
+        batchStatusActiveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            batchUpdateStatus(true);
+        });
+    }
+    
+    if (batchStatusInactiveBtn) {
+        batchStatusInactiveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            batchUpdateStatus(false);
+        });
+    }
+});
 {% endblock %}

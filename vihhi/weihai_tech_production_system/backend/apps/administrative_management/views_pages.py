@@ -7,7 +7,7 @@ from django.urls import reverse, NoReverseMatch
 from django.utils import timezone
 from django.forms import inlineformset_factory
 from django import forms
-from datetime import timedelta
+from datetime import timedelta, datetime
 from decimal import Decimal, InvalidOperation
 import logging
 import functools
@@ -93,11 +93,18 @@ ADMINISTRATIVE_MANAGEMENT_SIDEBAR_MENU = [
         'expanded': True,
         'children': [
             {
+                'id': 'administrative_home',
+                'label': '行政管理首页',
+                'url_name': 'admin_pages:administrative_home',
+                'permission': None,
+                'path_keywords': ['administrative_home', 'administrative'],
+            },
+            {
                 'id': 'affair_list',
                 'label': '行政事务列表',
                 'url_name': 'admin_pages:affair_list',
                 'permission': None,
-                'path_keywords': ['affair', 'administrative_home'],
+                'path_keywords': ['affair'],
             },
         ],
     },
@@ -332,7 +339,7 @@ ADMINISTRATIVE_MANAGEMENT_SIDEBAR_MENU = [
 ]
 
 
-def _build_administrative_sidebar_nav(permission_set, request_path=None):
+def _build_administrative_sidebar_nav(permission_set, request_path=None, active_id=None):
     """生成行政管理模块的左侧菜单导航（分组格式）
     
     Args:
@@ -384,11 +391,30 @@ def _build_administrative_sidebar_nav(permission_set, request_path=None):
                     
                     # 判断是否激活
                     active = False
-                    if request_path:
-                        for keyword in child.get('path_keywords', []):
-                            if keyword in request_path:
-                                active = True
-                                break
+                    if active_id:
+                        active = child.get('id') == active_id
+                    elif request_path:
+                        # 特殊处理首页
+                        if child.get('id') == 'administrative_home':
+                            try:
+                                home_url = reverse('admin_pages:administrative_home')
+                                try:
+                                    home_url2 = reverse('admin_pages:administrative_management_home')
+                                except NoReverseMatch:
+                                    home_url2 = None
+                                active = (
+                                    request_path == home_url or
+                                    (home_url2 and request_path == home_url2) or
+                                    request_path == '/administrative/' or
+                                    request_path == '/administrative/home/'
+                                )
+                            except NoReverseMatch:
+                                pass
+                        if not active:
+                            for keyword in child.get('path_keywords', []):
+                                if keyword in request_path:
+                                    active = True
+                                    break
                     
                     children.append({
                         'label': child['label'],
@@ -443,146 +469,247 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
             context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
             
             # 添加左侧菜单导航（使用统一的变量名 sidebar_menu）
-            context['sidebar_menu'] = _build_administrative_sidebar_nav(permission_set, request.path)
+            context['sidebar_nav'] = _build_administrative_sidebar_nav(permission_set, request.path)
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.exception('构建页面上下文失败: %s', str(e))
             # 发生错误时使用空列表，避免页面崩溃
             context['full_top_nav'] = []
-            context['sidebar_menu'] = []
+            context['sidebar_nav'] = []
     else:
         context['full_top_nav'] = []
-        context['sidebar_menu'] = []
+        context['sidebar_nav'] = []
+    # 为所有可能的侧边栏变量设置默认值，避免模板错误
+    # 这些变量可能在其他模块的模板中被引用
+    context.setdefault('plan_menu', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('customer_menu', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
     
     return context
 
 
-@login_required
+def _format_user_display(user, default='—'):
+    """格式化用户显示名称"""
+    if not user:
+        return default
+    if hasattr(user, 'get_full_name') and user.get_full_name():
+        return user.get_full_name()
+    return user.username if hasattr(user, 'username') else str(user)
+
+
 @login_required
 def administrative_home(request):
-    """行政管理主页"""
+    """行政管理首页 - 数据展示中心"""
     permission_codes = get_user_permission_codes(request.user)
+    now = timezone.now()
+    today = now.date()
+    this_month_start = today.replace(day=1)
+    seven_days_ago = today - timedelta(days=7)
     
-    # 统计数据
-    summary_cards = []
+    context = {}
     
     try:
         from django.db.models import Count, Q
         from .models import AdministrativeAffair, OfficeSupply, MeetingRoom, Vehicle
         
+        # ========== 核心指标卡片 ==========
+        core_cards = []
+        
         # 行政事务统计
-        if _permission_granted('administrative_management.affair.view', permission_codes):
-            total_affairs = AdministrativeAffair.objects.count()
-            pending_affairs = AdministrativeAffair.objects.filter(status='pending').count()
-            summary_cards.append({
-                'label': '行政事务',
-                'value': total_affairs,
-                'hint': f'待处理 {pending_affairs} 项'
-            })
+        all_affairs = AdministrativeAffair.objects.all()
+        total_affairs = all_affairs.count()
+        pending_affairs = all_affairs.filter(status='pending').count()
+        in_progress_affairs = all_affairs.filter(status='in_progress').count()
+        completed_affairs = all_affairs.filter(status='completed').count()
         
         # 办公用品统计
-        if _permission_granted('administrative_management.supplies.view', permission_codes):
-            total_supplies = OfficeSupply.objects.filter(is_active=True).count()
-            summary_cards.append({
-                'label': '办公用品',
-                'value': total_supplies,
-                'hint': '在用物品数量'
-            })
+        all_supplies = OfficeSupply.objects.filter(is_active=True)
+        total_supplies = all_supplies.count()
+        low_stock_supplies = all_supplies.filter(current_stock__lte=F('min_stock')).count()
         
         # 会议室统计
-        if _permission_granted('administrative_management.meeting_room.view', permission_codes):
-            total_rooms = MeetingRoom.objects.filter(is_active=True).count()
-            summary_cards.append({
-                'label': '会议室',
-                'value': total_rooms,
-                'hint': '可用会议室'
-            })
+        all_rooms = MeetingRoom.objects.filter(is_active=True)
+        total_rooms = all_rooms.count()
+        available_rooms = all_rooms.filter(status='available').count()
         
         # 车辆统计
-        if _permission_granted('administrative_management.vehicle.view', permission_codes):
-            total_vehicles = Vehicle.objects.filter(is_active=True).count()
-            summary_cards.append({
-                'label': '车辆',
-                'value': total_vehicles,
-                'hint': '在用车辆'
+        all_vehicles = Vehicle.objects.filter(is_active=True)
+        total_vehicles = all_vehicles.count()
+        available_vehicles = all_vehicles.filter(status='available').count()
+        
+        # 卡片1：行政事务
+        core_cards.append({
+            'label': '行政事务',
+            'icon': '📋',
+            'value': str(total_affairs),
+            'subvalue': f'待处理 {pending_affairs} | 进行中 {in_progress_affairs} | 已完成 {completed_affairs}',
+            'url': reverse('admin_pages:affair_list'),
+            'variant': 'dark' if pending_affairs > 0 else 'secondary'
+        })
+        
+        # 卡片2：办公用品
+        core_cards.append({
+            'label': '办公用品',
+            'icon': '📦',
+            'value': str(total_supplies),
+            'subvalue': f'低库存 {low_stock_supplies} 种',
+            'url': reverse('admin_pages:supplies_management'),
+            'variant': 'dark' if low_stock_supplies > 0 else 'secondary'
+        })
+        
+        # 卡片3：会议室
+        core_cards.append({
+            'label': '会议室',
+            'icon': '🏢',
+            'value': str(total_rooms),
+            'subvalue': f'可用 {available_rooms} 间',
+            'url': reverse('admin_pages:meeting_room_management'),
+            'variant': 'secondary'
+        })
+        
+        # 卡片4：车辆
+        core_cards.append({
+            'label': '车辆',
+            'icon': '🚗',
+            'value': str(total_vehicles),
+            'subvalue': f'可用 {available_vehicles} 辆',
+            'url': reverse('admin_pages:vehicle_management'),
+            'variant': 'secondary'
+        })
+        
+        context['core_cards'] = core_cards
+        
+        # ========== 风险预警 ==========
+        risk_warnings = []
+        
+        # 待处理事务（超过7天）
+        stale_affairs = all_affairs.filter(
+            status='pending',
+            created_time__lt=timezone.make_aware(datetime.combine(seven_days_ago, datetime.min.time()))
+        ).select_related('responsible_user')[:5]
+        
+        for affair in stale_affairs:
+            days_since_create = (today - affair.created_time.date()).days
+            responsible_name = _format_user_display(affair.responsible_user) if affair.responsible_user else '未知'
+            risk_warnings.append({
+                'type': 'affair',
+                'title': affair.title,
+                'responsible': responsible_name,
+                'days': days_since_create,
+                'url': reverse('admin_pages:affair_detail', args=[affair.id])
             })
+        
+        # 低库存办公用品
+        low_stock_list = all_supplies.filter(current_stock__lte=F('min_stock'))[:5]
+        for supply in low_stock_list:
+            risk_warnings.append({
+                'type': 'supply',
+                'title': f'{supply.name} - 库存不足',
+                'responsible': '库存管理员',
+                'days': 0,
+                'url': reverse('admin_pages:supply_detail', args=[supply.id])
+            })
+        
+        context['risk_warnings'] = risk_warnings[:5]
+        context['stale_affairs_count'] = stale_affairs.count()
+        context['low_stock_count'] = low_stock_supplies
+        
+        # ========== 待办事项 ==========
+        todo_items = []
+        
+        # 待处理事务
+        pending_affair_list = all_affairs.filter(status='pending').select_related('responsible_user')[:5]
+        for affair in pending_affair_list:
+            responsible_name = _format_user_display(affair.responsible_user) if affair.responsible_user else '未知'
+            todo_items.append({
+                'type': 'affair',
+                'title': affair.title,
+                'affair_number': affair.affair_number,
+                'responsible': responsible_name,
+                'url': reverse('admin_pages:affair_detail', args=[affair.id])
+            })
+        
+        context['todo_items'] = todo_items[:10]
+        context['pending_approval_count'] = pending_affairs
+        context['todo_summary_url'] = reverse('admin_pages:affair_list') + '?status=pending'
+        
+        # ========== 我的工作 ==========
+        my_work = {}
+        
+        # 我负责的事务
+        my_affairs = all_affairs.filter(responsible_user=request.user).order_by('-created_time')[:3]
+        my_work['my_affairs'] = [{
+            'title': affair.title,
+            'status': affair.get_status_display(),
+            'url': reverse('admin_pages:affair_detail', args=[affair.id])
+        } for affair in my_affairs]
+        my_work['my_affairs_count'] = all_affairs.filter(responsible_user=request.user).count()
+        
+        my_work['summary_url'] = reverse('admin_pages:affair_list')
+        
+        context['my_work'] = my_work
+        
+        # ========== 最近活动 ==========
+        recent_activities = {}
+        
+        # 最近创建的事务
+        recent_affairs = all_affairs.select_related('responsible_user').order_by('-created_time')[:5]
+        recent_activities['recent_affairs'] = [{
+            'title': affair.title,
+            'creator': _format_user_display(affair.responsible_user),
+            'time': affair.created_time,
+            'url': reverse('admin_pages:affair_detail', args=[affair.id])
+        } for affair in recent_affairs]
+        
+        context['recent_activities'] = recent_activities
+        
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.exception('获取统计数据失败: %s', str(e))
+        logger.exception('获取行政管理统计数据失败: %s', str(e))
+        context.setdefault('core_cards', [])
+        context.setdefault('risk_warnings', [])
+        context.setdefault('todo_items', [])
+        context.setdefault('my_work', {})
+        context.setdefault('recent_activities', {})
     
-    # 功能模块区域
-    sections = []
-    
-    # 快捷操作区域
-    quick_actions = []
-    
-    from django.urls import reverse, NoReverseMatch
-    
+    # 顶部操作栏
+    top_actions = []
     if _permission_granted('administrative_management.affair.create', permission_codes):
         try:
-            quick_actions.append({
+            top_actions.append({
                 'label': '创建事务',
-                'icon': '➕',
-                'description': '创建新的行政事务',
                 'url': reverse('admin_pages:affair_create'),
-                'link_label': '创建事务 →'
+                'icon': '➕'
             })
-        except NoReverseMatch:
+        except Exception:
             pass
     
-    if quick_actions:
-        sections.append({
-            'title': '快捷操作',
-            'description': '常用的快速操作入口',
-            'items': quick_actions
-        })
+    context['top_actions'] = top_actions
     
-    # 功能模块区域
-    modules = []
-    
-    if _permission_granted('administrative_management.affair.view', permission_codes):
-        try:
-            modules.append({
-                'label': '行政事务',
-                'icon': '📋',
-                'description': '管理日常行政事务',
-                'url': reverse('admin_pages:affair_list'),
-                'link_label': '进入模块 →'
-            })
-        except NoReverseMatch:
-            pass
-    
-    if _permission_granted('administrative_management.supplies.view', permission_codes):
-        try:
-            modules.append({
-                'label': '办公用品',
-                'icon': '📦',
-                'description': '管理办公用品库存',
-                'url': reverse('admin_pages:supplies_management'),
-                'link_label': '进入模块 →'
-            })
-        except NoReverseMatch:
-            pass
-    
-    if modules:
-        sections.append({
-            'title': '功能模块',
-            'description': '行政管理的各个功能模块入口',
-            'items': modules
-        })
-    
-    context = _context(
+    # 构建上下文
+    page_context = _context(
         "行政管理",
-        "📋",
-        "管理日常行政事务，包括事务创建、分配、处理、跟踪等全流程管理",
-        summary_cards=summary_cards,
-        sections=sections,
+        "🏢",
+        "数据展示中心 - 集中展示行政关键指标、状态与风险",
         request=request,
     )
     
-    return render(request, "administrative_management/home.html", context)
+    # 设置侧边栏导航
+    administrative_sidebar_nav = _build_administrative_sidebar_nav(permission_codes, request.path, active_id='administrative_home')
+    page_context['sidebar_nav'] = administrative_sidebar_nav
+    page_context['sidebar_title'] = '行政管理'
+    page_context['sidebar_subtitle'] = 'Administrative Management'
+    
+    # 合并所有数据
+    page_context.update(context)
+    
+    return render(request, "administrative_management/home.html", page_context)
 
 
 @login_required
@@ -599,82 +726,86 @@ def affair_list(request):
         priority = request.GET.get('priority', '')
         responsible_user_id = request.GET.get('responsible_user_id', '')
         
-        # 获取事务列表
-        try:
-            affairs = AdministrativeAffair.objects.select_related(
-                'responsible_user', 'created_by'
-            ).prefetch_related('participants').order_by('-created_time')
-            
-            # 如果是普通用户，只显示自己负责或参与的
-            permission_codes = get_user_permission_codes(request.user)
-            if not _permission_granted('administrative_management.affair.view_all', permission_codes):
-                affairs = affairs.filter(
-                    Q(responsible_user=request.user) |
-                    Q(participants=request.user) |
-                    Q(created_by=request.user)
-                ).distinct()
-            
-            # 应用筛选条件
-            if search:
-                affairs = affairs.filter(
-                    Q(affair_number__icontains=search) |
-                    Q(title__icontains=search) |
-                    Q(content__icontains=search)
-                )
-            if affair_type:
-                affairs = affairs.filter(affair_type=affair_type)
-            if status:
-                affairs = affairs.filter(status=status)
-            if priority:
-                affairs = affairs.filter(priority=priority)
-            if responsible_user_id:
-                affairs = affairs.filter(responsible_user_id=responsible_user_id)
-            
-            # 分页
-            page_size = request.GET.get('page_size', '10')
-            try:
-                per_page = int(page_size)
-                if per_page not in [10, 20, 50]:
-                    per_page = 10
-            except (ValueError, TypeError):
-                per_page = 10
-            paginator = Paginator(affairs, per_page)
-            page_number = request.GET.get('page', 1)
-            page_obj = paginator.get_page(page_number)
-        except Exception as e:
-            logger.exception('获取行政事务列表失败: %s', str(e))
-            page_obj = None
+        # 获取事务列表（用于统计，在筛选之前）
+        base_affairs = AdministrativeAffair.objects.select_related(
+            'responsible_user', 'created_by'
+        ).prefetch_related('participants').all()
         
-        # 统计信息
+        # 如果是普通用户，只显示自己负责或参与的
+        permission_codes = get_user_permission_codes(request.user)
+        if not _permission_granted('administrative_management.affair.view_all', permission_codes):
+            base_affairs = base_affairs.filter(
+                Q(responsible_user=request.user) |
+                Q(participants=request.user) |
+                Q(created_by=request.user)
+            ).distinct()
+        
+        # 统计数据（在过滤之前获取，显示全部数据统计）
+        total_count = base_affairs.count()
+        pending_count = base_affairs.filter(status='pending').count()
+        in_progress_count = base_affairs.filter(status='in_progress').count()
+        completed_count = base_affairs.filter(status='completed').count()
+        cancelled_count = base_affairs.filter(status='cancelled').count()
+        
+        # 应用筛选条件
+        affairs = base_affairs.order_by('-created_time')
+        
+        if search:
+            affairs = affairs.filter(
+                Q(affair_number__icontains=search) |
+                Q(title__icontains=search) |
+                Q(content__icontains=search)
+            )
+        if affair_type:
+            affairs = affairs.filter(affair_type=affair_type)
+        if status:
+            affairs = affairs.filter(status=status)
+        if priority:
+            affairs = affairs.filter(priority=priority)
+        if responsible_user_id:
+            affairs = affairs.filter(responsible_user_id=responsible_user_id)
+        
+        # 分页（每页20条）
+        paginator = Paginator(affairs, 20)
+        page_number = request.GET.get('page', 1)
         try:
-            total_affairs = AdministrativeAffair.objects.count()
-            pending_count = AdministrativeAffair.objects.filter(status='pending').count()
-            in_progress_count = AdministrativeAffair.objects.filter(status='in_progress').count()
-            completed_count = AdministrativeAffair.objects.filter(status='completed').count()
-            
-            summary_cards = []
-        except Exception as e:
-            logger.exception('获取统计信息失败: %s', str(e))
-            summary_cards = []
+            page_obj = paginator.get_page(page_number)
+        except:
+            page_obj = paginator.get_page(1)
+        
+        # 生成左侧菜单
+        sidebar_menu = _build_administrative_sidebar_nav(permission_codes, request.path)
         
         context = _context(
             "行政事务管理",
             "📋",
             "管理日常行政事务，包括事务创建、分配、处理、跟踪等全流程管理。",
-            summary_cards=summary_cards,
             request=request,
             use_administrative_nav=True
         )
         context.update({
             'page_obj': page_obj,
+            'page': page_obj,  # 兼容模板中的变量名
+            'affairs': page_obj.object_list if page_obj else [],
             'search': search,
             'affair_type': affair_type,
             'status': status,
+            'status_filter': status,  # 兼容模板中的变量名
             'priority': priority,
+            'priority_filter': priority,  # 兼容模板中的变量名
             'responsible_user_id': responsible_user_id,
             'affair_type_choices': AdministrativeAffair.AFFAIR_TYPE_CHOICES,
             'status_choices': AdministrativeAffair.STATUS_CHOICES,
             'priority_choices': AdministrativeAffair.PRIORITY_CHOICES,
+            'total_count': total_count,
+            'pending_count': pending_count,
+            'in_progress_count': in_progress_count,
+            'completed_count': completed_count,
+            'cancelled_count': cancelled_count,
+            'sidebar_menu': sidebar_menu,
+            'module_sidebar_nav': sidebar_menu,  # 兼容模板中的变量名
+            'sidebar_title': '行政管理',  # 侧边栏标题
+            'sidebar_subtitle': 'Administrative Management',  # 侧边栏副标题
         })
         return render(request, "administrative_management/affair_list.html", context)
     except Exception as e:

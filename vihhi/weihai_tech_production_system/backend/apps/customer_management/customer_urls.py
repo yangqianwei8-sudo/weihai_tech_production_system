@@ -24,6 +24,12 @@ urlpatterns = [
     path("customers/public-sea/", views_pages.customer_public_sea, name="customer_public_sea"),
     path("customers/public-sea/<int:client_id>/claim/", views_pages.customer_public_sea_claim, name="customer_public_sea_claim"),
     
+    # 客户线索管理
+    path("customer-leads/create/", views_pages.customer_lead_create, name="customer_lead_create"),
+    
+    # 客户备案管理
+    path("customer-filings/create/", views_pages.customer_filing_create, name="customer_filing_create"),
+    
     # 人员关系管理
     path("contacts/", views_pages.contact_list, name="contact_list"),
     path("contacts/create/", views_pages.contact_create, name="contact_create"),
@@ -31,7 +37,6 @@ urlpatterns = [
     path("contacts/<int:contact_id>/edit/", views_pages.contact_edit, name="contact_edit"),
     path("contacts/<int:contact_id>/delete/", views_pages.contact_delete, name="contact_delete"),
     path("contacts/relationship-mining/", views_pages.contact_relationship_mining, name="contact_relationship_mining"),
-    path("contacts/tracking-reminders/", views_pages.contact_tracking_reminders, name="contact_tracking_reminders"),
     path("contacts/info-change/create/", views_pages.contact_info_change_create, name="contact_info_change_create"),
     
     # 跟进与拜访管理（放在客户管理模块下）
@@ -44,10 +49,14 @@ urlpatterns = [
     path("visit-plan/flow/", views_pages.visit_plan_flow, name="visit_plan_flow"),
     path("visit-plan/flow/<int:plan_id>/", views_pages.visit_plan_flow, name="visit_plan_flow_edit"),
     path("visit-plan/create/", views_pages.visit_plan_create, name="visit_plan_create"),
+    path("first-visit/create/", views_pages.first_visit_create, name="first_visit_create"),
     path("visit-plan/<int:plan_id>/", views_pages.visit_plan_detail, name="visit_plan_detail"),
     path("visit-plan/<int:plan_id>/checklist/", views_pages.visit_plan_checklist, name="visit_plan_checklist"),
     path("visit-plan/<int:plan_id>/checkin/", views_pages.visit_plan_checkin, name="visit_plan_checkin"),
     path("visit-plan/<int:plan_id>/review/", views_pages.visit_plan_review, name="visit_plan_review"),
+    # 独立的打卡和复盘选择页面
+    path("visit-checkin/select/", views_pages.visit_checkin_select, name="visit_checkin_select"),
+    path("visit-review/select/", views_pages.visit_review_select, name="visit_review_select"),
     
     # 关系升级管理
     path("customer-relationship-upgrade/", views_pages.customer_relationship_upgrade, name="customer_relationship_upgrade"),

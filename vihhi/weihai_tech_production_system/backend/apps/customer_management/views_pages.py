@@ -20,7 +20,8 @@ from backend.apps.customer_management.models import (
     BusinessOpportunity,
     OpportunityFollowUp,
     OpportunityQuotation,
-    # CustomerLead, LeadFollowUp 已删除（按《客户管理详细设计方案 v1.12》）
+    CustomerLead,
+    CustomerFiling,
     CustomerRelationship,
     CustomerRelationshipUpgrade,
     BusinessExpenseApplication,
@@ -130,6 +131,42 @@ CUSTOMER_MANAGEMENT_MENU = [
         'permission': 'customer_management.client.view',
     },
     {
+        'id': 'lead_and_public_sea',
+        'label': '线索与公海',
+        'icon': '🔍',
+        'permission': 'customer_management.client.view',
+        'children': [
+            {
+                'id': 'customer_lead_create',
+                'label': '创建客户线索',
+                'icon': '📝',
+                'url_name': 'customer_pages:customer_lead_create',
+                'permission': 'customer_management.client.create',
+            },
+            {
+                'id': 'customer_filing_create',
+                'label': '创建新客户备案',
+                'icon': '📋',
+                'url_name': 'customer_pages:customer_filing_create',
+                'permission': 'customer_management.client.create',
+            },
+            {
+                'id': 'first_visit_create',
+                'label': '创建首次拜访',
+                'icon': '📅',
+                'url_name': 'customer_pages:first_visit_create',
+                'permission': 'customer_management.relationship.edit',
+            },
+            {
+                'id': 'customer_public_sea',
+                'label': '客户公海',
+                'icon': '🌊',
+                'url_name': 'customer_pages:customer_public_sea',
+                'permission': 'customer_management.public_sea.view',
+            },
+        ]
+    },
+    {
         'id': 'customer_info',
         'label': '客户信息管理',
         'icon': '👥',
@@ -143,17 +180,17 @@ CUSTOMER_MANAGEMENT_MENU = [
                 'permission': 'customer_management.client.view',  # 自动根据权限级别显示
             },
             {
-                'id': 'customer_public_sea',
-                'label': '客户公海',
-                'icon': '🌊',
-                'url_name': 'customer_pages:customer_public_sea',
-                'permission': 'customer_management.public_sea.view',
+                'id': 'customer_create',
+                'label': '创建新客户',
+                'icon': '➕',
+                'url_name': 'business_pages:customer_create',
+                'permission': 'customer_management.client.create',
             },
         ]
     },
     {
         'id': 'customer_contact',
-        'label': '人员关系管理',
+        'label': '人员信息管理',
         'icon': '👤',
         'permission': 'customer_management.contact.view',
         'children': [
@@ -165,31 +202,53 @@ CUSTOMER_MANAGEMENT_MENU = [
                 'permission': 'customer_management.contact.view',
             },
             {
-                'id': 'contact_relationship_mining',
-                'label': '关系挖掘',
-                'icon': '🔍',
-                'url_name': 'customer_pages:contact_relationship_mining',
-                'permission': 'customer_management.contact.view',
+                'id': 'contact_create',
+                'label': '创建联系人',
+                'icon': '➕',
+                'url_name': 'customer_pages:contact_create',
+                'permission': 'customer_management.contact.create',
             },
+        ]
+    },
+    {
+        'id': 'contact_tracking_visit',
+        'label': '人员跟踪拜访',
+        'icon': '🚶',
+        'permission': 'customer_management.relationship.view',
+        'children': [
             {
                 'id': 'visit_list',
-                'label': '客户拜访',
+                'label': '拜访列表',
                 'icon': '🚪',
                 'url_name': 'customer_pages:customer_visit',
                 'permission': 'customer_management.relationship.view',
             },
             {
-                'id': 'contact_tracking_reminders',
-                'label': '逾期拜访提醒',
-                'icon': '🔔',
-                'url_name': 'customer_pages:contact_tracking_reminders',
-                'permission': 'customer_management.contact.view',
+                'id': 'visit_create',
+                'label': '创建拜访计划',
+                'icon': '➕',
+                'url_name': 'customer_pages:visit_plan_create',
+                'permission': 'customer_management.relationship.edit',
+            },
+            {
+                'id': 'visit_checkin',
+                'label': '创建拜访打卡',
+                'icon': '📍',
+                'url_name': 'customer_pages:visit_checkin_select',
+                'permission': 'customer_management.relationship.edit',
+            },
+            {
+                'id': 'visit_review',
+                'label': '拜访结果复盘',
+                'icon': '📊',
+                'url_name': 'customer_pages:visit_review_select',
+                'permission': 'customer_management.relationship.edit',
             },
         ]
     },
     {
         'id': 'relationship_upgrade',
-        'label': '关系升级管理',
+        'label': '人员关系管理',
         'icon': '📈',
         'permission': 'customer_management.relationship.view',
         'children': [
@@ -213,6 +272,13 @@ CUSTOMER_MANAGEMENT_MENU = [
                 'icon': '🤝',
                 'url_name': 'customer_pages:customer_relationship_collaboration',
                 'permission': 'customer_management.relationship.view',
+            },
+            {
+                'id': 'contact_relationship_mining',
+                'label': '关系挖掘',
+                'icon': '🔍',
+                'url_name': 'customer_pages:contact_relationship_mining',
+                'permission': 'customer_management.contact.view',
             },
         ]
     },
@@ -964,14 +1030,14 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
             elif request.path.endswith('/opportunities/') or request.path.endswith('/opportunities') or '/opportunities/list' in request.path:
                 active_menu_id = 'opportunity_list'
             # 使用统一的侧边栏菜单格式
-            context['module_sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
-            # 保持向后兼容
-            context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id=active_menu_id)
+            context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
+            context['sidebar_title'] = '商机管理'
+            context['sidebar_subtitle'] = 'Opportunity Management'
         # 如果是业务委托书或合同管理相关页面，生成合同管理菜单（支持新路径 /contracts/ 和旧路径 /business/contracts）
         elif request.path and ('/contracts/' in request.path or '/authorization-letters' in request.path or '/authorization-letter-templates' in request.path or '/business/authorization-letters' in request.path or '/business/authorization-letter-templates' in request.path or '/business/contracts' in request.path):
             # 设置侧边栏标题
-            context['sidebar_module_title'] = '合同管理'
-            context['sidebar_module_subtitle'] = 'Contract Management'
+            context['sidebar_title'] = '合同管理'
+            context['sidebar_subtitle'] = 'Contract Management'
             # 根据路径确定激活的菜单项
             if active_menu_id is None:
                 if '/contracts/home' in request.path or request.path == '/contracts/' or request.path == '/contracts':
@@ -1004,35 +1070,28 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
                 elif '/authorization-letter-templates' in request.path:
                     active_menu_id = 'authorization_letter_template_list'
             # 使用统一的侧边栏菜单格式
-            context['module_sidebar_nav'] = _build_contract_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
-            # 保持向后兼容
-            context['customer_menu'] = _build_contract_management_menu(permission_set, active_id=active_menu_id)
+            context['sidebar_nav'] = _build_contract_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
         # 如果是客户管理相关页面，生成客户管理菜单（支持新路径 /customers/ 和旧路径 /business/customers）
         elif request.path and ('/customers/' in request.path or '/contacts/' in request.path or '/visit-plan/' in request.path or '/customer-visit/' in request.path or '/customer-relationship-' in request.path or '/business-expense-application' in request.path or '/business/customers' in request.path):
             # 设置侧边栏标题
-            context['sidebar_module_title'] = '客户管理'
-            context['sidebar_module_subtitle'] = 'Customer Management'
+            context['sidebar_title'] = '客户管理'
+            context['sidebar_subtitle'] = 'Customer Management'
             # 根据路径确定激活的菜单项
             if active_menu_id is None:
                 if '/customers/home' in request.path or (request.path == '/customers/' or request.path == '/customers'):
                     active_menu_id = 'customer_home'
             # 使用统一的侧边栏菜单格式
-            context['module_sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
-            # 保持向后兼容
-            context['customer_menu'] = _build_customer_management_menu(permission_set, active_id=active_menu_id)
+            context['sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_menu_id)
         # 如果是客户管理首页（/customers/ 或 /business/），生成客户管理菜单
         elif request.path == '/customers/' or request.path == '/customers' or request.path == '/business/' or request.path == '/business':
             # 设置侧边栏标题
-            context['sidebar_module_title'] = '客户管理'
-            context['sidebar_module_subtitle'] = 'Customer Management'
+            context['sidebar_title'] = '客户管理'
+            context['sidebar_subtitle'] = 'Customer Management'
             # 使用统一的侧边栏菜单格式
-            context['module_sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id='customer_home')
-            # 保持向后兼容
-            context['customer_menu'] = _build_customer_management_menu(permission_set, active_id=None)
+            context['sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id='customer_home')
     else:
         context['full_top_nav'] = []
-        context['module_sidebar_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     
     return context
 
@@ -1273,7 +1332,7 @@ def customer_management_home(request):
         if is_admin or _permission_granted('customer_management.client.view', permission_set):
             try:
                 modules.append({
-                    'label': '人员关系管理',
+                    'label': '人员信息管理',
                     'icon': '👤',
                     'description': '管理客户联系人信息，维护人员关系',
                     'url': reverse('business_pages:contact_list'),
@@ -1282,7 +1341,7 @@ def customer_management_home(request):
             except NoReverseMatch:
                 pass
         
-        if is_admin or _permission_granted('customer_success.opportunity.view', permission_set):
+        if is_admin or _permission_granted('customer_management.opportunity.view', permission_set):
             try:
                 modules.append({
                     'label': '商机管理',
@@ -1320,30 +1379,6 @@ def customer_management_home(request):
             from datetime import datetime, timedelta
             today = timezone.now().date()
             
-            # 逾期拜访提醒
-            if is_admin or _permission_granted('customer_management.relationship.view', permission_set):
-                try:
-                    # VisitPlan使用plan_date字段，status字段可能有不同的值
-                    overdue_visits = VisitPlan.objects.filter(
-                        plan_date__date__lt=today,
-                        status__in=['planned', 'in_progress']
-                    ).select_related('client').order_by('plan_date')[:5]
-                    
-                    for visit in overdue_visits:
-                        days_overdue = (today - visit.plan_date.date()).days
-                        client_name = visit.client.name if visit.client else "未知客户"
-                        plan_title = visit.plan_title or "拜访计划"
-                        recent_notices.append({
-                            'type': 'warning',
-                            'icon': '⚠️',
-                            'title': f'逾期拜访提醒',
-                            'content': f'{client_name} - {plan_title}，已逾期 {days_overdue} 天',
-                            'date': visit.plan_date.date() if hasattr(visit.plan_date, 'date') else visit.plan_date,
-                        })
-                except Exception as e:
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.warning(f'获取逾期拜访提醒失败: {str(e)}')
             
             # 最新反馈内容摘要（通过CustomerRelationship获取）
             if is_admin or _permission_granted('customer_management.relationship.view', permission_set):
@@ -1489,12 +1524,12 @@ def customer_management_home(request):
             active_id = 'customer_home'
             if '/customers/home' in request.path or request.path == '/customers/' or request.path == '/customers':
                 active_id = 'customer_home'
-            context['module_sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_id)
-            # 保持向后兼容
-            context['customer_menu'] = _build_customer_management_menu(permission_set, active_id=active_id)
+            context['sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_id)
+            context['sidebar_title'] = '客户管理'
+            context['sidebar_subtitle'] = 'Customer Management'
         else:
             context['full_top_nav'] = []
-            context['module_sidebar_nav'] = []
+            context['sidebar_nav'] = []
         
         return render(request, "customer_management/home.html", context)
     except Exception as e:
@@ -1520,13 +1555,12 @@ def customer_management_home(request):
                 active_id = 'customer_home'
                 if '/customers/home' in request.path or request.path == '/customers/' or request.path == '/customers':
                     active_id = 'customer_home'
-                context['module_sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_id)
-                # 保持向后兼容
-                context['customer_menu'] = _build_customer_management_menu(permission_set, active_id=active_id)
+                context['sidebar_nav'] = _build_customer_management_sidebar_nav(permission_set, request.path, active_id=active_id)
+                context['sidebar_title'] = '客户管理'
+                context['sidebar_subtitle'] = 'Customer Management'
             else:
                 context['full_top_nav'] = []
-                context['module_sidebar_nav'] = []
-                context['customer_menu'] = []
+                context['sidebar_nav'] = []
             
             return render(request, "customer_management/home.html", context)
         except Exception as inner_e:
@@ -1571,9 +1605,6 @@ def customer_list(request):
     from django.core.paginator import Paginator
     from backend.apps.customer_management.models import Client
     
-    # 获取标签页参数
-    tab = request.GET.get('tab', 'all')
-    
     # 获取筛选参数
     search = request.GET.get('search', '').strip()
     search_field = request.GET.get('search_field', 'name')  # 搜索字段
@@ -1613,46 +1644,8 @@ def customer_list(request):
     try:
         clients = Client.objects.select_related('created_by', 'responsible_user', 'responsible_user__department').prefetch_related('contacts')
         
-        # 根据权限过滤客户列表（在标签页筛选之前应用）
+        # 根据权限过滤客户列表
         clients = _filter_clients_by_permission(clients, request.user, permission_set)
-        
-        # 根据标签页应用不同的筛选逻辑
-        if tab == 'my_responsible':
-            # 我负责的
-            clients = clients.filter(responsible_user=request.user)
-        elif tab == 'subordinate_responsible':
-            # 下属负责的 - 需要获取当前用户的下属
-            from backend.apps.system_management.models import User
-            # 通过部门关系查找下属：如果用户是部门负责人，则部门成员是下属
-            subordinates = User.objects.none()
-            if request.user.department and request.user.department.leader == request.user:
-                # 用户是部门负责人，获取部门所有成员（不包括自己）
-                subordinates = User.objects.filter(
-                    department=request.user.department,
-                    is_active=True
-                ).exclude(id=request.user.id)
-            clients = clients.filter(responsible_user__in=subordinates)
-        elif tab == 'my_collaboration':
-            # 我协作的 - 需要根据协作关系筛选（这里需要根据实际模型调整）
-            # 暂时使用联系人关系作为协作关系
-            clients = clients.filter(contacts__user=request.user).distinct()
-        elif tab == 'subordinate_collaboration':
-            # 下属协作的
-            from backend.apps.system_management.models import User
-            # 通过部门关系查找下属：如果用户是部门负责人，则部门成员是下属
-            subordinates = User.objects.none()
-            if request.user.department and request.user.department.leader == request.user:
-                # 用户是部门负责人，获取部门所有成员（不包括自己）
-                subordinates = User.objects.filter(
-                    department=request.user.department,
-                    is_active=True
-                ).exclude(id=request.user.id)
-            clients = clients.filter(contacts__user__in=subordinates).distinct()
-        elif tab == 'pending_approval':
-            # 待审批的 - 需要根据审批状态筛选（这里需要根据实际审批流程调整）
-            # 暂时筛选没有负责人的客户作为待审批
-            clients = clients.filter(responsible_user__isnull=True)
-        # tab == 'all' 时不做额外筛选
         
         # 应用搜索条件
         if search:
@@ -1860,7 +1853,7 @@ def customer_list(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='customer_list'
     )
@@ -1890,7 +1883,6 @@ def customer_list(request):
     
     context.update({
         'page_obj': page_obj,
-        'tab': tab,
         'search': search,
         'search_field': search_field,
         'client_level': client_level,
@@ -1962,7 +1954,7 @@ def customer_create(request):
                         request=request,
                     )
                     permission_set = get_user_permission_codes(request.user)
-                    context['customer_menu'] = _build_customer_management_menu(
+                    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
                         permission_set, 
                         active_id='customer_create'
                     )
@@ -1971,6 +1963,9 @@ def customer_create(request):
                         'client_type_choices': [(ct.id, ct.name) for ct in ClientType.objects.filter(is_active=True).order_by('display_order', 'name')],
                         'source_choices': Client.SOURCE_CHOICES,
                     })
+                    context['cancel_url_name'] = 'business_pages:customer_list'
+                    context['form_page_subtitle_text'] = '请填写客户基本信息'
+                    context['create_url_name'] = 'business_pages:customer_create'
                     return render(request, "customer_management/customer_form.html", context)
             
             # 最终检查：确保 client_type 有值（强制设置，避免数据库错误）
@@ -1994,7 +1989,7 @@ def customer_create(request):
                         request=request,
                     )
                     permission_set = get_user_permission_codes(request.user)
-                    context['customer_menu'] = _build_customer_management_menu(
+                    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
                         permission_set, 
                         active_id='customer_create'
                     )
@@ -2003,6 +1998,9 @@ def customer_create(request):
                         'client_type_choices': [(ct.id, ct.name) for ct in ClientType.objects.filter(is_active=True).order_by('display_order', 'name')],
                         'source_choices': Client.SOURCE_CHOICES,
                     })
+                    context['cancel_url_name'] = 'business_pages:customer_list'
+                    context['form_page_subtitle_text'] = '请填写客户基本信息'
+                    context['create_url_name'] = 'business_pages:customer_create'
                     return render(request, "customer_management/customer_form.html", context)
             
             # 最后一次检查：确保 client_type_id 不为 None
@@ -2074,7 +2072,7 @@ def customer_create(request):
                         request=request,
                     )
                     permission_set = get_user_permission_codes(request.user)
-                    context['customer_menu'] = _build_customer_management_menu(
+                    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
                         permission_set, 
                         active_id='customer_create'
                     )
@@ -2083,6 +2081,9 @@ def customer_create(request):
                         'client_type_choices': [(ct.id, ct.name) for ct in ClientType.objects.filter(is_active=True).order_by('display_order', 'name')],
                         'source_choices': Client.SOURCE_CHOICES,
                     })
+                    context['cancel_url_name'] = 'business_pages:customer_list'
+                    context['form_page_subtitle_text'] = '请填写客户基本信息'
+                    context['create_url_name'] = 'business_pages:customer_create'
                     return render(request, "customer_management/customer_form.html", context)
             
             # 最后一次验证：确保 client_type_id 不为 None（防止意外情况）
@@ -2172,7 +2173,7 @@ def customer_create(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='customer_create'
     )
@@ -2182,7 +2183,135 @@ def customer_create(request):
         'client_type_choices': [(ct.id, ct.name) for ct in ClientType.objects.filter(is_active=True).order_by('display_order', 'name')],
         'source_choices': Client.SOURCE_CHOICES,
     })
+    context['cancel_url_name'] = 'business_pages:customer_list'
+    context['form_page_subtitle_text'] = '请填写客户基本信息'
+    context['create_url_name'] = 'business_pages:customer_create'
     return render(request, "customer_management/customer_form.html", context)
+
+
+@login_required
+def customer_lead_create(request):
+    """创建客户线索"""
+    from backend.apps.customer_management.models import CustomerLead
+    from backend.apps.customer_management.forms import CustomerLeadForm
+    
+    permission_set = get_user_permission_codes(request.user)
+    if not _check_customer_permission('customer_management.client.edit', permission_set):
+        messages.error(request, '您没有权限创建客户线索')
+        return redirect('customer_pages:customer_management_home')
+    
+    if request.method == 'POST':
+        form = CustomerLeadForm(request.POST, user=request.user)
+        if form.is_valid():
+            lead = form.save(commit=False)
+            lead.created_by = request.user
+            # 设置默认负责人为当前用户（因为字段被禁用，需要手动设置）
+            lead.responsible_user = request.user
+            # 设置默认部门为当前用户的部门（因为字段被禁用，需要手动设置）
+            if request.user.department:
+                lead.department = request.user.department.name
+            else:
+                lead.department = ''
+            # 设置已删除字段的默认值（这些字段已从表单中删除，但模型中仍存在）
+            if not lead.contact_name:
+                lead.contact_name = ''
+            if not lead.contact_phone:
+                lead.contact_phone = ''
+            if not lead.contact_email:
+                lead.contact_email = ''
+            if not lead.channel:
+                lead.channel = ''
+            if not lead.follow_status:
+                lead.follow_status = 'unhandled'
+            if not lead.latest_followup_note:
+                lead.latest_followup_note = ''
+            
+            lead.save()
+            messages.success(request, '客户线索创建成功')
+            # 重定向到客户管理首页（客户线索列表功能待实现）
+            return redirect('customer_pages:customer_management_home')
+        else:
+            messages.error(request, '表单验证失败，请检查输入')
+    else:
+        form = CustomerLeadForm(user=request.user)
+    
+    context = _context(
+        "创建客户线索",
+        "➕",
+        "创建新客户线索信息",
+        request=request,
+    )
+    
+    # 生成左侧菜单
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
+        permission_set, 
+        active_id='customer_lead_create'
+    )
+    
+    context.update({
+        'form': form,
+        'lead_source_choices': CustomerLead.LEAD_SOURCE_CHOICES,
+    })
+    context['cancel_url_name'] = 'customer_pages:customer_management_home'
+    context['form_page_subtitle_text'] = '请填写客户线索基本信息'
+    context['create_url_name'] = 'customer_pages:customer_lead_create'
+    return render(request, "customer_management/customer_lead_form.html", context)
+
+
+@login_required
+def customer_filing_create(request):
+    """创建客户备案"""
+    from backend.apps.customer_management.models import CustomerFiling, Client
+    from backend.apps.customer_management.forms import CustomerFilingForm
+    
+    permission_set = get_user_permission_codes(request.user)
+    if not _check_customer_permission('customer_management.client.edit', permission_set):
+        messages.error(request, '您没有权限创建客户备案')
+        return redirect('customer_pages:customer_management_home')
+    
+    if request.method == 'POST':
+        form = CustomerFilingForm(request.POST, user=request.user)
+        if form.is_valid():
+            filing = form.save(commit=False)
+            filing.created_by = request.user
+            filing.save()
+            messages.success(request, '客户备案创建成功')
+            # 重定向到客户详情页
+            return redirect('business_pages:customer_detail', client_id=filing.client.id)
+        else:
+            messages.error(request, '表单验证失败，请检查输入')
+    else:
+        form = CustomerFilingForm(user=request.user)
+        # 如果URL中有client_id参数，预填充客户字段
+        client_id = request.GET.get('client_id')
+        if client_id:
+            try:
+                client = Client.objects.get(id=client_id)
+                form.fields['client'].initial = client
+            except Client.DoesNotExist:
+                pass
+    
+    context = _context(
+        "创建客户备案",
+        "📋",
+        "创建新客户备案记录",
+        request=request,
+    )
+    
+    # 生成左侧菜单
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
+        permission_set, 
+        active_id='customer_filing_create'
+    )
+    
+    context.update({
+        'form': form,
+        'filing_type_choices': CustomerFiling.FILING_TYPE_CHOICES,
+    })
+    context['cancel_url_name'] = 'customer_pages:customer_management_home'
+    context['form_page_subtitle_text'] = '请填写客户备案信息'
+    context['create_url_name'] = 'customer_pages:customer_filing_create'
+    return render(request, "customer_management/customer_filing_form.html", context)
 
 
 @login_required
@@ -2301,7 +2430,7 @@ def customer_detail(request, client_id):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='customer_list'
     )
@@ -2484,7 +2613,7 @@ def customer_edit(request, client_id):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='customer_list'
     )
@@ -2499,6 +2628,9 @@ def customer_edit(request, client_id):
         'execution_count': execution_records.count(),
         'total_execution_amount': client.total_execution_amount or 0,
     })
+    context['cancel_url_name'] = 'business_pages:customer_list'
+    context['form_page_subtitle_text'] = '请填写客户基本信息'
+    context['create_url_name'] = 'business_pages:customer_create'
     return render(request, "customer_management/customer_form.html", context)
 
 
@@ -2966,7 +3098,7 @@ def customer_public_sea(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='customer_public_sea'
     )
@@ -3035,7 +3167,7 @@ def customer_public_sea_claim(request, client_id):
     return render(request, "customer_management/customer_public_sea_claim.html", context)
 
 
-# ==================== 人员关系管理视图函数 =====================
+# ==================== 人员信息管理视图函数 =====================
 
 @login_required
 def contact_list(request):
@@ -3102,7 +3234,7 @@ def contact_list(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='contact_list'
     )
@@ -3304,7 +3436,7 @@ def contact_create(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='contact_create'
     )
@@ -3319,6 +3451,11 @@ def contact_create(request):
         'gender_choices': ClientContact.GENDER_CHOICES,
         'decision_influence_choices': ClientContact.DECISION_INFLUENCE_CHOICES,
     })
+    # 添加与customer_create一致的上下文变量
+    context['cancel_url_name'] = 'business_pages:contact_list'
+    context['form_page_subtitle_text'] = '请填写联系人基本信息'
+    context['create_url_name'] = 'business_pages:contact_create'
+    context['page_title'] = '创建联系人信息'
     return render(request, "customer_management/contact_form.html", context)
 
 
@@ -3672,7 +3809,7 @@ def contact_relationship_mining(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='contact_relationship_mining'
     )
@@ -3920,105 +4057,6 @@ def _mine_client_company_relationships(target_client, client_contacts):
     return related_contacts
 
 
-def contact_tracking_reminders(request):
-    """逾期拜访提醒列表"""
-    from django.db.models import Q
-    from datetime import timedelta
-    
-    # 获取权限
-    permission_set = get_user_permission_codes(request.user)
-    can_view = _check_customer_permission('customer_management.contact.view', permission_set)
-    
-    if not can_view:
-        messages.error(request, '您没有权限访问此功能')
-        return redirect('business_pages:contact_list')
-    
-    # 获取查询参数
-    days_ahead = int(request.GET.get('days_ahead', 7))  # 提前提醒天数
-    filter_type = request.GET.get('filter_type', 'all')  # all, overdue, upcoming
-    
-    # 获取当前用户创建的联系人（或根据权限获取）
-    contacts = ClientContact.objects.select_related('client', 'created_by').all()
-    
-    # 权限过滤：如果用户不是管理员，只显示自己创建的联系人
-    if not request.user.is_superuser:
-        # 检查是否有查看所有联系人的权限
-        if not _check_customer_permission('customer_management.contact.view_all', permission_set):
-            contacts = contacts.filter(created_by=request.user)
-    
-    # 计算提醒信息
-    reminders = []
-    today = timezone.now().date()
-    
-    for contact in contacts:
-        next_date = contact.get_next_tracking_date()
-        days_until = (next_date - today).days
-        is_overdue = days_until < 0
-        
-        # 根据筛选条件过滤
-        if filter_type == 'overdue' and not is_overdue:
-            continue
-        if filter_type == 'upcoming' and (is_overdue or days_until > days_ahead):
-            continue
-        if filter_type == 'all' and not is_overdue and days_until > days_ahead:
-            continue
-        
-        # 确定优先级
-        if contact.role == 'decision_maker':
-            priority = 'high'
-        elif contact.role == 'promoter':
-            priority = 'medium'
-        else:
-            priority = 'normal'
-        
-        reminders.append({
-            'contact': contact,
-            'next_date': next_date,
-            'days_until': days_until,
-            'is_overdue': is_overdue,
-            'overdue_days': abs(days_until) if is_overdue else 0,
-            'priority': priority,
-            'tracking_cycle': contact.calculate_tracking_cycle(),
-        })
-    
-    # 排序：超期 > 优先级 > 日期
-    reminders.sort(key=lambda x: (
-        not x['is_overdue'],  # 超期的在前
-        x['priority'] != 'high',  # 高优先级在前
-        x['days_until']  # 日期越近越前
-    ))
-    
-    # 统计信息
-    stats = {
-        'total': len(reminders),
-        'overdue': sum(1 for r in reminders if r['is_overdue']),
-        'upcoming': sum(1 for r in reminders if not r['is_overdue']),
-        'high_priority': sum(1 for r in reminders if r['priority'] == 'high'),
-    }
-    
-    context = _context(
-        "逾期拜访提醒",
-        "🔔",
-        "客户人员逾期拜访提醒列表",
-        request=request,
-    )
-    
-    # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
-        permission_set, 
-        active_id='contact_tracking_reminders'
-    )
-    
-    context.update({
-        'reminders': reminders,
-        'stats': stats,
-        'days_ahead': days_ahead,
-        'filter_type': filter_type,
-    })
-    
-    return render(request, "customer_management/contact_tracking_reminders.html", context)
-
-
 @login_required
 def contact_info_change_create(request):
     """创建联系人信息变更申请"""
@@ -4068,7 +4106,7 @@ def contact_info_change_create(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='contact_list'
     )
@@ -4085,70 +4123,68 @@ def contact_info_change_create(request):
 
 @login_required
 def customer_visit(request):
-    """创建联系人拜访"""
+    """拜访列表"""
     from django.core.paginator import Paginator
-    from backend.apps.customer_management.models import CustomerRelationship
     
-    # 获取筛选参数（使用通用方式支持新筛选模块）
+    # 获取筛选参数
     search = request.GET.get('search', '').strip()
-    
-    # 获取通用筛选参数
-    filter_params = {}
-    for key, value in request.GET.items():
-        if key not in ['search', 'page', 'page_size'] and value:
-            filter_params[key] = value
+    status_filter = request.GET.get('status', '').strip()
+    client_id = request.GET.get('client', '').strip()
     
     # 获取权限
     permission_set = get_user_permission_codes(request.user)
-    can_create = _check_customer_permission('customer_management.relationship.create', permission_set)
+    can_create = _check_customer_permission('customer_management.relationship.edit', permission_set)
     
-    # 获取拜访记录列表（record_type='visit'）
+    # 获取拜访计划列表
     try:
-        relationships = CustomerRelationship.objects.filter(
-            record_type='visit'
-        ).select_related('client', 'followup_person', 'created_by').prefetch_related('related_contacts')
+        visit_plans = VisitPlan.objects.select_related('client', 'created_by', 'related_opportunity').order_by('-plan_date')
+        
+        # 只显示当前用户创建的或管理员可以查看的
+        if not _permission_granted('customer_management.manage', permission_set):
+            visit_plans = visit_plans.filter(created_by=request.user)
         
         # 应用搜索条件
         if search:
-            relationships = relationships.filter(
+            visit_plans = visit_plans.filter(
+                Q(plan_title__icontains=search) |
                 Q(client__name__icontains=search) |
-                Q(content__icontains=search)
+                Q(plan_purpose__icontains=search)
             )
         
-        # 应用通用筛选条件
-        if filter_params.get('client'):
-            relationships = relationships.filter(client_id=filter_params['client'])
-        if filter_params.get('visit_type'):
-            relationships = relationships.filter(visit_type=filter_params['visit_type'])
+        # 应用状态筛选
+        if status_filter:
+            visit_plans = visit_plans.filter(status=status_filter)
         
-        # 按跟进时间倒序排列
-        relationships = relationships.order_by('-followup_time')
+        # 应用客户筛选
+        if client_id:
+            visit_plans = visit_plans.filter(client_id=client_id)
         
         # 分页
-        paginator = Paginator(relationships, 20)
+        paginator = Paginator(visit_plans, 20)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
+        
         
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)
-        logger.exception('获取拜访记录列表失败: %s', str(e))
-        messages.error(request, f'获取拜访记录列表失败：{str(e)}')
+        logger.exception('获取拜访列表失败: %s', str(e))
+        messages.error(request, f'获取拜访列表失败：{str(e)}')
         page_obj = None
     
     # 获取客户列表（用于筛选）
     from backend.apps.customer_management.models import Client
-    clients = Client.objects.all().order_by('name')
+    clients = Client.objects.filter(is_active=True).order_by('name')
     
     context = _context(
-        "创建联系人拜访",
+        "拜访列表",
         "🚪",
-        "查看和管理客户拜访记录",
+        "查看和管理所有拜访计划",
         request=request,
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='visit_list'
     )
@@ -4156,16 +4192,16 @@ def customer_visit(request):
     context.update({
         'page_obj': page_obj,
         'search': search,
-        'client_id': filter_params.get('client', ''),
-        'visit_type': filter_params.get('visit_type', ''),
+        'status_filter': status_filter,
+        'client_id': client_id,
         'clients': clients,
         'can_create': can_create,
-        'visit_type_choices': CustomerRelationship.VISIT_TYPE_CHOICES,
+        'status_options': VisitPlan.PLAN_STATUS_CHOICES,
     })
     return render(request, "customer_management/customer_visit.html", context)
 
 
-# ==================== 关系升级管理视图函数 =====================
+# ==================== 人员关系管理视图函数 =====================
 
 @login_required
 def customer_relationship_upgrade(request):
@@ -4231,7 +4267,7 @@ def customer_relationship_upgrade(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='upgrade_list'
     )
@@ -4329,7 +4365,7 @@ def customer_relationship_upgrade_create(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='upgrade_list'
     )
@@ -4408,7 +4444,7 @@ def business_expense_application_list(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='business_expense_application'
     )
@@ -4506,7 +4542,7 @@ def business_expense_application_create(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='business_expense_application'
     )
@@ -4594,7 +4630,7 @@ def customer_relationship_collaboration(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='relationship_collaboration'
     )
@@ -4674,7 +4710,7 @@ def customer_relationship_collaboration_create(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='relationship_collaboration'
     )
@@ -4901,7 +4937,7 @@ def customer_relationship_collaboration_detail(request, collaboration_id):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='relationship_collaboration'
     )
@@ -5155,12 +5191,12 @@ def contract_management_home(request):
     if request and request.user.is_authenticated:
         permission_set = get_user_permission_codes(request.user)
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
-        context['module_sidebar_nav'] = _build_contract_management_sidebar_nav(permission_set, request.path, active_id='contract_home')
-        # 保持向后兼容
-        context['customer_menu'] = _build_contract_management_menu(permission_set, active_id='contract_home')
+        context['sidebar_nav'] = _build_contract_management_sidebar_nav(permission_set, request.path, active_id='contract_home')
+        context['sidebar_title'] = '合同管理'
+        context['sidebar_subtitle'] = 'Contract Management'
     else:
         context['full_top_nav'] = []
-        context['module_sidebar_nav'] = []
+        context['sidebar_nav'] = []
     
     return render(request, "customer_management/contract_home.html", context)
 
@@ -7433,12 +7469,12 @@ def opportunity_management_home(request):
     if request and request.user.is_authenticated:
         permission_set = get_user_permission_codes(request.user)
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
-        context['module_sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id='opportunity_home')
-        # 保持向后兼容
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='opportunity_home')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id='opportunity_home')
+        context['sidebar_title'] = '商机管理'
+        context['sidebar_subtitle'] = 'Opportunity Management'
     else:
         context['full_top_nav'] = []
-        context['module_sidebar_nav'] = []
+        context['sidebar_nav'] = []
     
     context.update({
         'total_opportunities': total_opportunities,
@@ -7581,10 +7617,10 @@ def opportunity_management(request):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（商机列表页面，激活商机列表项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='opportunity_list')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='opportunity_list')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context.update({
         'page_obj': page_obj,
         'search': search,
@@ -7682,10 +7718,10 @@ def opportunity_detail(request, opportunity_id):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（商机详情页面，激活商机列表）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='opportunity_list')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='opportunity_list')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context.update({
         'opportunity': opportunity,
         'followups': followups,
@@ -7822,10 +7858,10 @@ def opportunity_create(request):
         if request and request.user.is_authenticated:
             context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
             # 生成左侧菜单（商机创建页面，激活"商机创建"菜单项）
-            context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='opportunity_create')
+            context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='opportunity_create')
         else:
             context['full_top_nav'] = []
-            context['customer_menu'] = []
+            context['sidebar_nav'] = []
         context.update({
             'clients': clients,
             'service_types': service_types,
@@ -8369,8 +8405,9 @@ def opportunity_warehouse_list(request):
     )
     
     # 生成左侧菜单
-    context['customer_menu'] = _build_opportunity_management_menu(
+    context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(
         permission_set, 
+        request_path=request.path,
         active_id='warehouse_list'
     )
     
@@ -8524,10 +8561,10 @@ def opportunity_drawing_evaluation(request):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（图纸评估页面，激活"图纸评估"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='drawing_evaluation')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='drawing_evaluation')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context.update({
         'opportunities': opportunities[:100],  # 限制显示数量
         'service_professions': service_professions,
@@ -8593,10 +8630,10 @@ def opportunity_bidding_quotation(request):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（投标报价页面，激活"投标报价"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='bidding_quotation')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='bidding_quotation')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     # 获取商机列表（用于筛选下拉框）
     try:
         opportunities = BusinessOpportunity.objects.select_related('client', 'business_manager').order_by('-created_time')
@@ -8812,10 +8849,10 @@ def bidding_quotation_create(request):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（投标报价页面，激活"投标报价"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='bidding_quotation')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='bidding_quotation')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context.update({
         'opportunities': opportunities[:100],  # 限制显示数量
         'status_choices': BiddingQuotation.STATUS_CHOICES,
@@ -9021,10 +9058,10 @@ def opportunity_tech_meeting(request):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（技术沟通会页面，激活"技术沟通会"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='tech_meeting')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='tech_meeting')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context['opportunities'] = opportunities[:100]  # 限制显示数量
     return render(request, "customer_management/opportunity_tech_meeting.html", context)
 
@@ -9206,10 +9243,10 @@ def opportunity_sales_forecast(request):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（商机预测页面，激活"商机预测"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='sales_forecast')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='sales_forecast')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context['forecast_data'] = forecast_data
     
     return render(request, "customer_management/opportunity_sales_forecast.html", context)
@@ -9335,10 +9372,10 @@ def opportunity_win_loss(request):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（赢单与输单页面，激活"赢单与输单"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='win_loss')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='win_loss')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context.update({
         'page_obj': page_obj,
         'search': search,
@@ -9448,10 +9485,10 @@ def opportunity_win_loss_select(request):
     )
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='win_loss')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='win_loss')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context.update({
         'page_obj': page_obj,
         'search': search,
@@ -9572,10 +9609,10 @@ def opportunity_mark_win_loss(request, opportunity_id):
     )
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='win_loss')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='win_loss')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context.update({
         'opportunity': opportunity,
         'target_status': target_status,
@@ -9649,10 +9686,10 @@ def opportunity_business_negotiation(request):
     if request and request.user.is_authenticated:
         context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
         # 生成左侧菜单（商务洽谈登记页面，激活"商务洽谈登记"菜单项）
-        context['customer_menu'] = _build_opportunity_management_menu(permission_set, active_id='business_negotiation')
+        context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, active_id='business_negotiation')
     else:
         context['full_top_nav'] = []
-        context['customer_menu'] = []
+        context['sidebar_nav'] = []
     context.update({
         'page_obj': page_obj,
         'search': search,
@@ -10004,7 +10041,7 @@ def visit_plan_flow(request, plan_id=None):
         request=request,
     )
     
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='visit_list'
     )
@@ -10022,37 +10059,92 @@ def visit_plan_flow(request, plan_id=None):
 
 @login_required
 def visit_plan_create(request):
-    """第一步：创建拜访计划"""
-    from backend.apps.customer_management.forms import VisitPlanForm
+    """创建拜访计划（合并拜访计划和沟通清单准备）"""
+    from backend.apps.customer_management.forms import VisitPlanWithChecklistForm
     
     permission_set = get_user_permission_codes(request.user)
     if not _check_customer_permission('customer_management.relationship.edit', permission_set):
         messages.error(request, '您没有权限创建拜访计划')
         return redirect('business_pages:customer_visit')
     
+    # 获取启用的沟通清单问题，按部分和排序分组（如果模型存在）
+    questions_by_part = {}
+    existing_answers = {}
+    
+    # 获取启用的沟通清单问题（用于显示）
+    if HAS_COMMUNICATION_CHECKLIST_MODELS:
+        questions = CommunicationChecklistQuestion.objects.filter(is_active=True).order_by('part', 'order')
+        for question in questions:
+            if question.part not in questions_by_part:
+                questions_by_part[question.part] = []
+            questions_by_part[question.part].append(question)
+    
     if request.method == 'POST':
-        form = VisitPlanForm(request.POST, user=request.user, permission_set=permission_set)
+        form = VisitPlanWithChecklistForm(request.POST, user=request.user, permission_set=permission_set)
         if form.is_valid():
             visit_plan = form.save(commit=False)
             visit_plan.created_by = request.user
             visit_plan.status = 'planned'
+            visit_plan.checklist_prepared_time = timezone.now()
             visit_plan.save()
             
-            messages.success(request, '拜访计划创建成功，请继续准备沟通清单')
-            return redirect('business_pages:visit_plan_checklist', plan_id=visit_plan.id)
+            # 保存沟通清单问题的答案（如果模型存在）
+            if HAS_COMMUNICATION_CHECKLIST_MODELS and questions_by_part:
+                # 获取或创建沟通清单记录
+                checklist, created = CustomerCommunicationChecklist.objects.get_or_create(
+                    client=visit_plan.client,
+                    communication_date=visit_plan.plan_date,
+                    defaults={
+                        'title': f'{visit_plan.plan_title} - 沟通清单',
+                        'location': visit_plan.location or '',
+                        'status': 'before',
+                        'created_by': request.user,
+                        'opportunity': visit_plan.related_opportunity,
+                    }
+                )
+                
+                # 保存每个问题的答案
+                for part, part_questions in questions_by_part.items():
+                    for question in part_questions:
+                        answer_value = request.POST.get(f'question_{question.id}', 'unknown')
+                        note_before = request.POST.get(f'note_before_{question.id}', '').strip()
+                        
+                        answer, answer_created = CommunicationChecklistAnswer.objects.get_or_create(
+                            checklist=checklist,
+                            question=question,
+                            defaults={
+                                'answer': answer_value,
+                                'note_before': note_before,
+                            }
+                        )
+                        if not answer_created:
+                            answer.answer = answer_value
+                            answer.note_before = note_before
+                            answer.save()
+            
+            messages.success(request, '拜访计划创建成功，可以进行拜访定位打卡')
+            return redirect('business_pages:visit_plan_checkin', plan_id=visit_plan.id)
         else:
             messages.error(request, '表单验证失败，请检查输入')
     else:
-        form = VisitPlanForm(user=request.user, permission_set=permission_set)
+        form = VisitPlanWithChecklistForm(user=request.user, permission_set=permission_set)
+    
+    # 获取启用的沟通清单问题（用于显示）
+    if HAS_COMMUNICATION_CHECKLIST_MODELS:
+        questions = CommunicationChecklistQuestion.objects.filter(is_active=True).order_by('part', 'order')
+        for question in questions:
+            if question.part not in questions_by_part:
+                questions_by_part[question.part] = []
+            questions_by_part[question.part].append(question)
     
     context = _context(
         "创建拜访计划",
         "📅",
-        "第一步：创建拜访计划",
+        "创建拜访计划并准备沟通清单",
         request=request,
     )
     
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='visit_list'
     )
@@ -10111,11 +10203,112 @@ def visit_plan_create(request):
     context.update({
         'form': form,
         'step': 1,
-        'step_title': '创建计划',
+        'step_title': '创建拜访计划',
+        'clients_with_address_json': json.dumps(clients_with_address),
+        'clients_opportunities_json': json.dumps(clients_opportunities),
+        'questions_by_part': questions_by_part,
+        'existing_answers': existing_answers,  # 确保 existing_answers 不为 None
+    })
+    # 添加与 contact_create 一致的上下文变量
+    context['cancel_url_name'] = 'business_pages:customer_visit'
+    context['form_page_subtitle_text'] = '请填写拜访计划信息并准备沟通清单'
+    context['create_url_name'] = 'business_pages:visit_plan_create'
+    context['page_title'] = '创建拜访计划'
+    return render(request, "customer_management/visit_plan_step_form.html", context)
+
+
+@login_required
+def first_visit_create(request):
+    """创建首次拜访"""
+    from backend.apps.customer_management.forms import FirstVisitForm
+    from backend.apps.customer_management.models import VisitPlan
+    
+    permission_set = get_user_permission_codes(request.user)
+    if not _check_customer_permission('customer_management.relationship.edit', permission_set):
+        messages.error(request, '您没有权限创建首次拜访')
+        return redirect('customer_pages:customer_visit')
+    
+    if request.method == 'POST':
+        form = FirstVisitForm(request.POST, user=request.user, permission_set=permission_set)
+        if form.is_valid():
+            visit_plan = form.save(commit=False)
+            visit_plan.created_by = request.user
+            visit_plan.status = 'planned'
+            visit_plan.save()
+            
+            messages.success(request, '首次拜访创建成功')
+            return redirect('customer_pages:customer_visit')
+        else:
+            messages.error(request, '表单验证失败，请检查输入')
+    else:
+        form = FirstVisitForm(user=request.user, permission_set=permission_set)
+    
+    context = _context(
+        "创建首次拜访",
+        "🎯",
+        "创建客户首次拜访记录",
+        request=request,
+    )
+    
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
+        permission_set, 
+        active_id='first_visit_create'
+    )
+    
+    # 获取客户地址信息和商机信息（用于前端自动填充）
+    clients_with_address = {}
+    clients_opportunities = {}
+    
+    if request.user:
+        from django.contrib.contenttypes.models import ContentType
+        from backend.apps.workflow_engine.models import ApprovalInstance
+        
+        client_content_type = ContentType.objects.get_for_model(Client)
+        approved_instance_ids = ApprovalInstance.objects.filter(
+            content_type=client_content_type,
+            status='approved'
+        ).values_list('object_id', flat=True)
+        
+        if approved_instance_ids:
+            approved_clients = Client.objects.filter(
+                is_active=True,
+                responsible_user=request.user,
+                id__in=approved_instance_ids
+            ).distinct()
+        else:
+            approved_clients = Client.objects.none()
+        
+        # 获取客户地址信息
+        for client in approved_clients.values('id', 'company_address'):
+            clients_with_address[str(client['id'])] = client['company_address'] or ''
+        
+        # 获取客户及其对应的商机
+        opportunities = BusinessOpportunity.objects.filter(
+            client__in=approved_clients,
+            status__in=['potential', 'initial_contact', 'requirement_confirmed', 'quotation', 'negotiation']
+        ).select_related('client').order_by('-created_time')
+        
+        for opp in opportunities:
+            client_id = str(opp.client.id) if opp.client else ''
+            if client_id and client_id not in clients_opportunities:
+                clients_opportunities[client_id] = []
+            if client_id:
+                clients_opportunities[client_id].append({
+                    'id': opp.id,
+                    'name': opp.name,
+                    'client_name': opp.client.name if opp.client else ''
+                })
+    
+    import json
+    context.update({
+        'form': form,
         'clients_with_address_json': json.dumps(clients_with_address),
         'clients_opportunities_json': json.dumps(clients_opportunities),
     })
-    return render(request, "customer_management/visit_plan_step_form.html", context)
+    context['cancel_url_name'] = 'customer_pages:customer_visit'
+    context['form_page_subtitle_text'] = '请填写首次拜访信息（不需要选择联系人）'
+    context['create_url_name'] = 'customer_pages:first_visit_create'
+    return render(request, "customer_management/first_visit_form.html", context)
 
 
 @login_required
@@ -10213,7 +10406,7 @@ def visit_plan_checklist(request, plan_id):
         request=request,
     )
     
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='visit_list'
     )
@@ -10231,7 +10424,7 @@ def visit_plan_checklist(request, plan_id):
 
 @login_required
 def visit_plan_checkin(request, plan_id):
-    """第三步：拜访定位打卡"""
+    """创建拜访打卡"""
     from backend.apps.customer_management.forms import VisitCheckinForm
     
     permission_set = get_user_permission_codes(request.user)
@@ -10243,14 +10436,20 @@ def visit_plan_checkin(request, plan_id):
         return redirect('business_pages:visit_plan_detail', plan_id=plan_id)
     
     if request.method == 'POST':
-        form = VisitCheckinForm(request.POST)
+        form = VisitCheckinForm(request.POST, visit_plan=visit_plan)
         if form.is_valid():
             checkin = form.save(commit=False)
             checkin.visit_plan = visit_plan
             checkin.client = visit_plan.client
             checkin.created_by = request.user
-            if not checkin.checkin_time:
-                checkin.checkin_time = timezone.now()
+            # 打卡时间始终使用服务器当前时间，不允许用户修改
+            checkin.checkin_time = timezone.now()
+            # 打卡地点根据经纬度自动获取，不允许用户修改
+            # 如果有经纬度，根据经纬度获取地址；否则使用表单提交的值（由JavaScript自动设置）
+            if checkin.latitude and checkin.longitude:
+                # 如果已有经纬度，尝试根据经纬度获取地址（如果需要）
+                # 地址应该已经由前端JavaScript通过逆地理编码设置好了
+                pass
             checkin.save()
             
             # 更新拜访计划状态
@@ -10269,13 +10468,13 @@ def visit_plan_checkin(request, plan_id):
         })
     
     context = _context(
-        f"拜访定位打卡 - {visit_plan.plan_title}",
+        "创建拜访打卡",
         "📍",
-        "第三步：拜访定位打卡",
+        "创建拜访定位打卡",
         request=request,
     )
     
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='visit_list'
     )
@@ -10283,15 +10482,14 @@ def visit_plan_checkin(request, plan_id):
     context.update({
         'form': form,
         'visit_plan': visit_plan,
-        'step': 3,
-        'step_title': '拜访定位打卡',
+        'form_page_subtitle_text': f'客户：{visit_plan.client.name} | 拜访计划：{visit_plan.plan_title or "未设置标题"}',
     })
-    return render(request, "customer_management/visit_plan_step_form.html", context)
+    return render(request, "customer_management/visit_checkin_form.html", context)
 
 
 @login_required
 def visit_plan_review(request, plan_id):
-    """第四步：拜访结果复盘"""
+    """拜访结果复盘"""
     from backend.apps.customer_management.forms import VisitReviewForm
     
     permission_set = get_user_permission_codes(request.user)
@@ -10337,11 +10535,11 @@ def visit_plan_review(request, plan_id):
     context = _context(
         f"拜访结果复盘 - {visit_plan.plan_title}",
         "📊",
-        "第四步：拜访结果复盘",
+        "拜访结果复盘",
         request=request,
     )
     
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='visit_list'
     )
@@ -10355,6 +10553,152 @@ def visit_plan_review(request, plan_id):
         'step_title': '拜访结果复盘',
     })
     return render(request, "customer_management/visit_plan_step_form.html", context)
+
+
+@login_required
+def visit_checkin_select(request):
+    """选择拜访计划进行打卡"""
+    from django.core.paginator import Paginator
+    
+    permission_set = get_user_permission_codes(request.user)
+    if not _check_customer_permission('customer_management.relationship.edit', permission_set):
+        messages.error(request, '您没有权限进行拜访打卡')
+        return redirect('business_pages:customer_visit')
+    
+    # 获取筛选参数
+    search = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    
+    # 获取可打卡的拜访计划（未打卡的）
+    visit_plans = VisitPlan.objects.all().select_related('client', 'created_by', 'related_opportunity').order_by('-plan_date')
+    
+    # 只显示当前用户创建的或管理员可以查看的
+    if not _permission_granted('customer_management.manage', permission_set):
+        visit_plans = visit_plans.filter(created_by=request.user)
+    
+    # 应用搜索条件
+    if search:
+        visit_plans = visit_plans.filter(
+            Q(plan_title__icontains=search) |
+            Q(client__name__icontains=search) |
+            Q(plan_purpose__icontains=search)
+        )
+    
+    # 应用状态筛选
+    if status_filter:
+        visit_plans = visit_plans.filter(status=status_filter)
+    
+    # 排除已完成的打卡
+    visit_plans = visit_plans.exclude(
+        id__in=VisitCheckin.objects.values_list('visit_plan_id', flat=True)
+    )
+    
+    # 分页
+    paginator = Paginator(visit_plans, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = _context(
+        "创建拜访打卡",
+        "📍",
+        "选择拜访计划进行定位打卡",
+        request=request,
+    )
+    
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
+        permission_set,
+        active_id='visit_checkin'
+    )
+    
+    # 确定操作类型和URL名称
+    action_type = 'checkin'
+    action_url_name = 'customer_pages:visit_plan_checkin'
+    current_url_name = 'customer_pages:visit_checkin_select'
+    
+    context.update({
+        'page_obj': page_obj,
+        'search': search,
+        'status_filter': status_filter,
+        'status_options': VisitPlan.PLAN_STATUS_CHOICES,
+        'action_type': action_type,
+        'action_url_name': action_url_name,
+        'current_url_name': current_url_name,
+    })
+    return render(request, "customer_management/visit_plan_select.html", context)
+
+
+@login_required
+def visit_review_select(request):
+    """选择拜访计划进行复盘"""
+    from django.core.paginator import Paginator
+    
+    permission_set = get_user_permission_codes(request.user)
+    if not _check_customer_permission('customer_management.relationship.edit', permission_set):
+        messages.error(request, '您没有权限进行拜访复盘')
+        return redirect('business_pages:customer_visit')
+    
+    # 获取筛选参数
+    search = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    
+    # 获取可复盘的拜访计划（已打卡但未复盘的）
+    visit_plans = VisitPlan.objects.filter(
+        checkins__isnull=False
+    ).select_related('client', 'created_by', 'related_opportunity').distinct().order_by('-plan_date')
+    
+    # 只显示当前用户创建的或管理员可以查看的
+    if not _permission_granted('customer_management.manage', permission_set):
+        visit_plans = visit_plans.filter(created_by=request.user)
+    
+    # 应用搜索条件
+    if search:
+        visit_plans = visit_plans.filter(
+            Q(plan_title__icontains=search) |
+            Q(client__name__icontains=search) |
+            Q(plan_purpose__icontains=search)
+        )
+    
+    # 应用状态筛选
+    if status_filter:
+        visit_plans = visit_plans.filter(status=status_filter)
+    
+    # 排除已完成的复盘
+    visit_plans = visit_plans.exclude(
+        id__in=VisitReview.objects.values_list('visit_plan_id', flat=True)
+    )
+    
+    # 分页
+    paginator = Paginator(visit_plans, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = _context(
+        "拜访结果复盘",
+        "📊",
+        "选择拜访计划进行结果复盘",
+        request=request,
+    )
+    
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
+        permission_set,
+        active_id='visit_review'
+    )
+    
+    # 确定操作类型和URL名称
+    action_type = 'review'
+    action_url_name = 'customer_pages:visit_plan_review'
+    current_url_name = 'customer_pages:visit_review_select'
+    
+    context.update({
+        'page_obj': page_obj,
+        'search': search,
+        'status_filter': status_filter,
+        'status_options': VisitPlan.PLAN_STATUS_CHOICES,
+        'action_type': action_type,
+        'action_url_name': action_url_name,
+        'current_url_name': current_url_name,
+    })
+    return render(request, "customer_management/visit_plan_select.html", context)
 
 
 @login_required
@@ -10387,7 +10731,7 @@ def visit_plan_detail(request, plan_id):
         request=request,
     )
     
-    context['customer_menu'] = _build_customer_management_menu(
+    context['sidebar_nav'] = _build_customer_management_sidebar_nav(
         permission_set, 
         active_id='visit_list'
     )
@@ -11541,7 +11885,9 @@ def opportunity_import(request):
                             messages.warning(request, f'{failure_count} 条记录导入失败，请查看结果列表。')
     
     # 添加左侧菜单
-    context['module_sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id='opportunity_import')
+    context['sidebar_nav'] = _build_opportunity_management_sidebar_nav(permission_set, request.path, active_id='opportunity_import')
+    context['sidebar_title'] = '商机管理'
+    context['sidebar_subtitle'] = 'Opportunity Management'
     
     return render(
         request,

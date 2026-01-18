@@ -1,177 +1,119 @@
-{% extends "archive_management/base.html" %}
+{% extends "shared/list_page_base.html" %}
 {% load static %}
 
-{% block title %}项目归档 - 档案管理{% endblock %}
+{% block list_page_title %}项目归档 - 档案管理{% endblock list_page_title %}
 
 {% block breadcrumb_items %}
 <li class="breadcrumb-item active" aria-current="page">项目归档</li>
-{% endblock %}
+{% endblock breadcrumb_items %}
 
-{% block content %}
-<div class="container-fluid">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1">📄 项目归档</h2>
-            <p class="text-muted mb-0">管理项目归档记录，支持筛选和搜索</p>
-        </div>
-        <div>
-            <a href="{% url 'archive_management:project_archive_create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> 创建归档
-            </a>
-        </div>
+
+
+
+{% block list_stats_content %}
+<div class="row g-3">
+    <div class="col-md-2">
+      <div class="list-stat-card">
+    <div class="list-stat-label">归档总数</div>
     </div>
-
-    <div class="info-card mb-4">
-        <div class="info-card-header">
-            <h5 class="info-card-title">项目归档列表</h5>
-            <div class="info-card-actions">
-                <span class="badge bg-secondary">共 {{ page.paginator.count }} 条</span>
-            </div>
-        </div>
-        <div class="info-card-body">
-            
-            <form method="get" class="row g-3 mb-3">
-                <div class="col-md-3">
-                    <label class="form-label">归档状态</label>
-                    <select name="status" class="form-select form-select-sm">
-                            <option value="">全部状态</option>
-                            <option value="pending" {% if status == 'pending' %}selected{% endif %}>待归档</option>
-                            <option value="approving" {% if status == 'approving' %}selected{% endif %}>审批中</option>
-                            <option value="archiving" {% if status == 'archiving' %}selected{% endif %}>归档中</option>
-                            <option value="archived" {% if status == 'archived' %}selected{% endif %}>已归档</option>
-                            <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已驳回</option>
-                        </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">搜索</label>
-                    <input type="text" name="search" class="form-control form-control-sm" 
-                           placeholder="归档编号、项目名称、项目编号..." value="{{ search }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">&nbsp;</label>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-search"></i> 搜索
-                        </button>
-                        <a href="{% url 'archive_management:project_archive_list' %}" class="btn btn-secondary btn-sm">
-                            <i class="bi bi-arrow-counterclockwise"></i> 重置
-                        </a>
-                </div>
-            </div>
-            </form>
-
-            {% if page %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>归档编号</th>
-                            <th>项目名称</th>
-                            <th>项目编号</th>
-                            <th>状态</th>
-                            <th>申请人</th>
-                            <th>申请时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for archive in page %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'archive_management:project_archive_detail' archive.pk %}" class="text-decoration-none">
-                                    <strong>{{ archive.archive_number }}</strong>
-                                </a>
-                            </td>
-                            <td>
-                                {% if archive.project %}
-                                <a href="#" class="text-decoration-none">
-                                    {{ archive.project.name|default:archive.project.project_number }}
-                                </a>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if archive.project %}
-                                {{ archive.project.project_number|default:"-" }}
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="status-badge status-{{ archive.status }}">
-                                    {{ archive.get_status_display }}
-                                </span>
-                            </td>
-                            <td>{{ archive.applicant.get_full_name|default:archive.applicant.username }}</td>
-                            <td>{{ archive.applied_time|date:"Y-m-d H:i" }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'archive_management:project_archive_detail' archive.pk %}" 
-                                       class="btn btn-outline-primary" title="查看详情">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    {% if archive.status == 'pending' %}
-                                    <a href="{% url 'archive_management:project_archive_edit' archive.pk %}" 
-                                       class="btn btn-outline-secondary" title="编辑">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">暂无数据</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center text-muted py-5">
-                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-                <p class="mt-3">暂无项目归档记录</p>
-            </div>
-            {% endif %}
-
-            {% if page.has_other_pages %}
-            <nav aria-label="项目归档分页">
-                <ul class="pagination justify-content-center">
-                    {% if page.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?{% if status %}status={{ status }}&{% endif %}{% if search %}search={{ search }}&{% endif %}page=1">首页</a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?{% if status %}status={{ status }}&{% endif %}{% if search %}search={{ search }}&{% endif %}page={{ page.previous_page_number }}">上一页</a>
-                    </li>
-                    {% endif %}
-                    
-                    {% for num in page.paginator.page_range %}
-                    {% if page.number == num %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ num }}</span>
-                    </li>
-                    {% elif num > page.number|add:'-3' and num < page.number|add:'3' %}
-                    <li class="page-item">
-                            <a class="page-link" href="?{% if status %}status={{ status }}&{% endif %}{% if search %}search={{ search }}&{% endif %}page={{ num }}">{{ num }}</a>
-                    </li>
-                    {% endif %}
-                    {% endfor %}
-                    
-                    {% if page.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?{% if status %}status={{ status }}&{% endif %}{% if search %}search={{ search }}&{% endif %}page={{ page.next_page_number }}">下一页</a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?{% if status %}status={{ status }}&{% endif %}{% if search %}search={{ search }}&{% endif %}page={{ page.paginator.num_pages }}">末页</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
-        </div>
+    <div class="col-md-2">
+      <div class="list-stat-card">
+    <div class="list-stat-label">待归档</div>
+    </div>
+    <div class="col-md-2">
+      <div class="list-stat-card">
+    <div class="list-stat-label">审批中</div>
+    </div>
+    <div class="col-md-2">
+      <div class="list-stat-card">
+    <div class="list-stat-label">已归档</div>
+    </div>
+    <div class="col-md-2">
+      <div class="list-stat-card">
+    <div class="list-stat-label">已驳回</div>
     </div>
 </div>
-{% endblock %}
+{% endblock list_stats_content %}
+{% block list_filters_content %}
+  <div class="col-md-3">
+    <label class="form-label">状态</label>
+    <select name="status" class="list-filter-input">
+        <option value="" {% if not status_filter %}selected{% endif %}>全部状态</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>待归档</option>
+        <option value="approving" {% if status_filter == 'approving' %}selected{% endif %}>审批中</option>
+        <option value="archiving" {% if status_filter == 'archiving' %}selected{% endif %}>归档中</option>
+        <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>已归档</option>
+        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>已驳回</option>
+      </select>
+  </div>
+{% endblock list_filters_content %}
+{% block list_table_headers %}
+<th>归档编号</th>
+        <th>项目名称</th>
+        <th>项目编号</th>
+        <th>状态</th>
+        <th>申请人</th>
+        <th>申请时间</th>
+        <th>操作</th>
+{% endblock list_table_headers %}
+{% block list_table_rows %}
+{% for archive in page %}
+      <tr>
+        <td>
+          <a href="{% url 'archive_management:project_archive_detail' archive.pk %}">
+            <code>{{ archive.archive_number }}</code>
+          </a>
+        </td>
+        <td>
+          {% if archive.project %}
+            {{ archive.project.name|default:archive.project.project_number|truncatewords:10 }}
+          {% else %}
+            <span style="color: #999999;">-</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if archive.project %}
+            {{ archive.project.project_number|default:"-" }}
+          {% else %}
+            <span style="color: #999999;">-</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if archive.status == 'pending' %}
+            <span class="list-badge list-badge-pending">待归档</span>
+          {% elif archive.status == 'approving' %}
+            <span class="list-badge list-badge-approving">审批中</span>
+          {% elif archive.status == 'archiving' %}
+            <span class="list-badge list-badge-archiving">归档中</span>
+          {% elif archive.status == 'archived' %}
+            <span class="list-badge list-badge-archived">已归档</span>
+          {% elif archive.status == 'rejected' %}
+            <span class="list-badge list-badge-rejected">已驳回</span>
+          {% else %}
+            <span class="list-badge">{{ archive.get_status_display }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if archive.applicant %}
+            {{ archive.applicant.get_full_name|default:archive.applicant.username }}
+          {% else %}
+            <span style="color: #999999;">-</span>
+          {% endif %}
+        </td>
+        <td>{{ archive.created_time|date:"Y-m-d"|default:"-" }}</td>
+        <td>
+          <div class="list-actions">
+            <a href="{% url 'archive_management:project_archive_detail' archive.pk %}" class="list-btn" title="查看">查看</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="list-empty">
+          <div class="list-empty-icon">▢</div>
+          <div class="list-empty-text">暂无归档数据</div>
+          <div class="list-empty-hint">请创建第一个归档记录开始使用</div>
+        </td>
+      </tr>
+      {% endfor %}
+{% endblock list_table_rows %}

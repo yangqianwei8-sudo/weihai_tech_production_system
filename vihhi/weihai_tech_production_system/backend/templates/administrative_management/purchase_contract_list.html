@@ -1,194 +1,132 @@
-{% extends "administrative_management/base.html" %}
+{% extends "shared/list_page_base.html" %}
+{% comment %}
+采购合同列表页面模板 (Purchase Contract List Template)
 
-{% block title %}{{ page_title }} - 维海科技信息化管理平台{% endblock %}
+功能说明：
+- 展示采购合同记录的列表页面
+- 支持按状态、供应商等多维度筛选
+- 支持采购合同的查看、编辑操作
+- 包含复选框功能，支持批量操作
 
-{% block breadcrumb_items %}
-<li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
+主要功能：
+1. 筛选功能：
+   - 状态筛选：草稿、待审批、已批准、已签约、执行中、已完成、已取消
+   - 供应商筛选：根据供应商筛选
+2. 表格展示：合同编号、合同名称、供应商、合同金额、签约日期、状态、操作
+3. 复选框功能：支持全选和批量操作（继承自list_page_base.html）
+4. 操作功能：查看详情、编辑（仅未完成/未取消的合同）
+{% endcomment %}
+{% load static %}
+
+{% block list_page_title %}采购合同管理{% endblock %}
+
+{% block list_page_actions %}
+{% if can_create %}
+<a href="{% url 'admin_pages:purchase_contract_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> 创建合同
+</a>
+{% endif %}
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    .center-hero {
-        background: linear-gradient(135deg, rgba(20,47,91,0.95), rgba(31,62,124,0.92));
-        border-radius: 24px;
-        padding: 32px 36px;
-        color: #fff;
-        box-shadow: 0 24px 60px rgba(20, 47, 91, 0.18);
-        margin-bottom: 24px;
-    }
-    .hero-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 16px;
-        background: rgba(255,255,255,0.18);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        margin-bottom: 12px;
-    }
-    .content-card {
-        background: var(--vh-card-bg);
-        border-radius: var(--radius-xl);
-        padding: var(--spacing-lg);
-        box-shadow: var(--shadow-lg);
-        border: 1px solid rgba(20, 47, 91, 0.08);
-    }
-    .status-badge {
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: var(--font-size-sm);
-        font-weight: 500;
-    }
-    .status-draft { background: #f3f4f6; color: #374151; }
-    .status-pending_approval { background: #fff3cd; color: #856404; }
-    .status-approved { background: #cfe2ff; color: #084298; }
-    .status-signed { background: #d1e7dd; color: #0f5132; }
-    .status-executing { background: #cfe2ff; color: #084298; }
-    .status-completed { background: #d1e7dd; color: #0f5132; }
-    .status-cancelled { background: #f8d7da; color: #842029; }
-</style>
+{% block search_placeholder %}搜索合同编号、合同名称...{% endblock %}
+
+{% block reset_url %}{% url 'admin_pages:purchase_contract_list' %}{% endblock %}
+
+<!-- 表格复选框列 -->
+{% block list_page_table_checkbox_header %}
+<th style="width: 40px;">
+    <input type="checkbox" id="selectAll" title="全选/取消全选">
+</th>
 {% endblock %}
 
-{% block content %}
-<div class="container-fluid py-4">
-    <div class="center-hero">
-        <h1 class="hero-title">{{ page_title }}</h1>
-        <p class="hero-subtitle">{{ description }}</p>
-    </div>
+{% block list_page_table_headers %}
+<th style="width: 12%;">合同编号</th>
+<th style="width: 18%;">合同名称</th>
+<th style="width: 15%;">供应商</th>
+<th style="width: 12%;">合同金额</th>
+<th style="width: 10%;">签约日期</th>
+<th style="width: 10%;">状态</th>
+{% endblock %}
 
-    <div class="content-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="mb-0">采购合同列表</h3>
-            <a href="{% url 'admin_pages:purchase_contract_create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> 创建合同
-            </a>
-        </div>
+{% block list_page_table_checkbox_cell %}
+<td>
+    <input type="checkbox" class="row-checkbox" value="{{ item.id }}" title="选择此项">
+</td>
+{% endblock %}
 
-        <form method="get" class="mb-4">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control" placeholder="搜索合同编号、合同名称..." value="{{ search }}">
-                </div>
-                <div class="col-md-2">
-                    <select name="status" class="form-select">
-                        <option value="">全部状态</option>
-                        {% for code, label in status_choices %}
-                        <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="supplier_id" class="form-select">
-                        <option value="">全部供应商</option>
-                        
-                    </select>
-                </div>
-                <div class="col-md-5">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="bi bi-search"></i> 搜索
-                    </button>
-                    <a href="{% url 'admin_pages:purchase_contract_list' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-x-circle"></i> 重置
-                    </a>
-                </div>
-            </div>
-        </form>
-
-        {% if page_obj %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>合同编号</th>
-                        <th>合同名称</th>
-                        <th>供应商</th>
-                        <th>合同金额</th>
-                        <th>签约日期</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for contract in page_obj %}
-                    <tr>
-                        <td><code>{{ contract.contract_number }}</code></td>
-                        <td>{{ contract.contract_name }}</td>
-                        <td>{{ contract.supplier.name }}</td>
-                        <td>¥{{ contract.contract_amount|floatformat:2 }}</td>
-                        <td>{{ contract.signed_date|date:"Y-m-d"|default:"-" }}</td>
-                        <td>
-                            <span class="status-badge status-{{ contract.status }}">
-                                {{ contract.get_status_display }}
-                            </span>
-                        </td>
-                        <td>
-                            <a href="{% url 'admin_pages:purchase_contract_detail' contract.id %}" class="btn btn-sm btn-outline-primary" title="查看详情">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            {% if contract.status not in 'completed,cancelled' %}
-                            <a href="{% url 'admin_pages:purchase_contract_update' contract.id %}" class="btn btn-sm btn-outline-secondary" title="编辑">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center py-5">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">📄</div>
-                                <div class="empty-state-title">暂无数据</div>
-                                <div class="empty-state-text">
-                                    当前筛选条件下没有找到采购合同，请调整筛选条件或创建新合同。
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        {% if page_obj.has_other_pages %}
-        <nav aria-label="分页导航">
-            <ul class="pagination justify-content-center mt-4">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">首页</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">上一页</a>
-                </li>
-                {% endif %}
-                
-                <li class="page-item active">
-                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-                </li>
-                
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">下一页</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">末页</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-        {% else %}
-        <div class="empty-state">
-            <div class="empty-state-icon">📄</div>
-            <div class="empty-state-title">暂无数据</div>
-            <div class="empty-state-text">
-                当前没有采购合同，请先创建合同。
-            </div>
-            <a href="{% url 'admin_pages:purchase_contract_create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> 创建第一个合同
-            </a>
-        </div>
+{% block list_page_table_row_content %}
+<td><code>{{ item.contract_number }}</code></td>
+<td>{{ item.contract_name }}</td>
+<td>
+    <a href="{% url 'admin_pages:supplier_detail' supplier_id=item.supplier.id %}" class="text-decoration-none">
+        {{ item.supplier.name }}
+    </a>
+</td>
+<td>¥{{ item.contract_amount|floatformat:2 }}</td>
+<td>{{ item.signed_date|date:"Y-m-d"|default:"-" }}</td>
+<td>
+    {% if item.status == 'draft' %}
+        <span class="badge bg-secondary">草稿</span>
+    {% elif item.status == 'pending_approval' %}
+        <span class="badge bg-warning">待审批</span>
+    {% elif item.status == 'approved' %}
+        <span class="badge bg-info">已批准</span>
+    {% elif item.status == 'signed' %}
+        <span class="badge bg-success">已签约</span>
+    {% elif item.status == 'executing' %}
+        <span class="badge bg-primary">执行中</span>
+    {% elif item.status == 'completed' %}
+        <span class="badge bg-success">已完成</span>
+    {% elif item.status == 'cancelled' %}
+        <span class="badge bg-danger">已取消</span>
+    {% else %}
+        <span class="badge bg-secondary">{{ item.get_status_display }}</span>
+    {% endif %}
+</td>
+<td>
+    <div class="list-page-table-actions">
+        <a href="{% url 'admin_pages:purchase_contract_detail' contract_id=item.id %}" class="action-view" title="查看">
+            <i class="bi bi-eye"></i>
+        </a>
+        {% if item.status not in 'completed,cancelled' %}
+        <span class="action-separator">|</span>
+        <a href="{% url 'admin_pages:purchase_contract_update' contract_id=item.id %}" class="action-edit" title="编辑">
+            <i class="bi bi-pencil"></i>
+        </a>
         {% endif %}
     </div>
-</div>
+</td>
+{% endblock %}
+
+{% block empty_colspan %}8{% endblock %}
+
+{% block empty_table_message %}暂无数据{% endblock %}
+
+{% block empty_message %}暂无数据{% endblock %}
+
+{% block empty_create_url %}{% url 'admin_pages:purchase_contract_create' %}{% endblock %}
+
+{% block list_page_batch_export_js %}
+// 批量导出功能
+document.addEventListener('DOMContentLoaded', function() {
+    const batchExportBtn = document.getElementById('batchExportBtn');
+    if (batchExportBtn) {
+        batchExportBtn.addEventListener('click', function() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            if (checked.length === 0) {
+                showError('请先选择要导出的数据');
+                return;
+            }
+            
+            const ids = Array.from(checked).map(cb => cb.value);
+            const format = this.dataset.exportFormat || 'excel';
+            const url = '{% url "admin_pages:purchase_contract_list" %}?export=1&format=' + format + '&ids=' + ids.join(',');
+            window.location.href = url;
+        });
+    }
+});
+{% endblock %}
+
+{% block list_page_batch_dropdown_items %}
+<li><a class="dropdown-item" href="#" id="batchPrintBtn"><i class="bi bi-printer"></i> 打印选中</a></li>
 {% endblock %}

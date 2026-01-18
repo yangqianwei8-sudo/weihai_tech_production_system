@@ -5,7 +5,7 @@ from django.db.models import Count, Sum, Q, F, Avg, Max
 from django.core.paginator import Paginator
 from django.urls import reverse, NoReverseMatch
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from decimal import Decimal
 
 from backend.apps.system_management.services import get_user_permission_codes
@@ -59,15 +59,47 @@ def _context(page_title, page_icon, description, summary_cards=None, sections=No
     
     # 添加顶部导航菜单（与客户管理模块保持一致）
     if request and request.user.is_authenticated:
-        permission_set = get_user_permission_codes(request.user)
-        context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
-        # 添加左侧菜单
-        context['personnel_menu'] = _build_personnel_sidebar_nav(permission_set, request.path)
+        try:
+            permission_set = get_user_permission_codes(request.user)
+            context['full_top_nav'] = _build_full_top_nav(permission_set, request.user)
+            # 添加左侧菜单
+            context['personnel_menu'] = _build_personnel_sidebar_nav(permission_set, request.path)
+            context['sidebar_nav'] = context['personnel_menu']  # 添加这个变量，模板需要
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'构建页面上下文错误: {str(e)}', exc_info=True)
+            context['full_top_nav'] = []
+            context['personnel_menu'] = []
+            context['sidebar_nav'] = []
     else:
         context['full_top_nav'] = []
         context['personnel_menu'] = []
+        context['sidebar_nav'] = []
+    # 为所有可能的侧边栏变量设置默认值，避免模板错误
+    # 这些变量可能在其他模块的模板中被引用
+    context.setdefault('plan_menu', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('customer_menu', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])  # 添加这个变量
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('sidebar_nav', [])
+    context.setdefault('administrative_sidebar_nav', [])
     
     return context
+
+
+def _format_user_display(user, default='—'):
+    """格式化用户显示名称"""
+    if not user:
+        return default
+    if hasattr(user, 'get_full_name') and user.get_full_name():
+        return user.get_full_name()
+    return user.username if hasattr(user, 'username') else str(user)
 
 
 def _build_personnel_sidebar_nav(permission_set, request_path=None, active_id=None):
@@ -86,12 +118,29 @@ def _build_personnel_sidebar_nav(permission_set, request_path=None, active_id=No
     # 定义人事管理菜单结构（分组格式，与计划管理一致）
     PERSONNEL_MENU_STRUCTURE = [
         {
+            'id': 'personnel_basic',
+            'label': '人事管理',
+            'icon': '👥',
+            'permission': None,
+            'children': [
+                {
+                    'id': 'personnel_home',
+                    'label': '人事管理首页',
+                    'url_name': 'personnel_pages:personnel_home',
+                    'permission': None,
+                    'icon': '👥',
+                    'path_keywords': ['personnel_home', 'personnel'],
+                },
+            ],
+        },
+        {
             'id': 'organization',
             'label': '组织架构',
             'icon': '🏢',
             'permission': 'personnel_management.organization.view',
             'children': [
                 {
+                    'id': 'organization_management',
                     'label': '组织架构',
                     'url_name': 'personnel_pages:organization_management',
                     'permission': 'personnel_management.organization.view',
@@ -429,12 +478,31 @@ def _build_personnel_sidebar_nav(permission_set, request_path=None, active_id=No
                         child_item['url'] = '#'
                 
                 # 检查是否激活
-                if request_path:
-                    for keyword in child.get('path_keywords', []):
-                        path_parts = request_path.split('/')
-                        if keyword in path_parts or keyword in request_path:
-                            child_item['active'] = True
-                            break
+                if active_id:
+                    child_item['active'] = child.get('id') == active_id
+                elif request_path:
+                    # 特殊处理首页
+                    if child.get('id') == 'personnel_home':
+                        try:
+                            home_url = reverse('personnel_pages:personnel_home')
+                            try:
+                                home_url2 = reverse('personnel_pages:personnel_management_home')
+                            except NoReverseMatch:
+                                home_url2 = None
+                            child_item['active'] = (
+                                request_path == home_url or
+                                (home_url2 and request_path == home_url2) or
+                                request_path == '/personnel/' or
+                                request_path == '/personnel/home/'
+                            )
+                        except NoReverseMatch:
+                            pass
+                    if not child_item['active']:
+                        for keyword in child.get('path_keywords', []):
+                            path_parts = request_path.split('/')
+                            if keyword in path_parts or keyword in request_path:
+                                child_item['active'] = True
+                                break
                 
                 children_items.append(child_item)
             
@@ -527,236 +595,321 @@ def _build_personnel_sidebar_nav(permission_set, request_path=None, active_id=No
 
 @login_required
 def personnel_home(request):
-    """人事管理主页"""
+    """人事管理首页 - 数据展示中心"""
     permission_codes = get_user_permission_codes(request.user)
-    today = timezone.now().date()
+    now = timezone.now()
+    today = now.date()
     this_month_start = today.replace(day=1)
+    seven_days_ago = today - timedelta(days=7)
     
-    # 收集统计数据
-    summary_cards = []
+    context = {}
     
     try:
+        # ========== 核心指标卡片 ==========
+        core_cards = []
+        
         # 员工档案统计
-        if _permission_granted('personnel_management.employee.view', permission_codes):
-            try:
-                total_employees = Employee.objects.filter(status='active').count()
-                new_employees_this_month = Employee.objects.filter(
-                    entry_date__gte=this_month_start
-                ).count()
-                
-                summary_cards.append({
-                    'label': '员工档案',
-                    'icon': '👤',
-                    'value': f'{total_employees}',
-                    'subvalue': f'在职员工 · 本月入职 {new_employees_this_month} 人',
-                    'url': reverse('personnel_pages:employee_management'),
-                })
-            except Exception:
-                pass
+        all_employees = Employee.objects.all()
+        total_employees = all_employees.filter(status='active').count()
+        new_employees_this_month = all_employees.filter(
+            entry_date__gte=this_month_start,
+            status='active'
+        ).count()
+        resigned_employees_this_month = all_employees.filter(
+            resignation_date__gte=this_month_start,
+            status='resigned'
+        ).count()
         
         # 考勤管理统计
-        if _permission_granted('personnel_management.attendance.view', permission_codes):
-            try:
-                today_attendance = Attendance.objects.filter(attendance_date=today).count()
-                today_late = Attendance.objects.filter(attendance_date=today, is_late=True).count()
-                
-                summary_cards.append({
-                    'label': '考勤管理',
-                    'icon': '⏰',
-                    'value': f'{today_attendance}',
-                    'subvalue': f'今日打卡 · 迟到 {today_late} 人',
-                    'url': reverse('personnel_pages:attendance_management'),
-                })
-            except Exception:
-                pass
+        all_attendances = Attendance.objects.all()
+        today_attendance = all_attendances.filter(attendance_date=today).count()
+        today_late = all_attendances.filter(attendance_date=today, is_late=True).count()
+        today_absent = all_attendances.filter(attendance_date=today, is_absent=True).count()
         
         # 请假管理统计
-        if _permission_granted('personnel_management.leave.view', permission_codes):
-            try:
-                pending_leaves = Leave.objects.filter(status='pending').count()
-                this_month_leaves = Leave.objects.filter(start_date__gte=this_month_start).count()
-                
-                summary_cards.append({
-                    'label': '请假管理',
-                    'icon': '📅',
-                    'value': f'{pending_leaves}',
-                    'subvalue': f'待审批 · 本月 {this_month_leaves} 条',
-                    'url': reverse('personnel_pages:leave_management'),
-                })
-            except Exception:
-                pass
+        all_leaves = Leave.objects.all()
+        pending_leaves = all_leaves.filter(status='pending').count()
+        approved_leaves = all_leaves.filter(status='approved').count()
+        this_month_leaves = all_leaves.filter(start_date__gte=this_month_start).count()
         
         # 培训管理统计
-        if _permission_granted('personnel_management.training.view', permission_codes):
-            try:
-                ongoing_trainings = Training.objects.filter(status='ongoing').count()
-                this_month_trainings = Training.objects.filter(training_date__gte=this_month_start).count()
-                
-                summary_cards.append({
-                    'label': '培训管理',
-                    'icon': '📚',
-                    'value': f'{ongoing_trainings}',
-                    'subvalue': f'进行中 · 本月 {this_month_trainings} 场',
-                    'url': reverse('personnel_pages:training_management'),
-                })
-            except Exception:
-                pass
+        all_trainings = Training.objects.all()
+        ongoing_trainings = all_trainings.filter(status='ongoing').count()
+        this_month_trainings = all_trainings.filter(training_date__gte=this_month_start).count()
         
         # 绩效考核统计
-        if _permission_granted('personnel_management.performance.view', permission_codes):
-            try:
-                current_year = today.year
-                pending_performances = Performance.objects.filter(
-                    period_year=current_year,
-                    status__in=['draft', 'self_assessment', 'manager_review']
-                ).count()
-                
-                summary_cards.append({
-                    'label': '绩效考核',
-                    'icon': '📊',
-                    'value': f'{pending_performances}',
-                    'subvalue': f'待完成考核',
-                    'url': reverse('personnel_pages:performance_management'),
-                })
-            except Exception:
-                pass
-        
-        # 薪资管理统计
-        if _permission_granted('personnel_management.salary.view', permission_codes):
-            try:
-                this_month_salaries = Salary.objects.filter(
-                    salary_month__year=today.year,
-                    salary_month__month=today.month
-                ).count()
-                
-                summary_cards.append({
-                    'label': '薪资管理',
-                    'icon': '💰',
-                    'value': f'{this_month_salaries}',
-                    'subvalue': f'本月薪资记录',
-                    'url': reverse('personnel_pages:salary_management'),
-                })
-            except Exception:
-                pass
+        current_year = today.year
+        all_performances = Performance.objects.filter(period_year=current_year)
+        pending_performances = all_performances.filter(
+            status__in=['draft', 'self_assessment', 'manager_review']
+        ).count()
+        completed_performances = all_performances.filter(status='completed').count()
         
         # 劳动合同统计
-        if _permission_granted('personnel_management.contract.view', permission_codes):
-            try:
-                active_contracts = LaborContract.objects.filter(status='active').count()
-                expiring_soon = LaborContract.objects.filter(
-                    end_date__isnull=False,
-                    end_date__gte=today,
-                    end_date__lte=today + timedelta(days=90)
-                ).count()
-                
-                summary_cards.append({
-                    'label': '劳动合同',
-                    'icon': '📄',
-                    'value': f'{active_contracts}',
-                    'subvalue': f'生效中 · 90天内到期 {expiring_soon} 份',
-                    'url': reverse('personnel_pages:contract_management'),
-                })
-            except Exception:
-                pass
+        all_contracts = LaborContract.objects.all()
+        active_contracts = all_contracts.filter(status='active').count()
+        expiring_soon = all_contracts.filter(
+            end_date__isnull=False,
+            end_date__gte=today,
+            end_date__lte=today + timedelta(days=90),
+            status='active'
+        ).count()
+        
+        # 卡片1：员工档案
+        core_cards.append({
+            'label': '员工档案',
+            'icon': '👤',
+            'value': str(total_employees),
+            'subvalue': f'在职员工 · 本月入职 {new_employees_this_month} 人',
+            'url': reverse('personnel_pages:employee_management'),
+            'variant': 'secondary'
+        })
+        
+        # 卡片2：考勤管理
+        core_cards.append({
+            'label': '考勤管理',
+            'icon': '⏰',
+            'value': str(today_attendance),
+            'subvalue': f'今日打卡 · 迟到 {today_late} 人 | 缺勤 {today_absent} 人',
+            'url': reverse('personnel_pages:attendance_management'),
+            'variant': 'dark' if today_absent > 0 else 'secondary'
+        })
+        
+        # 卡片3：请假管理
+        core_cards.append({
+            'label': '请假管理',
+            'icon': '📅',
+            'value': str(pending_leaves),
+            'subvalue': f'待审批 · 本月 {this_month_leaves} 条',
+            'url': reverse('personnel_pages:leave_management'),
+            'variant': 'dark' if pending_leaves > 0 else 'secondary'
+        })
+        
+        # 卡片4：培训管理
+        core_cards.append({
+            'label': '培训管理',
+            'icon': '📚',
+            'value': str(ongoing_trainings),
+            'subvalue': f'进行中 · 本月 {this_month_trainings} 场',
+            'url': reverse('personnel_pages:training_management'),
+            'variant': 'secondary'
+        })
+        
+        # 卡片5：绩效考核
+        core_cards.append({
+            'label': '绩效考核',
+            'icon': '📊',
+            'value': str(pending_performances),
+            'subvalue': f'待完成考核 · 已完成 {completed_performances}',
+            'url': reverse('personnel_pages:performance_management'),
+            'variant': 'dark' if pending_performances > 0 else 'secondary'
+        })
+        
+        # 卡片6：劳动合同
+        core_cards.append({
+            'label': '劳动合同',
+            'icon': '📄',
+            'value': str(active_contracts),
+            'subvalue': f'生效中 · 90天内到期 {expiring_soon} 份',
+            'url': reverse('personnel_pages:contract_management'),
+            'variant': 'dark' if expiring_soon > 0 else 'secondary'
+        })
+        
+        context['core_cards'] = core_cards
+        
+        # ========== 风险预警 ==========
+        risk_warnings = []
+        
+        # 即将到期的劳动合同
+        expiring_contracts = all_contracts.filter(
+            end_date__isnull=False,
+            end_date__gte=today,
+            end_date__lte=today + timedelta(days=30),
+            status='active'
+        ).select_related('employee')[:5]
+        
+        for contract in expiring_contracts:
+            days_until = (contract.end_date - today).days
+            employee_name = contract.employee.name if contract.employee else '未知'
+            risk_warnings.append({
+                'type': 'contract',
+                'title': f'{contract.contract_number} - {employee_name}',
+                'responsible': employee_name,
+                'days': days_until,
+                'url': reverse('personnel_pages:contract_detail', args=[contract.id])
+            })
+        
+        # 待审批请假（超过3天）
+        stale_leaves = all_leaves.filter(
+            status='pending',
+            start_date__lt=seven_days_ago
+        ).select_related('employee')[:5]
+        
+        for leave in stale_leaves:
+            days_since_create = (today - leave.start_date).days
+            employee_name = leave.employee.name if leave.employee else '未知'
+            risk_warnings.append({
+                'type': 'leave',
+                'title': f'{leave.employee.name if leave.employee else "未知"} - {leave.get_leave_type_display()}',
+                'responsible': employee_name,
+                'days': days_since_create,
+                'url': reverse('personnel_pages:leave_detail', args=[leave.id])
+            })
+        
+        context['risk_warnings'] = risk_warnings[:5]
+        context['expiring_contracts_count'] = expiring_contracts.count()
+        context['stale_leaves_count'] = stale_leaves.count()
+        
+        # ========== 待办事项 ==========
+        todo_items = []
+        
+        # 待审批请假
+        pending_leave_list = all_leaves.filter(status='pending').select_related('employee')[:5]
+        for leave in pending_leave_list:
+            employee_name = leave.employee.name if leave.employee else '未知'
+            todo_items.append({
+                'type': 'leave',
+                'title': f'{employee_name} - {leave.get_leave_type_display()}',
+                'leave_number': leave.leave_number if hasattr(leave, 'leave_number') else '',
+                'responsible': employee_name,
+                'url': reverse('personnel_pages:leave_detail', args=[leave.id])
+            })
+        
+        # 待完成绩效考核
+        pending_performance_list = all_performances.filter(
+            status__in=['draft', 'self_assessment', 'manager_review']
+        ).select_related('employee')[:5]
+        
+        for performance in pending_performance_list:
+            employee_name = performance.employee.name if performance.employee else '未知'
+            todo_items.append({
+                'type': 'performance',
+                'title': f'{employee_name} - {performance.period_year}年度考核',
+                'performance_id': str(performance.id),
+                'responsible': employee_name,
+                'url': reverse('personnel_pages:performance_detail', args=[performance.id])
+            })
+        
+        context['todo_items'] = todo_items[:10]
+        context['pending_approval_count'] = pending_leaves + pending_performances
+        context['todo_summary_url'] = reverse('personnel_pages:leave_management') + '?status=pending'
+        
+        # ========== 我的工作 ==========
+        my_work = {}
+        
+        # 我的请假申请
+        try:
+            my_employee = Employee.objects.filter(user=request.user).first()
+            if my_employee:
+                my_leaves = all_leaves.filter(employee=my_employee).order_by('-start_date')[:3]
+                my_work['my_leaves'] = [{
+                    'title': f'{leave.get_leave_type_display()}',
+                    'status': leave.get_status_display(),
+                    'url': reverse('personnel_pages:leave_detail', args=[leave.id])
+                } for leave in my_leaves]
+                my_work['my_leaves_count'] = all_leaves.filter(employee=my_employee).count()
+            else:
+                my_work['my_leaves'] = []
+                my_work['my_leaves_count'] = 0
+        except Exception:
+            my_work['my_leaves'] = []
+            my_work['my_leaves_count'] = 0
+        
+        # 我的绩效考核
+        try:
+            my_employee = Employee.objects.filter(user=request.user).first()
+            if my_employee:
+                my_performances = all_performances.filter(employee=my_employee).order_by('-period_year')[:3]
+                my_work['my_performances'] = [{
+                    'title': f'{performance.period_year}年度考核',
+                    'status': performance.get_status_display(),
+                    'url': reverse('personnel_pages:performance_detail', args=[performance.id])
+                } for performance in my_performances]
+                my_work['my_performances_count'] = all_performances.filter(employee=my_employee).count()
+            else:
+                my_work['my_performances'] = []
+                my_work['my_performances_count'] = 0
+        except Exception:
+            my_work['my_performances'] = []
+            my_work['my_performances_count'] = 0
+        my_work['my_performances'] = [{
+            'title': f'{performance.period_year}年度考核',
+            'status': performance.get_status_display(),
+            'url': reverse('personnel_pages:performance_detail', args=[performance.id])
+        } for performance in my_performances]
+        my_work['my_performances_count'] = all_performances.filter(employee__user=request.user).count()
+        
+        my_work['summary_url'] = reverse('personnel_pages:employee_management')
+        
+        context['my_work'] = my_work
+        
+        # ========== 最近活动 ==========
+        recent_activities = {}
+        
+        # 最近入职的员工
+        recent_employees = all_employees.select_related('department').order_by('-entry_date')[:5]
+        recent_activities['recent_employees'] = [{
+            'title': employee.name,
+            'creator': _format_user_display(employee.user) if employee.user else '系统',
+            'time': employee.entry_date,
+            'url': reverse('personnel_pages:employee_detail', args=[employee.id])
+        } for employee in recent_employees]
+        
+        # 最近创建的请假
+        recent_leaves = all_leaves.select_related('employee').order_by('-start_date')[:5]
+        recent_activities['recent_leaves'] = [{
+            'title': f'{leave.employee.name if leave.employee else "未知"} - {leave.get_leave_type_display()}',
+            'creator': leave.employee.name if leave.employee else '未知',
+            'time': leave.start_date,
+            'url': reverse('personnel_pages:leave_detail', args=[leave.id])
+        } for leave in recent_leaves]
+        
+        context['recent_activities'] = recent_activities
         
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)
-        logger.exception('获取统计数据失败: %s', str(e))
+        logger.exception('获取人事管理统计数据失败: %s', str(e))
+        context.setdefault('core_cards', [])
+        context.setdefault('risk_warnings', [])
+        context.setdefault('todo_items', [])
+        context.setdefault('my_work', {})
+        context.setdefault('recent_activities', {})
     
-    # 功能模块区域
-    sections = []
-    
-    # 快捷操作区域
-    quick_actions = []
-    
+    # 顶部操作栏
+    top_actions = []
     if _permission_granted('personnel_management.employee.create', permission_codes):
         try:
-            quick_actions.append({
+            top_actions.append({
                 'label': '添加员工',
-                'icon': '➕',
-                'description': '添加新员工档案',
                 'url': reverse('personnel_pages:employee_create'),
-                'link_label': '添加员工 →'
+                'icon': '➕'
             })
-        except NoReverseMatch:
+        except Exception:
             pass
     
-    if quick_actions:
-        sections.append({
-            'title': '快捷操作',
-            'description': '常用的快速操作入口',
-            'items': quick_actions
-        })
+    context['top_actions'] = top_actions
     
-    # 功能模块区域
-    modules = []
-    
-    if _permission_granted('personnel_management.employee.view', permission_codes):
-        try:
-            modules.append({
-                'label': '员工档案管理',
-                'icon': '👤',
-                'description': '管理员工基本信息、档案和合同',
-                'url': reverse('personnel_pages:employee_management'),
-                'link_label': '进入模块 →'
-            })
-        except NoReverseMatch:
-            pass
-    
-    if _permission_granted('personnel_management.attendance.view', permission_codes):
-        try:
-            modules.append({
-                'label': '考勤管理',
-                'icon': '⏰',
-                'description': '管理员工考勤记录和统计',
-                'url': reverse('personnel_pages:attendance_management'),
-                'link_label': '进入模块 →'
-            })
-        except NoReverseMatch:
-            pass
-    
-    if _permission_granted('personnel_management.leave.view', permission_codes):
-        try:
-            modules.append({
-                'label': '请假管理',
-                'icon': '📅',
-                'description': '管理员工请假申请和审批',
-                'url': reverse('personnel_pages:leave_management'),
-                'link_label': '进入模块 →'
-            })
-        except NoReverseMatch:
-            pass
-    
-    if _permission_granted('personnel_management.organization.view', permission_codes):
-        try:
-            modules.append({
-                'label': '组织架构',
-                'icon': '🏢',
-                'description': '管理组织架构、部门和职位',
-                'url': reverse('personnel_pages:organization_management'),
-                'link_label': '进入模块 →'
-            })
-        except NoReverseMatch:
-            pass
-    
-    if modules:
-        sections.append({
-            'title': '功能模块',
-            'description': '人事管理的各个功能模块入口',
-            'items': modules
-        })
-    
-    context = _context(
+    # 构建上下文
+    page_context = _context(
         "人事管理",
         "👥",
-        "企业人事管理平台",
-        summary_cards=summary_cards,
-        sections=sections,
+        "数据展示中心 - 集中展示人事关键指标、状态与风险",
         request=request,
         use_personnel_nav=True
     )
-    return render(request, "personnel_management/home.html", context)
+    
+    # 设置侧边栏导航
+    personnel_sidebar_nav = _build_personnel_sidebar_nav(permission_codes, request.path, active_id='personnel_home')
+    page_context['personnel_menu'] = personnel_sidebar_nav
+    page_context['sidebar_nav'] = personnel_sidebar_nav  # 添加这个变量，模板需要
+    page_context['sidebar_title'] = '人事管理'
+    page_context['sidebar_subtitle'] = 'Personnel Management'
+    
+    # 合并所有数据
+    page_context.update(context)
+    
+    return render(request, "personnel_management/home.html", page_context)
 
 
 @login_required
@@ -2423,7 +2576,7 @@ def employee_archive_management(request):
         if category:
             archives = archives.filter(category=category)
         if expiring_soon == 'true':
-            from datetime import timedelta
+            from datetime import timedelta, datetime
             today = timezone.now().date()
             future_date = today + timedelta(days=90)
             archives = archives.filter(expiry_date__gte=today, expiry_date__lte=future_date)
@@ -2468,7 +2621,7 @@ def employee_archive_management(request):
         request=request,
         use_personnel_nav=True
     )
-    from datetime import timedelta
+    from datetime import timedelta, datetime
     today = timezone.now().date()
     next_month = today + timedelta(days=30)
     

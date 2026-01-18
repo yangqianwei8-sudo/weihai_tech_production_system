@@ -1,19 +1,15 @@
 {% extends "customer_management/_base.html" %}
 
-
-
 {% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/common.css' %}">
 {% endblock %}
 
+{% block pm_title %}输赢记录{% endblock %}
 
-
-{% block cm_title %}输赢记录{% endblock %}
-
-{% block cm_content %}
+{% block pm_content %}
 <div class="list-page-container">
-    
+
         <div class="list-page-header">
             <div>
                 <h2 class="mb-0">
@@ -89,17 +85,17 @@
                     <div class="list-page-filter-item" data-filter-field="date">
                         <label>更新时间:</label>
                         <div class="d-flex gap-2 align-items-center">
-                            <input type="date" name="date_from" class="form-control form-control-sm" 
+                            <input type="date" name="date_from" class="form-control form-control-sm"
                                    value="{{ date_from }}" placeholder="开始日期">
                             <span>至</span>
-                            <input type="date" name="date_to" class="form-control form-control-sm" 
+                            <input type="date" name="date_to" class="form-control form-control-sm"
                                    value="{{ date_to }}" placeholder="结束日期">
                         </div>
                     </div>
                 </div>
                 <div class="list-page-filter-search">
                     <div class="list-page-filter-search-input">
-                        <input type="text" name="search" class="form-control form-control-sm" 
+                        <input type="text" name="search" class="form-control form-control-sm"
                                placeholder="搜索商机编号、名称、项目、客户..." value="{{ search }}">
                     </div>
                     <div class="list-page-filter-actions">
@@ -111,7 +107,7 @@
             </div>
         </form>
     </div>
-        
+
         {% if page_obj %}
         <div class="list-page-table-container">
             <div class="list-page-table-wrapper">
@@ -223,7 +219,7 @@
         </div>
         {% endif %}
         {% else %}
-        
+
         <div class="list-page-empty">
             <div class="list-page-empty-icon">📭</div>
             <p class="list-page-empty-text">暂无赢单与输单数据</p>

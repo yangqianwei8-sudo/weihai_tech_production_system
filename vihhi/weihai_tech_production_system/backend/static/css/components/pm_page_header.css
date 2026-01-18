@@ -18,11 +18,17 @@
   flex: 1;
   min-width: 0;
   padding-bottom: 8px !important;
-  border-bottom: 1px solid #E0E0E0 !important;
+    border-bottom: none !important;
   margin-bottom: 8px !important;
 }
 
-.pm-page-header h1 {
+.pm-page-header h1,
+.pm-page-header .pm-page-header-title-wrapper h1,
+html body .pm-page-header .pm-page-header-title-wrapper h1,
+html body .pm-page-header h1,
+.plan-content .pm-page-header h1,
+.plan-content .pm-page-header .pm-page-header-title-wrapper h1,
+html body .plan-content .pm-page-header .pm-page-header-title-wrapper h1 {
   font-size: 24px !important;
   font-weight: 600 !important;
   color: #1A1A1A !important;
@@ -33,19 +39,38 @@
   line-height: 1.2;
 }
 
-.pm-page-header .pm-subtitle {
+.pm-page-header .pm-subtitle,
+.pm-page-header .pm-page-header-title-wrapper .pm-subtitle,
+html body .pm-page-header .pm-page-header-title-wrapper .pm-subtitle,
+html body .pm-page-header .pm-subtitle {
   font-size: 12px !important;
   color: #999999 !important;
   margin: 0 !important;
-  padding: 0 !important;
+  padding: 0 0 2px 0 !important;
   white-space: nowrap;
   font-weight: 400;
   display: inline-block !important;
   line-height: 1.2;
+  border-bottom: none !important;
+  border-bottom-width: 0 !important;
+  border-bottom-style: none !important;
+  border-bottom-color: transparent !important;
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  text-decoration-style: none !important;
+  text-decoration-color: transparent !important;
 }
 
 .pm-page-header .pm-subtitle span {
   display: inline !important;
+  border-bottom: none !important;
+  border-bottom-width: 0 !important;
+  border-bottom-style: none !important;
+  border-bottom-color: transparent !important;
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  text-decoration-style: none !important;
+  text-decoration-color: transparent !important;
 }
 
 .pm-page-header .pm-actions {
@@ -53,6 +78,6 @@
   margin-left: 16px;
   align-self: flex-start;
   padding-bottom: 8px !important;
-  border-bottom: 1px solid #E0E0E0 !important;
+  border-bottom: none !important;
   margin-bottom: 8px !important;
 }

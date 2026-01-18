@@ -6,23 +6,9 @@
   <style>
     /* ========== 功能模块首页样式 ========== */
 
-    .module-home-wrap {
-      padding: 0;
-    }
-
-    /* 第一行：顶部操作栏 */
-    .module-home-top-actions {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      padding: 16px;
-      background: var(--vh-card-bg, #FFFFFF);
-      border: 1px solid var(--vh-border-secondary, #E0E0E0);
-      border-radius: 4px;
-    }
-
+        /* 标题行操作按钮样式 */
     .module-home-top-action-btn {
-      padding: 8px 16px;
+      padding: 6px 16px;
       background: var(--vh-text-primary, #1A1A1A);
       color: var(--vh-bg-primary, #FFFFFF);
       border: none;
@@ -31,6 +17,7 @@
       font-size: 14px;
       cursor: pointer;
       transition: background 0.2s;
+      white-space: nowrap;
     }
 
     .module-home-top-action-btn:hover {
@@ -38,6 +25,7 @@
       color: var(--vh-bg-primary, #FFFFFF);
       text-decoration: none;
     }
+
 
     /* 第二行：核心指标卡片 */
     .module-home-core-cards {
@@ -303,6 +291,18 @@
     }
   </style>
 {% endblock module_styles %}
+
+
+{% block page_actions %}
+  {{ block.super }}
+  {% if top_actions %}
+    {% for action in top_actions %}
+      <a href="{{ action.url }}" class="module-home-top-action-btn">
+        {{ action.icon }} {{ action.label }}
+      </a>
+    {% endfor %}
+  {% endif %}
+{% endblock page_actions %}
 
 {% block pm_content %}
   <div class="module-home-wrap">

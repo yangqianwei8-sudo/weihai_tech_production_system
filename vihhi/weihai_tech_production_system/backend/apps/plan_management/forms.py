@@ -38,12 +38,12 @@ class StrategicGoalForm(forms.ModelForm):
     class Meta:
         model = StrategicGoal
         fields = [
+            # 固定字段（前三个）：所属部门、负责人、表单编号
+            'responsible_department', 'responsible_person', 'goal_number',
             # 基本信息
-            'goal_number', 'name', 'goal_type', 'goal_period', 'status',
+            'name', 'level', 'goal_type', 'goal_period', 'status',  # P2-2: 添加 level
             # 目标指标
             'indicator_name', 'indicator_type', 'indicator_unit', 'target_value', 'current_value',
-            # 责任人信息
-            'responsible_person', 'responsible_department',
             # 目标描述
             'description', 'background', 'significance',
             # 权重设置
@@ -190,12 +190,42 @@ class StrategicGoalForm(forms.ModelForm):
             # 新建时：显示提示信息，系统会自动生成
             self.fields['goal_number'].widget.attrs['placeholder'] = '系统将自动生成'
         
-        # 如果是编辑，设置初始值
+        # P2-2: 设置 level 字段的初始值和逻辑
         if self.instance and self.instance.pk:
+            # 编辑时：使用现有值
             self.fields['participants'].initial = self.instance.participants.all()
             self.fields['related_projects'].initial = self.instance.related_projects.all()
         else:
-            # 新建时，设置开始日期默认为当天
+            # 新建时：设置默认值
+            # 设置所属部门和负责人为只读（默认值，不可修改）
+            if user:
+                # 先设置默认值
+                self.fields['responsible_person'].initial = user
+                # 所属部门默认为当前用户所在部门
+                user_department = None
+                if hasattr(user, 'department') and user.department:
+                    user_department = user.department
+                elif hasattr(user, 'profile') and hasattr(user.profile, 'department') and user.profile.department:
+                    user_department = user.profile.department
+                if user_department:
+                    self.fields['responsible_department'].initial = user_department
+                
+                # 然后设置为只读和禁用
+                self.fields['responsible_department'].widget.attrs['disabled'] = True
+                self.fields['responsible_department'].label = '所属部门（默认，不可修改）'
+                self.fields['responsible_person'].widget.attrs['disabled'] = True
+                self.fields['responsible_person'].label = '负责人（默认，不可修改）'
+            
+            # 根据是否有 parent_goal 设置 level
+            parent_goal_id = self.data.get('parent_goal') or self.initial.get('parent_goal')
+            if parent_goal_id:
+                # 有父目标，说明是个人目标
+                self.fields['level'].initial = 'personal'
+            else:
+                # 没有父目标，说明是公司目标
+                self.fields['level'].initial = 'company'
+            
+            # 设置开始日期默认为当天
             today = date.today()
             self.fields['start_date'].initial = today
             
@@ -262,6 +292,16 @@ class StrategicGoalForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+        
+        # 处理 disabled 字段：如果字段被禁用，从 initial 值获取
+        if not self.instance or not self.instance.pk:
+            # 新建时，如果字段被禁用，使用 initial 值
+            if self.fields['responsible_person'].widget.attrs.get('disabled'):
+                if not cleaned_data.get('responsible_person') and self.fields['responsible_person'].initial:
+                    cleaned_data['responsible_person'] = self.fields['responsible_person'].initial
+            if self.fields['responsible_department'].widget.attrs.get('disabled'):
+                if not cleaned_data.get('responsible_department') and self.fields['responsible_department'].initial:
+                    cleaned_data['responsible_department'] = self.fields['responsible_department'].initial
         start_date = cleaned_data.get('start_date')
         end_date = cleaned_data.get('end_date')
         target_value = cleaned_data.get('target_value')
@@ -426,6 +466,16 @@ class GoalAdjustmentForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+        
+        # 处理 disabled 字段：如果字段被禁用，从 initial 值获取
+        if not self.instance or not self.instance.pk:
+            # 新建时，如果字段被禁用，使用 initial 值
+            if self.fields['responsible_person'].widget.attrs.get('disabled'):
+                if not cleaned_data.get('responsible_person') and self.fields['responsible_person'].initial:
+                    cleaned_data['responsible_person'] = self.fields['responsible_person'].initial
+            if self.fields['responsible_department'].widget.attrs.get('disabled'):
+                if not cleaned_data.get('responsible_department') and self.fields['responsible_department'].initial:
+                    cleaned_data['responsible_department'] = self.fields['responsible_department'].initial
         new_target_value = cleaned_data.get('new_target_value')
         new_end_date = cleaned_data.get('new_end_date')
         
@@ -454,7 +504,7 @@ class PlanForm(forms.ModelForm):
         model = Plan
         fields = [
             # 基本信息
-            'plan_number', 'name', 'plan_type', 'plan_period',
+            'plan_number', 'name', 'level', 'plan_period',
             # 关联信息
             'related_goal', 'parent_plan', 'related_project',
             # 计划内容
@@ -481,7 +531,7 @@ class PlanForm(forms.ModelForm):
                 'placeholder': '请输入计划名称',
                 'maxlength': '200'
             }),
-            'plan_type': forms.Select(attrs={'class': 'form-select'}),
+            'level': forms.Select(attrs={'class': 'form-select'}),
             'plan_period': forms.Select(attrs={'class': 'form-select'}),
             'related_goal': forms.Select(attrs={
                 'class': 'form-select',
@@ -642,18 +692,6 @@ class PlanForm(forms.ModelForm):
                 self.fields['end_time'].initial = self.instance.end_time.date()
         else:
             # 新建时，设置默认值
-            # 负责人默认为当前用户
-            if user:
-                self.fields['responsible_person'].initial = user
-                # 负责部门默认为当前用户所在部门
-                # 优先使用 user.department，如果没有则尝试 user.profile.department
-                user_department = None
-                if hasattr(user, 'department') and user.department:
-                    user_department = user.department
-                elif hasattr(user, 'profile') and hasattr(user.profile, 'department') and user.profile.department:
-                    user_department = user.profile.department
-                if user_department:
-                    self.fields['responsible_department'].initial = user_department
             
             # 设置开始日期默认为当天
             today = date.today()
@@ -728,6 +766,16 @@ class PlanForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+        
+        # 处理 disabled 字段：如果字段被禁用，从 initial 值获取
+        if not self.instance or not self.instance.pk:
+            # 新建时，如果字段被禁用，使用 initial 值
+            if self.fields['responsible_person'].widget.attrs.get('disabled'):
+                if not cleaned_data.get('responsible_person') and self.fields['responsible_person'].initial:
+                    cleaned_data['responsible_person'] = self.fields['responsible_person'].initial
+            if self.fields['responsible_department'].widget.attrs.get('disabled'):
+                if not cleaned_data.get('responsible_department') and self.fields['responsible_department'].initial:
+                    cleaned_data['responsible_department'] = self.fields['responsible_department'].initial
         start_time = cleaned_data.get('start_time')
         end_time = cleaned_data.get('end_time')
         budget = cleaned_data.get('budget')
@@ -963,6 +1011,16 @@ class PlanAdjustmentForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+        
+        # 处理 disabled 字段：如果字段被禁用，从 initial 值获取
+        if not self.instance or not self.instance.pk:
+            # 新建时，如果字段被禁用，使用 initial 值
+            if self.fields['responsible_person'].widget.attrs.get('disabled'):
+                if not cleaned_data.get('responsible_person') and self.fields['responsible_person'].initial:
+                    cleaned_data['responsible_person'] = self.fields['responsible_person'].initial
+            if self.fields['responsible_department'].widget.attrs.get('disabled'):
+                if not cleaned_data.get('responsible_department') and self.fields['responsible_department'].initial:
+                    cleaned_data['responsible_department'] = self.fields['responsible_department'].initial
         new_end_time = cleaned_data.get('new_end_time')
         
         if not self.plan:

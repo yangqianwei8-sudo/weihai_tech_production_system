@@ -1,0 +1,242 @@
+{% extends "shared/list_page_base.html" %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战略目标列表 - 维海科技</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">
+            <i class="fas fa-cube"></i>
+            维海科技
+        </div>
+
+        <div class="header-nav">
+            <a href="/dashboard/" class="nav-item">工作台首页</a>
+            <a href="#" class="nav-item">数据分析</a>
+            <a href="#" class="nav-item">消息中心</a>
+            <a href="#" class="nav-item">工作日程</a>
+        </div>
+
+        <div class="user-info">
+            <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+            <button class="logout-btn" onclick="window.location.href='/logout/'">
+                <i class="fas fa-sign-out-alt"></i> 退出
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+
+            <div class="page-header">
+                <h1 class="page-title">目标列表</h1>
+                <p class="page-subtitle">查看和管理所有战略目标</p>
+            </div>
+
+            <div class="page-actions">
+                <a href="{% url 'plan_pages:strategic_goal_create' %}" class="btn-primary">
+                    <i class="fas fa-plus"></i> 创建战略目标
+                </a>
+            </div>
+
+            <div class="list-stats">
+                <div class="list-stat-card">
+                    <div class="list-stat-label">目标总数</div>
+                    <div class="list-stat-value">{{ total_count|default:0 }}</div>
+                </div>
+                <div class="list-stat-card">
+                    <div class="list-stat-label">制定中</div>
+                    <div class="list-stat-value">{{ draft_count|default:0 }}</div>
+                </div>
+                <div class="list-stat-card">
+                    <div class="list-stat-label">已发布</div>
+                    <div class="list-stat-value">{{ published_count|default:0 }}</div>
+                </div>
+                <div class="list-stat-card">
+                    <div class="list-stat-label">执行中</div>
+                    <div class="list-stat-value">{{ in_progress_count|default:0 }}</div>
+                </div>
+                <div class="list-stat-card">
+                    <div class="list-stat-label">已完成</div>
+                    <div class="list-stat-value">{{ completed_count|default:0 }}</div>
+                </div>
+                <div class="list-stat-card">
+                    <div class="list-stat-label">已取消</div>
+                    <div class="list-stat-value">{{ cancelled_count|default:0 }}</div>
+                </div>
+            </div>
+
+            <div class="list-filters">
+                <form method="get" class="list-filters-form">
+                    <div class="list-filter-group">
+                        <label class="list-filter-label">搜索</label>
+                        <input type="text" name="search" class="list-filter-input"
+                               value="{{ search }}" placeholder="目标编号、名称、负责人">
+                    </div>
+                    <div class="list-filter-group">
+                        <label class="list-filter-label">状态</label>
+                        <select name="status" class="list-filter-input">
+                            <option value="">全部状态</option>
+                            <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>制定中</option>
+                            <option value="published" {% if status_filter == 'published' %}selected{% endif %}>已发布</option>
+                            <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>执行中</option>
+                            <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>已完成</option>
+                            <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>已取消</option>
+                        </select>
+                    </div>
+                    <div class="list-filter-group">
+                        <label class="list-filter-label">目标类型</label>
+                        <select name="goal_type" class="list-filter-input">
+                            <option value="">全部类型</option>
+                            <option value="personal" {% if goal_type_filter == 'personal' %}selected{% endif %}>个人目标</option>
+                            <option value="department" {% if goal_type_filter == 'department' %}selected{% endif %}>部门目标</option>
+                            <option value="company" {% if goal_type_filter == 'company' %}selected{% endif %}>公司目标</option>
+                            <option value="project" {% if goal_type_filter == 'project' %}selected{% endif %}>项目目标</option>
+                        </select>
+                    </div>
+                    <div class="list-filter-group">
+                        <label class="list-filter-label">目标周期</label>
+                        <select name="goal_period" class="list-filter-input">
+                            <option value="">全部周期</option>
+                            <option value="daily" {% if goal_period_filter == 'daily' %}selected{% endif %}>日目标</option>
+                            <option value="weekly" {% if goal_period_filter == 'weekly' %}selected{% endif %}>周目标</option>
+                            <option value="monthly" {% if goal_period_filter == 'monthly' %}selected{% endif %}>月目标</option>
+                            <option value="quarterly" {% if goal_period_filter == 'quarterly' %}selected{% endif %}>季度目标</option>
+                            <option value="yearly" {% if goal_period_filter == 'yearly' %}selected{% endif %}>年目标</option>
+                        </select>
+                    </div>
+                    <div class="list-filter-group">
+                        <label class="list-filter-label">负责人</label>
+                        <select name="responsible" class="list-filter-input">
+                            <option value="">全部负责人</option>
+                            {% for u in all_users %}
+                            <option value="{{ u.id }}" {% if responsible_filter|stringformat:"s" == u.id|stringformat:"s" %}selected{% endif %}>
+                                {{ u.get_full_name|default:u.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="list-filter-actions">
+                        <button type="submit" class="list-btn list-btn-primary">筛选</button>
+                        <a href="{% url 'plan_pages:strategic_goal_list' %}" class="list-btn">重置</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="list-table-container">
+                <table class="list-table">
+                    <thead>
+                        <tr>
+                            <th>目标编号</th>
+                            <th>目标名称</th>
+                            <th>目标类型</th>
+                            <th>目标周期</th>
+                            <th>关联目标</th>
+                            <th>负责人</th>
+                            <th>时间范围</th>
+                            <th>进度</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for goal in goals %}
+                        <tr>
+                            <td><code>{{ goal.goal_number }}</code></td>
+                            <td>
+                                <a href="{% url 'plan_pages:strategic_goal_detail' goal.id %}">
+                                    {{ goal.name }}
+                                </a>
+                            </td>
+                            <td>{{ goal.get_goal_type_display|default:goal.goal_type }}</td>
+                            <td>{{ goal.get_goal_period_display|default:goal.goal_period }}</td>
+                            <td>
+                                {% if goal.parent_goal %}
+                                <a href="{% url 'plan_pages:strategic_goal_detail' goal.parent_goal.id %}">
+                                    {{ goal.parent_goal.name|truncatewords:5 }}
+                                </a>
+                                {% else %}
+                                <span style="color: #999999;">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ goal.responsible_person.get_full_name|default:goal.responsible_person.username }}</td>
+                            <td>
+                                <div style="font-size: 11px; color: #666666;">
+                                    {{ goal.start_date|date:"Y-m-d" }}<br>
+                                    {{ goal.end_date|date:"Y-m-d" }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="list-progress">
+                                    <div class="list-progress-fill" style="width: {{ goal.completion_rate|default:0 }}%"></div>
+                                    <span class="list-progress-text">{{ goal.completion_rate|default:0 }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% with s=goal.status %}
+                                <span class="list-badge list-badge-{{ s }}">
+                                    {{ goal.get_status_display|default:goal.status }}
+                                </span>
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="list-actions">
+                                    <a href="{% url 'plan_pages:strategic_goal_detail' goal.id %}" class="list-btn" title="查看">查看</a>
+                                    {% if goal.status in 'draft,published' %}
+                                    <a href="{% url 'plan_pages:strategic_goal_edit' goal.id %}" class="list-btn" title="编辑">编辑</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="list-empty">
+                                <div class="list-empty-icon">▢</div>
+                                <div class="list-empty-text">暂无目标数据</div>
+                                <div class="list-empty-hint">请创建第一个目标开始使用</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if goals.has_other_pages %}
+            <div class="list-pagination">
+                <div class="list-pagination-info">
+                    显示第 {{ goals.start_index }} - {{ goals.end_index }} 条，共 {{ goals.paginator.count }} 条
+                </div>
+                <div class="list-pagination-nav">
+                    {% if goals.has_previous %}
+                    <a href="?page={{ goals.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if goal_type_filter %}&goal_type={{ goal_type_filter }}{% endif %}{% if goal_period_filter %}&goal_period={{ goal_period_filter }}{% endif %}{% if responsible_filter %}&responsible={{ responsible_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="list-pagination-btn">上一页</a>
+                    {% else %}
+                    <span class="list-pagination-btn disabled">上一页</span>
+                    {% endif %}
+
+                    {% for num in goals.paginator.page_range %}
+                    {% if goals.number == num %}
+                    <span class="list-pagination-btn active">{{ num }}</span>
+                    {% elif num > goals.number|add:'-3' and num < goals.number|add:'3' %}
+                    <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if goal_type_filter %}&goal_type={{ goal_type_filter }}{% endif %}{% if goal_period_filter %}&goal_period={{ goal_period_filter }}{% endif %}{% if responsible_filter %}&responsible={{ responsible_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="list-pagination-btn">{{ num }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if goals.has_next %}
+                    <a href="?page={{ goals.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if goal_type_filter %}&goal_type={{ goal_type_filter }}{% endif %}{% if goal_period_filter %}&goal_period={{ goal_period_filter }}{% endif %}{% if responsible_filter %}&responsible={{ responsible_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="list-pagination-btn">下一页</a>
+                    {% else %}
+                    <span class="list-pagination-btn disabled">下一页</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
