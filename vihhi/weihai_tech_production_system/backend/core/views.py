@@ -89,20 +89,21 @@ HOME_ACTION_DEFINITIONS = [
 HOME_NAV_STRUCTURE = [
     # 按数据库模块定义顺序排列，确保与数据库一致
     {'label': '客户管理', 'icon': '👥', 'url_name': 'customer_pages:customer_management_home_alt', 'permission': 'customer_management.client.view'},
-    {'label': '商机管理', 'icon': '💼', 'url_name': 'opportunity_pages:opportunity_management_home_alt', 'permission': 'customer_success.opportunity.view'},
+    {'label': '商机管理', 'icon': '💼', 'url_name': 'opportunity_pages:opportunity_management_home_alt', 'permission': 'customer_management.opportunity.view'},
     {'label': '合同管理', 'icon': '📄', 'url_name': 'contract_pages:contract_management_home_alt', 'permission': 'customer_management.contract.view'},
-    {'label': '回款管理', 'icon': '💰', 'url_name': 'settlement_pages:payment_plan_list', 'permission': 'payment_management.payment_plan.view'},  # 回款管理独立模块
-    {'label': '生产管理', 'icon': '🏗️', 'url_name': 'production_pages:project_list', 'permission': 'production_management.view_assigned'},
+    {'label': '回款管理', 'icon': '💰', 'url_name': 'settlement_pages:settlement_home', 'permission': 'payment_management.payment_plan.view'},  # 回款管理独立模块
+    {'label': '生产管理', 'icon': '🏗️', 'url_name': 'production_pages:production_management_home', 'permission': 'production_management.view_assigned'},
     {'label': '资源管理', 'icon': '🗂️', 'url_name': 'resource_standard_pages:standard_list', 'permission': 'resource_center.view'},
     {'label': '任务协作', 'icon': '🤝', 'url_name': 'collaboration_pages:task_board', 'permission': 'task_collaboration.view'},
-    {'label': '收发管理', 'icon': '📦', 'url_name': 'delivery_pages:report_delivery', 'permission': 'delivery_center.view'},
-    {'label': '档案管理', 'icon': '📁', 'url_name': 'archive_management:archive_list', 'permission': 'archive_management.view'},
+    {'label': '收文管理', 'icon': '📥', 'url_name': 'delivery_pages:incoming_document_home', 'permission': 'delivery_center.view'},
+    {'label': '发文管理', 'icon': '📤', 'url_name': 'delivery_pages:outgoing_document_home', 'permission': 'delivery_center.view'},
+    {'label': '档案管理', 'icon': '📁', 'url_name': 'archive_management:archive_management_home', 'permission': 'archive_management.view'},
     {'label': '计划管理', 'icon': '📅', 'url_name': 'plan_pages:plan_management_home', 'permission': 'plan_management.view'},
-    {'label': '诉讼管理', 'icon': '⚖️', 'url_name': 'litigation_pages:litigation_home', 'permission': 'litigation_management.view'},
+    {'label': '诉讼管理', 'icon': '⚖️', 'url_name': 'litigation_pages:litigation_management_home', 'permission': 'litigation_management.view'},
     {'label': '风险管理', 'icon': '⚠️', 'url_name': '#', 'permission': 'risk_management.view'},  # 占位，待实现
-    {'label': '财务管理', 'icon': '💵', 'url_name': 'finance_pages:financial_home', 'permission': 'financial_management.view'},
-    {'label': '人事管理', 'icon': '👤', 'url_name': 'personnel_pages:personnel_home', 'permission': 'personnel_management.view'},
-    {'label': '行政管理', 'icon': '🏢', 'url_name': 'admin_pages:administrative_home', 'permission': 'administrative_management.view'},
+    {'label': '财务管理', 'icon': '💵', 'url_name': 'finance_pages:financial_management_home', 'permission': 'financial_management.view'},
+    {'label': '人事管理', 'icon': '👤', 'url_name': 'personnel_pages:personnel_management_home', 'permission': 'personnel_management.view'},
+    {'label': '行政管理', 'icon': '🏢', 'url_name': 'admin_pages:administrative_management_home', 'permission': 'administrative_management.view'},
     {'label': '系统管理', 'icon': '⚙️', 'url_name': 'system_pages:system_settings', 'permission': 'system_management.view'},
     # 注意：权限管理仅保留在Django Admin后台管理中，不添加到前端导航栏
 ]
@@ -142,6 +143,105 @@ def _build_full_top_nav(permission_set, user=None):
         })
     
     return nav
+
+
+# 场景分组配置
+SCENE_GROUPS = [
+    {
+        'title': '销售与客户',
+        'icon': 'fa-chart-line',
+        'items': [
+            {'label': '客户管理', 'icon': 'fa-users', 'url_name': 'customer_pages:customer_management_home_alt', 'permission': 'customer_management.client.view'},
+            {'label': '商机管理', 'icon': 'fa-briefcase', 'url_name': 'opportunity_pages:opportunity_management_home_alt', 'permission': 'customer_management.opportunity.view'},
+            {'label': '合同管理', 'icon': 'fa-file-contract', 'url_name': 'contract_pages:contract_management_home_alt', 'permission': 'customer_management.contract.view'},
+            {'label': '回款管理', 'icon': 'fa-money-bill-wave', 'url_name': 'settlement_pages:settlement_home', 'permission': 'payment_management.payment_plan.view'},
+        ]
+    },
+    {
+        'title': '生产与运营',
+        'icon': 'fa-industry',
+        'items': [
+            {'label': '生产管理', 'icon': 'fa-industry', 'url_name': 'production_pages:production_management_home', 'permission': 'production_management.view_assigned'},
+            {'label': '资源管理', 'icon': 'fa-tools', 'url_name': 'resource_standard_pages:standard_list', 'permission': 'resource_center.view'},
+            {'label': '收发货管理', 'icon': 'fa-truck', 'url_name': 'delivery_pages:report_delivery', 'permission': 'delivery_center.view'},
+            {'label': '任务协作', 'icon': 'fa-tasks', 'url_name': 'collaboration_pages:task_board', 'permission': 'task_collaboration.view'},
+            {'label': '计划管理', 'icon': 'fa-calendar-alt', 'url_name': 'plan_pages:plan_management_home', 'permission': 'plan_management.view'},
+        ]
+    },
+    {
+        'title': '财务与人事',
+        'icon': 'fa-chart-bar',
+        'items': [
+            {'label': '财务管理', 'icon': 'fa-chart-line', 'url_name': 'finance_pages:financial_management_home', 'permission': 'financial_management.view'},
+            {'label': '人事管理', 'icon': 'fa-user-tie', 'url_name': 'personnel_pages:personnel_management_home', 'permission': 'personnel_management.view'},
+        ]
+    },
+    {
+        'title': '风控与合规',
+        'icon': 'fa-shield-alt',
+        'items': [
+            {'label': '诉讼管理', 'icon': 'fa-gavel', 'url_name': 'litigation_pages:litigation_management_home', 'permission': 'litigation_management.view'},
+            {'label': '风险管理', 'icon': 'fa-exclamation-triangle', 'url_name': '#', 'permission': 'risk_management.view'},
+            {'label': '档案管理', 'icon': 'fa-archive', 'url_name': 'archive_management:archive_management_home', 'permission': 'archive_management.view'},
+        ]
+    },
+    {
+        'title': '行政与支持',
+        'icon': 'fa-cogs',
+        'items': [
+            {'label': '行政管理', 'icon': 'fa-building', 'url_name': 'admin_pages:administrative_management_home', 'permission': 'administrative_management.view'},
+            {'label': '系统管理', 'icon': 'fa-server', 'url_name': 'system_pages:system_settings', 'permission': 'system_management.view'},
+        ]
+    },
+]
+
+
+def _build_scene_groups(permission_set, user=None):
+    """构建场景分组菜单
+    
+    Args:
+        permission_set: 用户权限集合
+        user: 当前用户对象（可选）
+    
+    Returns:
+        list: 场景分组列表，每个分组包含标题、图标和菜单项
+    """
+    scene_groups = []
+    
+    for group in SCENE_GROUPS:
+        items = []
+        for item in group['items']:
+            # 检查权限
+            if item.get('permission'):
+                if not _permission_granted(item['permission'], permission_set):
+                    continue
+            
+            # 构建URL
+            url = '#'
+            if item.get('url_name'):
+                try:
+                    url = reverse(item['url_name'])
+                except NoReverseMatch:
+                    url = item.get('url', '#')
+            else:
+                url = item.get('url', '#')
+            
+            items.append({
+                'label': item['label'],
+                'icon': item['icon'],
+                'url': url,
+            })
+        
+        # 只有当分组中有可见的菜单项时才添加该分组
+        if items:
+            scene_groups.append({
+                'title': group['title'],
+                'icon': group['icon'],
+                'items': items,
+                'count': len(items),
+            })
+    
+    return scene_groups
 
 
 def _serialize_task_for_home(task):
@@ -233,6 +333,13 @@ def home(request):
         except Exception as e:
             logger.warning(f'构建导航菜单失败: {e}', exc_info=True)
             centers_navigation = []
+        
+        # 构建场景分组菜单
+        try:
+            scene_groups = _build_scene_groups(permission_set, user)
+        except Exception as e:
+            logger.warning(f'构建场景分组菜单失败: {e}', exc_info=True)
+            scene_groups = []
         
         # 初始化统计数据
         pending_counts = {'personal': 0, 'due_today': 0, 'overdue': 0}
@@ -629,12 +736,39 @@ def home(request):
         except Exception:
             pass
         
+        # ========== 运营中心模块卡片 ==========
+        operation_center_sections = []
+        
+        # 计划管理模块卡片
+        try:
+            if _permission_granted('plan_management.view', permission_set):
+                # 获取计划管理统计数据
+                from backend.apps.plan_management.models import Plan, StrategicGoal
+                total_plans = Plan.objects.count()
+                in_progress_plans = Plan.objects.filter(status='in_progress').count()
+                total_goals = StrategicGoal.objects.count()
+                
+                operation_center_sections.append({
+                    'title': '计划管理',
+                    'description': '管理计划、目标和审批流程',
+                    'icon': '📅',
+                    'url': reverse('plan_pages:plan_management_home'),
+                    'stats': {
+                        '计划总数': total_plans,
+                        '执行中': in_progress_plans,
+                        '目标总数': total_goals,
+                    }
+                })
+        except Exception as e:
+            logger.warning(f'获取计划管理统计数据失败: {e}')
+        
         # 构建上下文
         context = {
             'user': user,
             'is_superuser': getattr(user, 'is_superuser', False),
             'centers_navigation': centers_navigation,
             'full_top_nav': centers_navigation,  # 顶部导航菜单（与计划管理模块一致）
+            'scene_groups': scene_groups,  # 场景分组菜单（用于左侧栏场景式显示）
             'pending_counts': pending_counts,
             'approval_stats': approval_stats,
             'delivery_stats': delivery_stats,
@@ -653,6 +787,7 @@ def home(request):
             'recent_activities': recent_activities,
             'top_actions': top_actions,
             'my_work': my_work,
+            'operation_center_sections': operation_center_sections,  # 运营中心模块卡片
         }
         
         # 尝试渲染模板，如果模板不存在则返回简单HTML
