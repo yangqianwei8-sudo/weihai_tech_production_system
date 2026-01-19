@@ -150,6 +150,18 @@ def custom_each_context(self, request):
     if 'subtitle' in context:
         del context['subtitle']
     
+    # ========== 强制清空业务菜单数据（防止业务导航出现在 admin 页面）==========
+    # 确保 admin 页面不会渲染业务系统的顶部导航栏和侧边栏
+    context['full_top_nav'] = []
+    context['sidebar_nav'] = []
+    context['sidebar_menu'] = []
+    context['personnel_menu'] = []
+    context['customer_menu'] = []
+    context['plan_menu'] = []
+    context['settlement_menu'] = []
+    context['administrative_sidebar_nav'] = []
+    # ========== 强制清空业务菜单数据结束 ==========
+    
     # 检测当前URL路径，判断是否是应用级别的页面
     filter_app_label = _extract_app_label_from_path(request.path)
     

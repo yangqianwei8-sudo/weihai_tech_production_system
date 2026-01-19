@@ -115,13 +115,62 @@ html[data-in-admin="1"] [class*="sidebar"],
 html[data-in-admin="1"] [class*="topbar"],
 html[data-in-admin="1"] [class*="workspace-nav"],
 html[data-in-admin="1"] [id*="sidebar"],
-html[data-in-admin="1"] [id*="topbar"] {
+html[data-in-admin="1"] [id*="topbar"],
+/* 隐藏 Bootstrap navbar（业务系统的顶部导航栏）- 最高优先级 */
+html[data-in-admin="1"] .navbar,
+html[data-in-admin="1"] .navbar-expand-lg,
+html[data-in-admin="1"] .navbar-dark,
+html[data-in-admin="1"] nav.navbar,
+html[data-in-admin="1"] nav[class*="navbar"],
+html[data-in-admin="1"] .container-fluid:has(.navbar),
+html[data-in-admin="1"] body > nav.navbar,
+html[data-in-admin="1"] body > .navbar,
+/* 隐藏业务系统的容器和布局 */
+html[data-in-admin="1"] .workspace,
+html[data-in-admin="1"] .workspace-content,
+html[data-in-admin="1"] .app-wrapper {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
     height: 0 !important;
     width: 0 !important;
     overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    pointer-events: none !important;
+}
+
+/* 额外保护：直接针对 body 的直接子元素中的 navbar */
+body[class*="admin"] > nav.navbar,
+body[class*="admin"] > .navbar,
+body.change-list > nav.navbar,
+body.change-list > .navbar,
+body.change-form > nav.navbar,
+body.change-form > .navbar {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    pointer-events: none !important;
+}
+
+/* 最强制规则：在 admin 页面隐藏所有业务系统的 navbar（排除 Django admin 的 #header） */
+body:has(#header) nav.navbar:not(#header):not(#header *),
+body:has(#header) > nav.navbar:not(#header),
+body:has(#header) .navbar:not(#header):not(#header *) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    pointer-events: none !important;
 }
 
 /* 如果 body 有 admin 相关 class，也隐藏业务导航 */
@@ -132,8 +181,12 @@ body.change-list .sidebar-nav,
 body.change-list .module-sidebar,
 body.change-list .topbar,
 body.change-list .top-nav,
-body.change-list .full-top-nav {
+body.change-list .full-top-nav,
+body.change-list .navbar,
+body.change-list .workspace,
+body.change-list .workspace-content {
     display: none !important;
+    visibility: hidden !important;
 }
 /* ========== 强制隐藏业务导航结束 ========== */
 
