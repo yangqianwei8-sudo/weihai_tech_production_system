@@ -2855,6 +2855,13 @@ def plan_completion_analysis(request):
     # 查询计划
     plans = Plan.objects.select_related('responsible_person', 'related_goal')
     
+    # 公司隔离
+    from backend.apps.plan_management.utils import apply_company_scope
+    plans = apply_company_scope(plans, request.user)
+    
+    # 权限过滤
+    plans = _filter_plans_by_permission(plans, request.user, permission_set)
+    
     # 时间筛选
     if date_from:
         plans = plans.filter(start_time__gte=date_from)
@@ -2896,10 +2903,10 @@ def plan_completion_analysis(request):
     # 按周期统计
     period_stats = plans.values('plan_period').annotate(count=Count('id')).order_by('plan_period')
     
-    # 平均进度
-    avg_progress = plans.aggregate(avg=Sum('progress'))['avg']
-    if avg_progress and total_count > 0:
-        avg_progress = avg_progress / total_count
+    # 平均进度（使用 Avg 而不是 Sum，更准确）
+    avg_progress_result = plans.aggregate(avg=Avg('progress'))['avg']
+    if avg_progress_result is not None:
+        avg_progress = float(avg_progress_result)
     else:
         avg_progress = 0
     
