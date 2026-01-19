@@ -170,6 +170,10 @@ def custom_each_context(self, request):
     # 添加菜单URL映射到上下文，供前端使用
     context['admin_menu_url_mapping'] = MENU_URL_MAPPING
     
+    # 创建一个简单的字典，将主菜单名称映射到URL，方便模板使用
+    # 这个字典可以直接在模板中通过 admin_menu_urls.菜单名 访问
+    context['admin_menu_urls'] = MENU_URL_MAPPING.copy()
+    
     # 添加排序后的主菜单项列表，供前端使用，并为每个菜单项添加URL
     from .admin_menu_config import MAIN_MENU_ITEMS, get_menu_url
     main_menu_items_with_url = []
@@ -194,6 +198,11 @@ def custom_get_app_list(self, request, app_label=None):
         app_list = _original_get_app_list(request, app_label)
     else:
         app_list = _original_get_app_list(request)
+    
+    # 在首页（app_label为None）时，过滤掉 plan_management 应用
+    # plan_management 有自己的前端页面，不应该在 admin 首页显示
+    if app_label is None:
+        app_list = [app for app in app_list if app.get('app_label') != 'plan_management']
     
     # 遍历所有应用来处理URL
     for app in app_list:

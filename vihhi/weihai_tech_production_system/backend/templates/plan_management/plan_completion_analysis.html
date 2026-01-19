@@ -301,9 +301,7 @@ const statusMap = {
 
 const typeMap = {
     "personal": "个人计划",
-    "department": "部门计划",
-    "company": "公司计划",
-    "project": "项目计划"
+    "company": "公司计划"
 };
 
 const periodMap = {
@@ -384,7 +382,7 @@ new Chart(progressCtx, {
 const typeCtx = document.getElementById("typeChart").getContext("2d");
 const typeLabels = [
     {% for stat in type_stats %}
-    typeMap["{{ stat.plan_type }}"] || "{{ stat.plan_type }}",
+    typeMap["{{ stat.level }}"] || "{{ stat.level }}",
     {% endfor %}
 ];
 const typeData = [

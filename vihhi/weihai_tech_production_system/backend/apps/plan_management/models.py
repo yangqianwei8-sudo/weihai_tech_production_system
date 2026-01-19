@@ -828,6 +828,44 @@ class Plan(models.Model):
             descendants.append(child)
             descendants.extend(child.get_all_descendants())
         return descendants
+    
+    @property
+    def plan_type(self):
+        """
+        向后兼容属性：返回 level 的值
+        plan_type 字段已迁移到 level 字段，此属性用于保持向后兼容
+        """
+        return self.level
+    
+    def get_plan_type_display(self):
+        """
+        向后兼容方法：返回 level 的显示值
+        plan_type 字段已迁移到 level 字段，此方法用于保持向后兼容
+        """
+        return self.get_level_display()
+    
+    @property
+    def priority(self):
+        """
+        向后兼容属性：返回默认优先级
+        priority 字段已在迁移 0025 中删除，此属性用于保持向后兼容
+        返回默认值 'medium'（中）
+        """
+        return 'medium'
+    
+    def get_priority_display(self):
+        """
+        向后兼容方法：返回优先级的显示值
+        priority 字段已在迁移 0025 中删除，此方法用于保持向后兼容
+        返回默认值 '中'
+        """
+        PRIORITY_CHOICES = [
+            ('high', '高'),
+            ('medium', '中'),
+            ('low', '低'),
+        ]
+        choices_dict = dict(PRIORITY_CHOICES)
+        return choices_dict.get(self.priority, '中')
 
 
 class PlanStatusLog(models.Model):

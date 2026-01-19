@@ -1,8 +1,8 @@
 {% extends "plan_management/_base.html" %}
 {% load static %}
 
-{% block pm_title %}目标达成分析{% endblock %}
-{% block pm_subtitle %}<span class="pm-subtitle">分析战略目标的达成情况和统计数据</span>{% endblock %}
+{% block pm_title %}计划完成度分析{% endblock %}
+{% block pm_subtitle %}<span class="pm-subtitle">分析计划的完成情况和统计数据</span>{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/components/list_layout.css' %}">
@@ -128,28 +128,6 @@
     height: 300px;
   }
 
-  .analysis-table-card {
-    background: #FFFFFF;
-    border: 1px solid #E0E0E0;
-    border-radius: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    margin-bottom: 24px;
-  }
-
-  .analysis-table-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #E0E0E0;
-    background: #F5F5F5;
-  }
-
-  .analysis-table-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1A1A1A;
-    margin: 0;
-  }
-
   .analysis-empty {
     background: #FFFFFF;
     border: 1px solid #E0E0E0;
@@ -193,37 +171,37 @@
 <div class="analysis-filters">
   <form method="get" class="analysis-filters-form">
     <div class="analysis-filter-group">
-      <label class="analysis-filter-label">开始日期</label>
+      <label class="analysis-filter-label">开始时间</label>
       <input type="date" name="date_from" class="analysis-filter-input" value="{{ date_from }}">
     </div>
     <div class="analysis-filter-group">
-      <label class="analysis-filter-label">结束日期</label>
+      <label class="analysis-filter-label">结束时间</label>
       <input type="date" name="date_to" class="analysis-filter-input" value="{{ date_to }}">
     </div>
     <div class="analysis-filter-group">
-      <label class="analysis-filter-label">目标类型</label>
-      <select name="goal_type" class="analysis-filter-input">
+      <label class="analysis-filter-label">计划类型</label>
+      <select name="plan_type" class="analysis-filter-input">
         <option value="">全部类型</option>
-        <option value="financial" {% if goal_type == 'financial' %}selected{% endif %}>财务目标</option>
-        <option value="market" {% if goal_type == 'market' %}selected{% endif %}>市场目标</option>
-        <option value="operation" {% if goal_type == 'operation' %}selected{% endif %}>运营目标</option>
-        <option value="innovation" {% if goal_type == 'innovation' %}selected{% endif %}>创新目标</option>
-        <option value="talent" {% if goal_type == 'talent' %}selected{% endif %}>人才目标</option>
-        <option value="other" {% if goal_type == 'other' %}selected{% endif %}>其他</option>
+        <option value="personal" {% if plan_type == 'personal' %}selected{% endif %}>个人计划</option>
+        <option value="department" {% if plan_type == 'department' %}selected{% endif %}>部门计划</option>
+        <option value="company" {% if plan_type == 'company' %}selected{% endif %}>公司计划</option>
+        <option value="project" {% if plan_type == 'project' %}selected{% endif %}>项目计划</option>
       </select>
     </div>
     <div class="analysis-filter-group">
-      <label class="analysis-filter-label">目标周期</label>
-      <select name="goal_period" class="analysis-filter-input">
+      <label class="analysis-filter-label">计划周期</label>
+      <select name="plan_period" class="analysis-filter-input">
         <option value="">全部周期</option>
-        <option value="annual" {% if goal_period == 'annual' %}selected{% endif %}>年度目标</option>
-        <option value="half_year" {% if goal_period == 'half_year' %}selected{% endif %}>半年目标</option>
-        <option value="quarterly" {% if goal_period == 'quarterly' %}selected{% endif %}>季度目标</option>
+        <option value="daily" {% if plan_period == 'daily' %}selected{% endif %}>日计划</option>
+        <option value="weekly" {% if plan_period == 'weekly' %}selected{% endif %}>周计划</option>
+        <option value="monthly" {% if plan_period == 'monthly' %}selected{% endif %}>月计划</option>
+        <option value="quarterly" {% if plan_period == 'quarterly' %}selected{% endif %}>季度计划</option>
+        <option value="yearly" {% if plan_period == 'yearly' %}selected{% endif %}>年计划</option>
       </select>
     </div>
     <div class="analysis-filter-group analysis-filter-actions">
       <button type="submit" class="list-btn list-btn-primary">筛选</button>
-      <a href="{% url 'plan_pages:plan_goal_achievement' %}" class="list-btn">重置</a>
+      <a href="{% url 'plan_pages:plan_completion_analysis' %}" class="list-btn">重置</a>
     </div>
   </form>
 </div>
@@ -231,7 +209,7 @@
 <div class="analysis-stats">
   <div class="analysis-stat-card">
     <div class="analysis-stat-value">{{ total_count }}</div>
-    <div class="analysis-stat-label">目标总数</div>
+    <div class="analysis-stat-label">计划总数</div>
   </div>
   <div class="analysis-stat-card">
     <div class="analysis-stat-value">{{ completed_count }}</div>
@@ -242,22 +220,16 @@
     <div class="analysis-stat-label">执行中</div>
   </div>
   <div class="analysis-stat-card">
-    <div class="analysis-stat-value">{{ avg_completion }}%</div>
-    <div class="analysis-stat-label">平均完成率</div>
+    <div class="analysis-stat-value">{{ completion_rate }}%</div>
+    <div class="analysis-stat-label">完成率</div>
   </div>
   <div class="analysis-stat-card">
-    <div class="analysis-stat-value">{{ published_count }}</div>
-    <div class="analysis-stat-label">已发布</div>
+    <div class="analysis-stat-value">{{ cancelled_count }}</div>
+    <div class="analysis-stat-label">已取消</div>
   </div>
   <div class="analysis-stat-card">
-    <div class="analysis-stat-value">
-      {% if total_count > 0 %}
-        {{ completed_count|floatformat:0 }}/{{ total_count }}
-      {% else %}
-        0/0
-      {% endif %}
-    </div>
-    <div class="analysis-stat-label">完成/总数</div>
+    <div class="analysis-stat-value">{{ avg_progress }}%</div>
+    <div class="analysis-stat-label">平均进度</div>
   </div>
 </div>
 
@@ -276,11 +248,11 @@
 
   <div class="analysis-chart-card">
     <div class="analysis-chart-header">
-      <h5 class="analysis-chart-title">完成率分布</h5>
+      <h5 class="analysis-chart-title">进度分布</h5>
     </div>
     <div class="analysis-chart-body">
       <div class="analysis-chart-container">
-        <canvas id="completionChart"></canvas>
+        <canvas id="progressChart"></canvas>
       </div>
     </div>
   </div>
@@ -307,112 +279,6 @@
     </div>
   </div>
 </div>
-
-{% if high_completion_goals %}
-<div class="analysis-table-card">
-  <div class="analysis-table-header">
-    <h5 class="analysis-table-title">高完成率目标（≥80%）</h5>
-  </div>
-  <div class="list-table-container">
-    <table class="list-table">
-      <thead>
-        <tr>
-          <th>目标名称</th>
-          <th>目标类型</th>
-          <th>完成率</th>
-          <th>负责人</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for goal in high_completion_goals %}
-        <tr>
-          <td>
-            <a href="{% url 'plan_pages:strategic_goal_detail' goal.id %}">
-              {{ goal.name }}
-            </a>
-            {% if goal.description %}
-            <div style="font-size: 12px; color: #666666; margin-top: 4px;">{{ goal.description|truncatewords:10 }}</div>
-            {% endif %}
-          </td>
-          <td>
-            <span class="list-badge">{{ goal.get_goal_type_display }}</span>
-          </td>
-          <td>
-            <div class="list-progress">
-              <div class="list-progress-fill" style="width: {{ goal.completion_rate }}%"></div>
-              <span class="list-progress-text">{{ goal.completion_rate }}%</span>
-            </div>
-          </td>
-          <td>
-            <div style="font-size: 12px; color: #333333;">{{ goal.responsible_person.get_full_name|default:goal.responsible_person.username }}</div>
-            {% if goal.responsible_department %}
-            <div style="font-size: 12px; color: #666666; margin-top: 4px;">{{ goal.responsible_department.name }}</div>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'plan_pages:strategic_goal_detail' goal.id %}" class="list-btn" title="查看详情">查看</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
-
-{% if low_completion_goals %}
-<div class="analysis-table-card">
-  <div class="analysis-table-header">
-    <h5 class="analysis-table-title">低完成率目标（<50%）</h5>
-  </div>
-  <div class="list-table-container">
-    <table class="list-table">
-      <thead>
-        <tr>
-          <th>目标名称</th>
-          <th>目标类型</th>
-          <th>完成率</th>
-          <th>负责人</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for goal in low_completion_goals %}
-        <tr>
-          <td>
-            <a href="{% url 'plan_pages:strategic_goal_detail' goal.id %}">
-              {{ goal.name }}
-            </a>
-            {% if goal.description %}
-            <div style="font-size: 12px; color: #666666; margin-top: 4px;">{{ goal.description|truncatewords:10 }}</div>
-            {% endif %}
-          </td>
-          <td>
-            <span class="list-badge">{{ goal.get_goal_type_display }}</span>
-          </td>
-          <td>
-            <div class="list-progress">
-              <div class="list-progress-fill" style="width: {{ goal.completion_rate }}%"></div>
-              <span class="list-progress-text">{{ goal.completion_rate }}%</span>
-            </div>
-          </td>
-          <td>
-            <div style="font-size: 12px; color: #333333;">{{ goal.responsible_person.get_full_name|default:goal.responsible_person.username }}</div>
-            {% if goal.responsible_department %}
-            <div style="font-size: 12px; color: #666666; margin-top: 4px;">{{ goal.responsible_department.name }}</div>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'plan_pages:strategic_goal_detail' goal.id %}" class="list-btn" title="查看详情">查看</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
 {% else %}
 <div class="analysis-empty">
   <span class="analysis-empty-icon">▢</span>
@@ -427,32 +293,31 @@
 <script>
 {% if total_count > 0 %}
 const statusMap = {
-    'draft': '制定中',
-    'published': '已发布',
-    'in_progress': '执行中',
-    'completed': '已完成',
-    'cancelled': '已取消'
+    "draft": "草稿",
+    "in_progress": "执行中",
+    "completed": "已完成",
+    "cancelled": "已取消"
 };
 
 const typeMap = {
-    'financial': '财务目标',
-    'market': '市场目标',
-    'operation': '运营目标',
-    'innovation': '创新目标',
-    'talent': '人才目标',
-    'other': '其他'
+    "personal": "个人计划",
+    "department": "部门计划",
+    "company": "公司计划",
+    "project": "项目计划"
 };
 
 const periodMap = {
-    'annual': '年度目标',
-    'half_year': '半年目标',
-    'quarterly': '季度目标'
+    "daily": "日计划",
+    "weekly": "周计划",
+    "monthly": "月计划",
+    "quarterly": "季度计划",
+    "yearly": "年计划"
 };
 
-const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusCtx = document.getElementById("statusChart").getContext("2d");
 const statusLabels = [
     {% for stat in status_stats %}
-    statusMap['{{ stat.status }}'] || '{{ stat.status }}',
+    statusMap["{{ stat.status }}"] || "{{ stat.status }}",
     {% endfor %}
 ];
 const statusData = [
@@ -461,12 +326,12 @@ const statusData = [
     {% endfor %}
 ];
 new Chart(statusCtx, {
-    type: 'doughnut',
+    type: "doughnut",
     data: {
         labels: statusLabels,
         datasets: [{
             data: statusData,
-            backgroundColor: ['#E0E0E0', '#CCCCCC', '#999999', '#666666', '#333333']
+            backgroundColor: ["#E0E0E0", "#999999", "#666666", "#333333"]
         }]
     },
     options: {
@@ -474,27 +339,27 @@ new Chart(statusCtx, {
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                position: 'bottom'
+                position: "bottom"
             }
         }
     }
 });
 
-const completionCtx = document.getElementById('completionChart').getContext('2d');
-new Chart(completionCtx, {
-    type: 'bar',
+const progressCtx = document.getElementById("progressChart").getContext("2d");
+new Chart(progressCtx, {
+    type: "bar",
     data: {
-        labels: ['0-25%', '25-50%', '50-75%', '75-100%', '100%'],
+        labels: ["0-25%", "25-50%", "50-75%", "75-100%", "100%"],
         datasets: [{
-            label: '目标数量',
+            label: "计划数量",
             data: [
-                {{ completion_distribution.completion_0_25 }},
-                {{ completion_distribution.completion_25_50 }},
-                {{ completion_distribution.completion_50_75 }},
-                {{ completion_distribution.completion_75_100 }},
-                {{ completion_distribution.completion_100 }}
+                {{ progress_distribution.progress_0_25 }},
+                {{ progress_distribution.progress_25_50 }},
+                {{ progress_distribution.progress_50_75 }},
+                {{ progress_distribution.progress_75_100 }},
+                {{ progress_distribution.progress_100 }}
             ],
-            backgroundColor: '#666666'
+            backgroundColor: "#666666"
         }]
     },
     options: {
@@ -516,10 +381,10 @@ new Chart(completionCtx, {
     }
 });
 
-const typeCtx = document.getElementById('typeChart').getContext('2d');
+const typeCtx = document.getElementById("typeChart").getContext("2d");
 const typeLabels = [
     {% for stat in type_stats %}
-    typeMap['{{ stat.goal_type }}'] || '{{ stat.goal_type }}',
+    typeMap["{{ stat.plan_type }}"] || "{{ stat.plan_type }}",
     {% endfor %}
 ];
 const typeData = [
@@ -528,12 +393,12 @@ const typeData = [
     {% endfor %}
 ];
 new Chart(typeCtx, {
-    type: 'pie',
+    type: "pie",
     data: {
         labels: typeLabels,
         datasets: [{
             data: typeData,
-            backgroundColor: ['#E0E0E0', '#CCCCCC', '#999999', '#666666', '#333333', '#1A1A1A']
+            backgroundColor: ["#E0E0E0", "#CCCCCC", "#999999", "#666666"]
         }]
     },
     options: {
@@ -541,16 +406,16 @@ new Chart(typeCtx, {
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                position: 'bottom'
+                position: "bottom"
             }
         }
     }
 });
 
-const periodCtx = document.getElementById('periodChart').getContext('2d');
+const periodCtx = document.getElementById("periodChart").getContext("2d");
 const periodLabels = [
     {% for stat in period_stats %}
-    periodMap['{{ stat.goal_period }}'] || '{{ stat.goal_period }}',
+    periodMap["{{ stat.plan_period }}"] || "{{ stat.plan_period }}",
     {% endfor %}
 ];
 const periodData = [
@@ -559,13 +424,13 @@ const periodData = [
     {% endfor %}
 ];
 new Chart(periodCtx, {
-    type: 'bar',
+    type: "bar",
     data: {
         labels: periodLabels,
         datasets: [{
-            label: '目标数量',
+            label: "计划数量",
             data: periodData,
-            backgroundColor: '#999999'
+            backgroundColor: "#999999"
         }]
     },
     options: {

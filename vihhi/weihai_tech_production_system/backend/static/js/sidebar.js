@@ -7,6 +7,13 @@
 (function() {
     'use strict';
 
+    // ========== Admin 页面早退 ==========
+    // 如果是 admin 页面，不初始化业务侧边栏，避免与 Django admin 混合
+    if (window.location.pathname.startsWith('/admin/')) {
+        return; // 关键：admin 页面不初始化业务菜单
+    }
+    // ========== Admin 页面早退结束 ==========
+
     /**
      * 初始化导航栏交互功能
      */

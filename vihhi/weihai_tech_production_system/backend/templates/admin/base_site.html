@@ -130,3 +130,36 @@
 
 </style>
 {% endblock %}
+
+{% block extrahead %}
+  <script>
+    // 🔴 硬禁用业务前端系统
+    window.__DISABLE_BUSINESS_APP__ = true;
+  </script>
+{{ block.super }}
+<script>
+    // 给 admin 页面打标记，供 CSS/JS 统一识别
+    // 这个标记用于强制隐藏业务导航（兜底保护）
+    (function() {
+        if (document.documentElement) {
+            document.documentElement.dataset.inAdmin = "1";
+        } else {
+            // 如果 documentElement 还没准备好，延迟执行
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (document.documentElement) {
+                        document.documentElement.dataset.inAdmin = "1";
+                    }
+                });
+            } else {
+                // DOM 已加载，立即设置
+                setTimeout(function() {
+                    if (document.documentElement) {
+                        document.documentElement.dataset.inAdmin = "1";
+                    }
+                }, 0);
+            }
+        }
+    })();
+</script>
+{% endblock %}

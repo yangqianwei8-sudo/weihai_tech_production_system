@@ -1340,5 +1340,9 @@
             });
         }
     </script>
+    {% if notification_widget_enabled %}
+    {% load static %}
+    <script src="{% static 'js/notification_widget.js' %}"></script>
+    {% endif %}
 </body>
 </html>
