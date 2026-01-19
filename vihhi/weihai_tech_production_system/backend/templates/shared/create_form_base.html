@@ -113,6 +113,8 @@
       {% endif %}
     </div>
     {% endif %}
+    {# 允许子模板在第一排添加额外字段（最多2个，凑满5个字段） #}
+    {% block form_first_row_extra_fields %}{% endblock %}
   </div>
 
   {# 其他表单字段 #}
@@ -120,10 +122,17 @@
 
   {# 表单操作按钮 #}
   <div class="form-actions">
-    {% block form_actions %}
-    <button type="submit" class="btn btn-primary">创建</button>
-    <a href="{% url 'home' %}" class="btn btn-secondary">取消</a>
-    {% endblock %}
+    <div class="form-actions-left">
+      {% block form_draft_actions %}
+      <button type="submit" name="action" value="draft" class="btn btn-draft">暂存草稿</button>
+      {% endblock %}
+    </div>
+    <div class="form-actions-right">
+      {% block form_actions %}
+      <button type="submit" class="btn btn-primary">创建</button>
+      <a href="{% url 'home' %}" class="btn btn-secondary">取消</a>
+      {% endblock %}
+    </div>
   </div>
 </form>
 {% endblock %}

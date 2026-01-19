@@ -460,30 +460,6 @@ def plan_management_home(request):
         context.setdefault('plan_stats', {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0})
         context.setdefault('can_view_management', False)
     
-    # 顶部操作栏
-    top_actions = []
-    if _permission_granted('plan_management.plan.create', permission_codes):
-        try:
-            top_actions.append({
-                'label': '创建计划',
-                'url': reverse('plan_pages:plan_create'),
-                'icon': '➕'
-            })
-        except Exception:
-            pass
-    
-    if _permission_granted('plan_management.manage_goal', permission_codes):
-        try:
-            top_actions.append({
-                'label': '创建目标',
-                'url': reverse('plan_pages:strategic_goal_create'),
-                'icon': '🎯'
-            })
-        except Exception:
-            pass
-    
-    context['top_actions'] = top_actions
-    
     # ========== 安全字段检查（统一获取，避免重复）==========
     plan_fields = {f.name for f in Plan._meta.get_fields()}
     goal_fields = {f.name for f in StrategicGoal._meta.get_fields()}
@@ -1917,6 +1893,9 @@ def strategic_goal_create(request):
     
     if request.method == 'POST':
         form = StrategicGoalForm(request.POST, user=request.user)
+        # 检查是否是草稿保存
+        is_draft = request.POST.get('action') == 'draft'
+        
         if form.is_valid():
             goal = form.save(commit=False)
             goal.created_by = request.user
@@ -1931,15 +1910,16 @@ def strategic_goal_create(request):
                 else:
                     goal.level = 'company'
             
+            # 如果是草稿保存，设置状态为 draft
+            if is_draft:
+                goal.status = 'draft'
+            
             goal.save()
             
-            # 保存多对多关系
-            if 'participants' in form.cleaned_data:
-                goal.participants.set(form.cleaned_data['participants'])
-            if 'related_projects' in form.cleaned_data:
-                goal.related_projects.set(form.cleaned_data['related_projects'])
-            
-            messages.success(request, f'战略目标 {goal.name} 创建成功')
+            if is_draft:
+                messages.success(request, f'战略目标 {goal.name} 已暂存为草稿')
+            else:
+                messages.success(request, f'战略目标 {goal.name} 创建成功')
             return redirect('plan_pages:strategic_goal_detail', goal_id=goal.id)
         else:
             messages.error(request, '表单验证失败，请检查输入')
@@ -1951,7 +1931,6 @@ def strategic_goal_create(request):
             context['submit_text'] = "创建"
             context['cancel_url_name'] = 'plan_pages:strategic_goal_list'
             context['form_js_file'] = 'js/goal_form_date_calculator.js'
-            context['full_width_fields'] = 'description,notes,background,significance'
             context['form_page_subtitle_text'] = '请填写目标基本信息'
             context['create_url_name'] = 'plan_pages:strategic_goal_create'
             context['business_module'] = 'goal'  # 业务模块名称，用于表单编号生成
@@ -1966,7 +1945,6 @@ def strategic_goal_create(request):
     context['submit_text'] = "创建"
     context['cancel_url_name'] = 'plan_pages:strategic_goal_list'
     context['form_js_file'] = 'js/goal_form_date_calculator.js'
-    context['full_width_fields'] = 'description,notes,background,significance'
     context['form_page_subtitle_text'] = '请填写目标基本信息'
     context['business_module'] = 'goal'  # 业务模块名称，用于表单编号生成
     return render(request, "goal_management/goal_form.html", context)

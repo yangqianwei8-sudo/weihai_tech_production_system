@@ -44,15 +44,10 @@ class StrategicGoalForm(forms.ModelForm):
             'name', 'level', 'goal_type', 'goal_period', 'status',  # P2-2: 添加 level
             # 目标指标
             'indicator_name', 'indicator_type', 'indicator_unit', 'target_value', 'current_value',
-            # 目标描述
-            'description', 'background', 'significance',
-            # 权重设置
-            'weight', 'weight_description',
             # 时间信息
             'start_date', 'end_date',
             # 关联信息
             'parent_goal',
-            'notes',
         ]
         widgets = {
             'goal_number': forms.TextInput(attrs={
@@ -65,6 +60,7 @@ class StrategicGoalForm(forms.ModelForm):
                 'placeholder': '请输入目标名称',
                 'maxlength': '200'
             }),
+            'level': forms.Select(attrs={'class': 'form-select'}),
             'goal_type': forms.Select(attrs={'class': 'form-select'}),
             'goal_period': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
@@ -91,34 +87,6 @@ class StrategicGoalForm(forms.ModelForm):
             }),
             'responsible_person': forms.Select(attrs={'class': 'form-select'}),
             'responsible_department': forms.Select(attrs={'class': 'form-select'}),
-            'description': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': '4',
-                'placeholder': '请输入目标描述',
-                'maxlength': '2000'
-            }),
-            'background': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': '3',
-                'placeholder': '请输入目标背景（可选）'
-            }),
-            'significance': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': '3',
-                'placeholder': '请输入目标意义（可选）'
-            }),
-            'weight': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'step': '0.01',
-                'min': '0',
-                'max': '100',
-                'placeholder': '范围0-100，同一周期内所有目标权重总和不能超过100'
-            }),
-            'weight_description': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': '2',
-                'placeholder': '权重说明（可选）'
-            }),
             'start_date': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
@@ -131,40 +99,14 @@ class StrategicGoalForm(forms.ModelForm):
                 'class': 'form-select',
                 'title': '用于目标分解，选择上级目标后，当前目标将成为下级目标'
             }),
-            'notes': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': '3',
-                'placeholder': '备注（可选）'
-            }),
         }
-    
-    participants = forms.ModelMultipleChoiceField(
-        queryset=User.objects.filter(is_active=True),
-        required=False,
-        widget=forms.SelectMultiple(attrs={
-            'class': 'form-select',
-            'title': '可多选，按住 Ctrl 键或 Command 键选择多个'
-        }),
-        label='参与人员'
-    )
-    
-    related_projects = forms.ModelMultipleChoiceField(
-        queryset=Project.objects.all(),
-        required=False,
-        widget=forms.SelectMultiple(attrs={
-            'class': 'form-select',
-            'title': '可多选，按住 Ctrl 键或 Command 键选择多个'
-        }),
-        label='关联项目'
-    )
     
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # 设置负责人和参与人员查询集（确保始终有查询集）
+        # 设置负责人查询集（确保始终有查询集）
         self.fields['responsible_person'].queryset = User.objects.filter(is_active=True)
-        self.fields['participants'].queryset = User.objects.filter(is_active=True)
         
         # 设置部门查询集
         self.fields['responsible_department'].queryset = Department.objects.filter(is_active=True)
@@ -176,9 +118,6 @@ class StrategicGoalForm(forms.ModelForm):
             self.fields['parent_goal'].queryset = StrategicGoal.objects.exclude(pk__in=exclude_ids)
         else:
             self.fields['parent_goal'].queryset = StrategicGoal.objects.all()
-        
-        # 设置关联项目查询集
-        self.fields['related_projects'].queryset = Project.objects.all()
         
         # 目标编号字段处理：完全由系统自动生成，不允许修改
         self.fields['goal_number'].widget.attrs['readonly'] = True
@@ -193,8 +132,7 @@ class StrategicGoalForm(forms.ModelForm):
         # P2-2: 设置 level 字段的初始值和逻辑
         if self.instance and self.instance.pk:
             # 编辑时：使用现有值
-            self.fields['participants'].initial = self.instance.participants.all()
-            self.fields['related_projects'].initial = self.instance.related_projects.all()
+            pass
         else:
             # 新建时：设置默认值
             # 设置所属部门和负责人为只读（默认值，不可修改）
