@@ -1,2 +1,0 @@
-# weihai_tech_production_system
-维海科技生产信息化管理系统

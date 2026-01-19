@@ -91,161 +91,26 @@ except ImportError:
             nav.append(nav_item)
         return nav
 from .models import (
+    GoalAdjustment,
+    GoalProgressRecord,
+    GoalStatusLog,
+    Plan,
     PlanAdjustment,
-    StrategicGoal, GoalProgressRecord, GoalAdjustment, GoalStatusLog,
-    Plan, PlanProgressRecord, PlanIssue, PlanStatusLog, PlanDecision
+    PlanDecision,
+    PlanIssue,
+    PlanProgressRecord,
+    PlanStatusLog,
+    StrategicGoal
 )
 from .forms import (
-    StrategicGoalForm, GoalProgressUpdateForm, GoalAdjustmentForm,
-    PlanForm, PlanProgressUpdateForm, PlanIssueForm, PlanAdjustmentForm
+    StrategicGoalForm,
+    GoalProgressUpdateForm,
+    GoalAdjustmentForm,
+    PlanForm,
+    PlanProgressUpdateForm,
+    PlanIssueForm,
+    PlanAdjustmentForm,
 )
-from .adjudicator import adjudicate_plan_status
-
-
-# ==================== 菜单结构定义 ====================
-
-PLAN_MANAGEMENT_MENU = [
-    {
-        'id': 'strategic_goal',
-        'label': '战略目标',
-        'icon': '🎯',
-        'permission': 'plan_management.manage_goal',
-        'children': [
-            {
-                'id': 'strategic_goal_list',
-                'label': '目标列表',
-                'icon': '🎯',
-                'url_name': 'plan_pages:strategic_goal_list',
-                'permission': 'plan_management.manage_goal',
-            },
-            {
-                'id': 'strategic_goal_create',
-                'label': '创建目标',
-                'icon': '➕',
-                'url_name': 'plan_pages:strategic_goal_create',
-                'permission': 'plan_management.manage_goal',
-            },
-            {
-                'id': 'strategic_goal_decompose',
-                'label': '目标分解',
-                'icon': '📊',
-                'url_name': 'plan_pages:strategic_goal_decompose_entry',
-                'permission': 'plan_management.manage_goal',
-            },
-            {
-                'id': 'strategic_goal_track',
-                'label': '目标跟踪',
-                'icon': '📈',
-                'url_name': 'plan_pages:strategic_goal_track_entry',
-                'permission': 'plan_management.manage_goal',
-            },
-        ]
-    },
-    {
-        'id': 'plan_management',
-        'label': '计划管理',
-        'icon': '📋',
-        'permission': 'plan_management.view',
-        'children': [
-            {
-                'id': 'plan_list',
-                'label': '计划列表',
-                'icon': '📋',
-                'url_name': 'plan_pages:plan_list',
-                'permission': 'plan_management.view',
-            },
-            {
-                'id': 'plan_decompose',
-                'label': '计划分解',
-                'icon': '📊',
-                'url_name': 'plan_pages:plan_decompose_entry',
-                'permission': 'plan_management.view',
-            },
-            {
-                'id': 'plan_goal_alignment',
-                'label': '目标对齐',
-                'icon': '🔗',
-                'url_name': 'plan_pages:plan_goal_alignment',
-                'permission': 'plan_management.view',
-            },
-            {
-                'id': 'plan_approval',
-                'label': '计划审批',
-                'icon': '📝',
-                'url_name': 'plan_pages:plan_approval_list',
-                'permission': 'plan_management.approve',
-            },
-        ]
-    },
-    {
-        'id': 'plan_execution',
-        'label': '计划执行',
-        'icon': '✅',
-        'permission': 'plan_management.view',
-        'children': [
-            {
-                'id': 'plan_execution_track',
-                'label': '执行跟踪',
-                'icon': '📊',
-                'url_name': 'plan_pages:plan_execution_track',
-                'permission': 'plan_management.view',
-            },
-            {
-                'id': 'plan_progress_update',
-                'label': '进度更新',
-                'icon': '📈',
-                'url_name': 'plan_pages:plan_progress_update',
-                'permission': 'plan_management.view',
-            },
-            {
-                'id': 'plan_issue_list',
-                'label': '问题管理',
-                'icon': '⚠️',
-                'url_name': 'plan_pages:plan_issue_list',
-                'permission': 'plan_management.view',
-            },
-            {
-                'id': 'plan_complete',
-                'label': '计划完成情况',
-                'icon': '✅',
-                'url_name': 'plan_pages:plan_complete',
-                'permission': 'plan_management.view',
-            },
-        ]
-    },
-    {
-        'id': 'plan_analysis',
-        'label': '计划分析',
-        'icon': '📈',
-        'permission': 'plan_management.view',
-        'children': [
-            {
-                'id': 'plan_completion_analysis',
-                'label': '完成分析',
-                'icon': '📊',
-                'url_name': 'plan_pages:plan_completion_analysis',
-                'permission': 'plan_management.view',
-            },
-            {
-                'id': 'plan_goal_achievement',
-                'label': '目标达成',
-                'icon': '🎯',
-                'url_name': 'plan_pages:plan_goal_achievement',
-                'permission': 'plan_management.view',
-            },
-            {
-                'id': 'plan_statistics',
-                'label': '计划统计',
-                'icon': '📈',
-                'url_name': 'plan_pages:plan_statistics',
-                'permission': 'plan_management.view',
-            },
-        ]
-    },
-]
-
-
-# ==================== 菜单生成函数 ====================
 
 def _build_plan_management_menu(permission_set, active_id=None):
     """生成计划管理模块左侧菜单（统一格式，兼容旧接口）"""
@@ -305,6 +170,54 @@ def _build_plan_management_sidebar_nav(permission_set, request_path=None, active
     """生成计划管理左侧菜单（统一格式）"""
     # 使用统一的菜单构建函数
     return _build_unified_sidebar_nav(PLAN_MANAGEMENT_MENU_STRUCTURE, permission_set, active_id=active_id)
+
+
+def _filter_plans_by_permission(plans, user, permission_set):
+    """
+    根据用户权限过滤计划列表
+    
+    权限级别（从高到低）：
+    1. view_all: 查看全部计划（包括其他人的个人计划）
+    2. view_assigned: 查看本人负责或参与的计划，以及所有公司计划
+    3. view: 只能查看公司计划和自己负责/参与的个人计划
+    
+    Args:
+        plans: 计划查询集
+        user: 用户对象
+        permission_set: 用户权限集合
+    
+    Returns:
+        过滤后的计划查询集
+    """
+    if not user or not getattr(user, 'is_authenticated', False):
+        return plans.none()
+    
+    # 超级用户拥有全部权限
+    if getattr(user, 'is_superuser', False):
+        return plans
+    
+    # 检查是否有查看全部权限（最高级别）
+    if _permission_granted('plan_management.plan.view_all', permission_set):
+        return plans
+    
+    # 检查是否有查看负责计划权限
+    if _permission_granted('plan_management.plan.view_assigned', permission_set):
+        # 可以查看：自己负责的计划、自己拥有的计划、自己参与的计划、所有公司计划
+        return plans.filter(
+            Q(responsible_person=user) |
+            Q(owner=user) |
+            Q(participants=user) |
+            Q(level='company')
+        ).distinct()
+    
+    # 如果只有基础 view 权限，只能查看公司计划和自己负责/参与的个人计划
+    # 这是默认行为，确保个人计划的隐私性
+    return plans.filter(
+        Q(level='company') |
+        Q(responsible_person=user) |
+        Q(owner=user) |
+        Q(participants=user)
+    ).distinct()
 
 
 def _context(page_title, page_icon, description, summary_cards=None, sections=None, request=None):
@@ -632,14 +545,6 @@ def plan_management_home(request):
     # 最近审批记录（如果 PlanDecision 存在才查；避免 import/模型不存在直接炸）
     recent_activities['recent_approvals'] = []
     try:
-        from .models import PlanDecision  # 如果不在同 app，这里会 ImportError
-        # 安全字段检查
-        decision_fields = {f.name for f in PlanDecision._meta.get_fields()}
-        decision_related_fields = []
-        if 'plan' in decision_fields:
-            decision_related_fields.append('plan')
-        if 'decided_by' in decision_fields:
-            decision_related_fields.append('decided_by')
         
         # 检查 plan__created_by 关系是否存在
         has_plan_created_by = 'plan' in decision_fields and hasattr(PlanDecision._meta.get_field('plan'), 'related_model')
@@ -714,8 +619,11 @@ def plan_list(request):
     # 注意：related_project 是 CharField，不是关系字段，不能用于 select_related
     plans = Plan.objects.select_related(
         'responsible_person', 'responsible_department', 'related_goal',
-        'parent_plan', 'created_by'
-    ).prefetch_related('participants').all()
+        'parent_plan', 'created_by', 'owner'
+    ).prefetch_related('participants')
+    
+    # 根据权限过滤计划（权限通过后台管理系统配置）
+    plans = _filter_plans_by_permission(plans, request.user, permission_set)
     
     # 应用筛选
     if search:
@@ -879,8 +787,34 @@ def strategic_goal_list(request):
     
     # 查询目标
     goals = StrategicGoal.objects.select_related(
-        'responsible_person', 'responsible_department', 'parent_goal', 'created_by'
-    ).prefetch_related('participants').all()
+        'responsible_person', 'responsible_department', 'parent_goal', 'created_by', 'owner'
+    ).prefetch_related('participants')
+    
+    # 根据权限过滤目标（权限通过后台管理系统配置）
+    # 权限级别（从高到低）：
+    # 1. view_all: 查看全部目标（包括其他人的个人目标）
+    # 2. view_assigned: 查看本人负责或参与的目标，以及所有公司目标
+    # 3. manage_goal: 只能查看公司目标和自己负责/参与的个人目标
+    has_view_all = _permission_granted('plan_management.goal.view_all', permission_set)
+    has_view_assigned = _permission_granted('plan_management.goal.view_assigned', permission_set)
+    
+    if not has_view_all:
+        if has_view_assigned:
+            # 只能看到自己负责或参与的目标，以及所有公司目标
+            goals = goals.filter(
+                Q(responsible_person=request.user) |
+                Q(owner=request.user) |
+                Q(participants=request.user) |
+                Q(level='company')
+            ).distinct()
+        else:
+            # 只有管理权限，只能看到公司目标和自己负责/参与的个人目标
+            goals = goals.filter(
+                Q(level='company') |
+                Q(responsible_person=request.user) |
+                Q(owner=request.user) |
+                Q(participants=request.user)
+            ).distinct()
     
     # 应用筛选
     if search:
@@ -991,6 +925,7 @@ def plan_create(request):
     
     if request.method == 'POST':
         form = PlanForm(request.POST, user=request.user)
+        is_draft = request.POST.get('action') == 'draft'
         if form.is_valid():
             plan = form.save(commit=False)
             plan.created_by = request.user
@@ -1005,13 +940,20 @@ def plan_create(request):
                 else:
                     plan.level = 'company'
             
+            # 如果是草稿保存，设置状态为 draft
+            if is_draft:
+                plan.status = 'draft'
+            
             plan.save()
             
             # 保存多对多关系
             if 'participants' in form.cleaned_data:
                 plan.participants.set(form.cleaned_data['participants'])
             
-            messages.success(request, f'计划 {plan.name} 创建成功')
+            if is_draft:
+                messages.success(request, f'计划 {plan.name} 已暂存为草稿')
+            else:
+                messages.success(request, f'计划 {plan.name} 创建成功')
             return redirect('plan_pages:plan_detail', plan_id=plan.id)
         else:
             messages.error(request, '表单验证失败，请检查输入')
@@ -1023,9 +965,7 @@ def plan_create(request):
             context['submit_text'] = "创建"
             context['cancel_url_name'] = 'plan_pages:plan_list'
             context['form_js_file'] = 'js/plan_form_date_calculator.js'
-            context['full_width_fields'] = 'content,plan_objective,description,collaboration_plan,notes'
             context['form_page_subtitle_text'] = '请填写计划基本信息'
-            context['create_url_name'] = 'plan_pages:plan_create'
             return render(request, "plan_management/plan_form.html", context)
     else:
         form = PlanForm(user=request.user)
@@ -1037,7 +977,6 @@ def plan_create(request):
     context['submit_text'] = "创建"
     context['cancel_url_name'] = 'plan_pages:plan_list'
     context['form_js_file'] = 'js/plan_form_date_calculator.js'
-    context['full_width_fields'] = 'content,plan_objective,description,collaboration_plan,notes'
     context['form_page_subtitle_text'] = '请填写计划基本信息'
     return render(request, "plan_management/plan_form.html", context)
 
@@ -1055,10 +994,23 @@ def plan_detail(request, plan_id):
     plan = get_object_or_404(
         Plan.objects.select_related(
             'responsible_person', 'responsible_department', 'related_goal',
-            'parent_plan', 'created_by'
+            'parent_plan', 'created_by', 'owner'
         ).prefetch_related('participants', 'child_plans'),
         id=plan_id
     )
+    
+    # 权限检查：根据后台配置的权限判断是否可以查看该计划
+    # 个人计划只能由 owner、responsible_person、参与者或有 view_all 权限的用户查看
+    has_view_all = _permission_granted('plan_management.plan.view_all', permission_set)
+    if plan.level == 'personal':
+        if not has_view_all:
+            # 检查是否是计划的所有者、负责人或参与者
+            is_owner = plan.owner == request.user
+            is_responsible = plan.responsible_person == request.user
+            is_participant = request.user in plan.participants.all()
+            if not (is_owner or is_responsible or is_participant):
+                messages.error(request, '您没有权限查看该个人计划')
+                return redirect('plan_pages:plan_list')
     
     # 获取进度记录
     progress_records = PlanProgressRecord.objects.filter(
@@ -1293,7 +1245,9 @@ def plan_edit(request, plan_id):
             context['plan'] = plan
             context['page_title'] = f"编辑计划 - {plan.name}"
             context['submit_text'] = "保存"
-            context['create_url_name'] = 'plan_pages:plan_create'
+            context['cancel_url'] = reverse('plan_pages:plan_detail', args=[plan.id])
+            context['form_js_file'] = 'js/plan_form_date_calculator.js'
+            context['form_page_subtitle_text'] = '请修改计划信息'
             return render(request, "plan_management/plan_form.html", context)
     else:
         form = PlanForm(instance=plan, user=request.user)
@@ -1309,6 +1263,9 @@ def plan_edit(request, plan_id):
     context['plan'] = plan
     context['page_title'] = f"编辑计划 - {plan.name}"
     context['submit_text'] = "保存"
+    context['cancel_url'] = reverse('plan_pages:plan_detail', args=[plan.id])
+    context['form_js_file'] = 'js/plan_form_date_calculator.js'
+    context['form_page_subtitle_text'] = '请修改计划信息'
     return render(request, "plan_management/plan_form.html", context)
 
 
@@ -1491,15 +1448,6 @@ def plan_approval_list(request):
     展示所有待裁决 PlanDecision（decided_at is null）
     应用公司数据隔离：只显示与当前用户同一公司的计划的审批请求
     """
-    from .models import PlanDecision
-    
-    permission_set = get_user_permission_codes(request.user)
-    # 兼容两种权限码：plan_management.approve_plan 和 plan_management.approve
-    can_approve = (
-        _permission_granted('plan_management.approve_plan', permission_set) or 
-        _permission_granted('plan_management.approve', permission_set) or 
-        request.user.is_superuser
-    )
     
     pending_decisions = (
         PlanDecision.objects
@@ -1987,9 +1935,24 @@ def strategic_goal_detail(request, goal_id):
         'responsible_person', 'responsible_department'
     ).all()
     
+    # 筛选子目标
+    status_filter = request.GET.get('status', '')
+    responsible_filter = request.GET.get('responsible', '')
+    
+    if status_filter:
+        child_goals = child_goals.filter(status=status_filter)
+    
+    if responsible_filter:
+        child_goals = child_goals.filter(
+            Q(responsible_person__username__icontains=responsible_filter) |
+            Q(responsible_person__first_name__icontains=responsible_filter) |
+            Q(responsible_person__last_name__icontains=responsible_filter)
+        )
+    
+    child_goals = child_goals.order_by('-created_time')
+    
     # 获取关联计划数量
     related_plans_count = Plan.objects.filter(related_goal=goal).count()
-    
     # 处理状态转换（发布目标）- P2-2
     if request.method == 'POST' and 'publish_goal' in request.POST:
         if goal.status == 'draft':
@@ -2085,7 +2048,7 @@ def strategic_goal_detail(request, goal_id):
         'can_start_execution': can_start_execution,  # P2-2
         'valid_transitions': goal.get_valid_transitions(),
     })
-    return render(request, "goal_management/goal_detail.html", context)
+    return render(request, "plan_management/strategic_goal_detail.html", context)
 
 
 @login_required

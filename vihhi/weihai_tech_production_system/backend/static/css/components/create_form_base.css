@@ -4,14 +4,48 @@
 /* 移除顶部横线 */
 .module-content-wrapper {
   border-top: none !important;
+  overflow: visible !important; /* 不产生滚动条 */
 }
 
 .content_inner {
   border-top: none !important;
+  overflow: visible !important; /* 不产生滚动条 */
 }
 
 form {
   border-top: none !important;
+  overflow: visible !important; /* 不产生滚动条 */
+}
+
+/* 修复双滚动条问题：确保主内容区不产生额外的滚动条 */
+/* 主内容区应该允许自然滚动，而不是自己产生滚动条 */
+.two-col-main {
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* 确保内容容器不产生滚动条 */
+.two-col-content {
+  overflow: visible !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* 确保body和html不会同时产生滚动条 */
+/* 只让body产生滚动条，而不是.two-col-main或.two-col-content */
+html {
+  overflow-x: hidden !important;
+  overflow-y: hidden !important; /* html不产生滚动条，只让body产生 */
+  height: 100%;
+}
+
+body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important; /* 只让body有滚动条 */
+  height: 100%;
 }
 
 .module-content-wrapper::before,
@@ -21,12 +55,23 @@ form {
 }
 
 /* 每行字段自动适应布局 - 强制排满整行，每排必须5个字段 */
-.form-row-5 {
+/* 使用更具体的选择器确保优先级最高，覆盖所有可能的类组合 */
+.form-row-5,
+.row.form-row-5,
+.row.mb-3.form-row-5,
+.form-row-5.row,
+.form-row-5.row.mb-3,
+.row.mb-3.form-row-5.row,
+.form-row-5.mb-3.row,
+.mb-3.row.form-row-5,
+.mb-3.form-row-5.row,
+.row.form-row-5.mb-3,
+.form-row-5.mb-3 {
   display: flex !important;
   flex-wrap: nowrap !important; /* 不换行，强制排满整行 */
   margin-left: -4px !important;
   margin-right: -4px !important;
-  margin-bottom: 16px !important; /* 统一行距：16px */
+  margin-bottom: 20px !important; /* 统一行距：20px，覆盖所有其他规则 */
 }
 
 /* 字段自动适应宽度，每排必须5个字段，每个占20%宽度 */
@@ -42,12 +87,21 @@ form {
 
 /* 确保 Bootstrap row 类不会覆盖我们的样式 */
 .form-row-5.row .col-5-fields {
-  flex: 1 1 0 !important;
-  max-width: none !important;
+  flex: 0 0 20% !important; /* 保持20%宽度，确保每排5个字段 */
+  max-width: 20% !important; /* 保持最大宽度20% */
 }
 
 .form-field-wrapper {
   padding: 0;
+  margin: 0;
+}
+
+/* 确保空占位字段不影响行高 */
+.col-5-fields.form-field-wrapper:empty {
+  min-height: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
 }
 
 
@@ -188,22 +242,38 @@ form {
   }
 }
 
-/* 覆盖 Bootstrap row 类的样式 */
-.form-row-5.row {
+/* 覆盖 Bootstrap row 类的样式 - 统一行间距 */
+/* 使用更具体的选择器确保优先级最高，覆盖所有可能的类组合 */
+.form-row-5.row,
+.row.form-row-5,
+.row.mb-3.form-row-5,
+.form-row-5.row.mb-3,
+.row.mb-3.form-row-5.row,
+.form-row-5.mb-3.row,
+.mb-3.row.form-row-5,
+.mb-3.form-row-5.row,
+.row.form-row-5.mb-3,
+.form-row-5.mb-3,
+.form-row-5 {
   margin-left: -4px !important;
   margin-right: -4px !important;
-  margin-bottom: 16px !important; /* 统一行距，覆盖Bootstrap的mb-3 */
+  margin-bottom: 20px !important; /* 统一行距：20px，覆盖Bootstrap的mb-3和base.css的mb-3 */
 }
 
-.form-row-5.row > * {
+.form-row-5.row > *,
+.row.form-row-5 > * {
   padding-left: 4px !important;
   padding-right: 4px !important;
 }
 
-/* 统一所有表单行的间距 */
-.row.mb-3.form-row-5,
-.form-row-5 {
-  margin-bottom: 16px !important;
+/* 最终保障：使用属性选择器确保所有包含 form-row-5 类的元素都有统一的行距 */
+[class*="form-row-5"] {
+  margin-bottom: 20px !important;
+}
+
+/* 但排除非行元素（如字段本身） */
+[class*="form-row-5"]:not(.col-5-fields):not(.form-field-wrapper) {
+  margin-bottom: 20px !important;
 }
 
 
@@ -244,5 +314,5 @@ form {
 .row.mb-3:not(.form-row-5) {
   margin-left: 0;
   margin-right: 0;
-  margin-bottom: 16px !important; /* 统一行距：16px */
+  margin-bottom: 20px !important; /* 统一行距：20px */
 }
