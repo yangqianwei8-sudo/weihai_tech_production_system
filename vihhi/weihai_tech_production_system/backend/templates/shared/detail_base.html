@@ -1,0 +1,924 @@
+{% extends "shared/module_base.html" %}
+{% load static %}
+{# 
+共享详情页面模板
+继承 module_base.html，提供统一的详情页面结构
+
+使用说明：
+1. 在子模板中覆盖相应的 block 来自定义内容
+2. 通过 context 传递对象数据（object 或自定义变量名）
+3. 使用 permission_codes 控制权限显示
+
+主要块：
+- detail_title: 页面标题
+- detail_subtitle: 页面副标题
+- detail_header_actions: 页面头部操作按钮
+- detail_basic_info: 基本信息展示区域
+- detail_properties: 对象属性展示区域
+- detail_actions: 操作按钮区域
+- detail_history: 历史记录区域
+- detail_related: 相关对象区域
+- detail_attachments: 附件展示区域
+- detail_statistics: 数据和统计信息区域
+#}
+
+{% block module_styles %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/components/detail_base.css' %}">
+{% endblock module_styles %}
+
+{% block pm_title %}{% block detail_title %}详情页面{% endblock %}{% endblock %}
+{% block pm_subtitle %}{% block detail_subtitle %}查看详细信息{% endblock %}{% endblock %}
+{% block pm_actions %}{% block detail_header_actions %}{% endblock %}{% endblock %}
+
+{% block pm_content %}
+<div class="detail-page-container">
+  
+  {# ==================== 1. 标题和基本信息 ==================== #}
+  <div class="detail-section detail-basic-info-section">
+    <div class="detail-section-header">
+      <h3 class="detail-section-title">
+        <i class="fas fa-info-circle"></i>
+        基本信息
+      </h3>
+    </div>
+    <div class="detail-section-body">
+      <div class="row">
+                {% block detail_basic_info %}
+        {# 默认基本信息展示 - 子模板可以覆盖，每排5个字段 #}
+        <div class="col-5-fields detail-field-wrapper">
+          <div class="detail-field">
+            <label class="detail-field-label">ID / 编号</label>
+            <div class="detail-field-value">
+              {% if object.id %}{{ object.id }}{% elif object.pk %}{{ object.pk }}{% else %}N/A{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-5-fields detail-field-wrapper">
+          <div class="detail-field">
+            <label class="detail-field-label">名称 / 标题</label>
+            <div class="detail-field-value">
+              {% if object.name %}{{ object.name }}{% elif object.title %}{{ object.title }}{% else %}N/A{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-5-fields detail-field-wrapper">
+          <div class="detail-field">
+            <label class="detail-field-label">创建时间</label>
+            <div class="detail-field-value">
+              {% if object.created_time %}{{ object.created_time|date:"Y-m-d H:i:s" }}{% elif object.created_at %}{{ object.created_at|date:"Y-m-d H:i:s" }}{% else %}N/A{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-5-fields detail-field-wrapper">
+          <div class="detail-field">
+            <label class="detail-field-label">更新时间</label>
+            <div class="detail-field-value">
+              {% if object.updated_time %}{{ object.updated_time|date:"Y-m-d H:i:s" }}{% elif object.updated_at %}{{ object.updated_at|date:"Y-m-d H:i:s" }}{% else %}N/A{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-5-fields detail-field-wrapper">
+          <div class="detail-field">
+            <label class="detail-field-label">状态</label>
+            <div class="detail-field-value">
+              {% if object.status %}
+                <span class="badge badge-status badge-{{ object.status }}">
+                  {{ object.get_status_display|default:object.status }}
+                </span>
+              {% else %}N/A{% endif %}
+            </div>
+          </div>
+        </div>
+        {% endblock detail_basic_info %}
+      </div>
+    </div>
+  </div>
+
+  {# ==================== 2. 对象属性展示 ==================== #}
+  <div class="detail-section detail-properties-section">
+    <div class="detail-section-header">
+      <h3 class="detail-section-title">
+        <i class="fas fa-list-alt"></i>
+        详细信息
+      </h3>
+    </div>
+    <div class="detail-section-body">
+      {% block detail_properties %}
+      <div class="row">
+        {# 文本字段区域 #}
+        {% block detail_text_fields %}
+        <div class="col-12 mb-4">
+          <h5 class="detail-subsection-title">
+            <i class="fas fa-font"></i>
+            文本字段
+          </h5>
+          <div class="row">
+            {# 子模板可以在这里添加文本字段 #}
+            {% block detail_text_fields_content %}
+            <div class="col-md-6 mb-3">
+              <div class="detail-field">
+                <label class="detail-field-label">描述</label>
+                <div class="detail-field-value">
+                  {% if object.description %}{{ object.description }}{% else %}暂无描述{% endif %}
+                </div>
+              </div>
+            </div>
+            {% endblock detail_text_fields_content %}
+          </div>
+        </div>
+        {% endblock detail_text_fields %}
+
+        {# 数字字段区域 #}
+        {% block detail_number_fields %}
+        <div class="col-12 mb-4">
+          <h5 class="detail-subsection-title">
+            <i class="fas fa-calculator"></i>
+            数字字段
+          </h5>
+          <div class="row">
+            {# 子模板可以在这里添加数字字段 #}
+            {% block detail_number_fields_content %}{% endblock %}
+          </div>
+        </div>
+        {% endblock detail_number_fields %}
+
+        {# 时间字段区域 #}
+        {% block detail_datetime_fields %}
+        <div class="col-12 mb-4">
+          <h5 class="detail-subsection-title">
+            <i class="fas fa-clock"></i>
+            时间字段
+          </h5>
+          <div class="row">
+            {# 子模板可以在这里添加时间字段 #}
+            {% block detail_datetime_fields_content %}{% endblock %}
+          </div>
+        </div>
+        {% endblock detail_datetime_fields %}
+
+        {# 状态字段区域 #}
+        {% block detail_status_fields %}
+        <div class="col-12 mb-4">
+          <h5 class="detail-subsection-title">
+            <i class="fas fa-toggle-on"></i>
+            状态字段
+          </h5>
+          <div class="row">
+            {# 子模板可以在这里添加状态字段 #}
+            {% block detail_status_fields_content %}{% endblock %}
+          </div>
+        </div>
+        {% endblock detail_status_fields %}
+      </div>
+      {% endblock detail_properties %}
+    </div>
+  </div>
+
+  {# ==================== 3. 操作按钮 ==================== #}
+  <div class="detail-section detail-actions-section">
+    <div class="detail-section-header detail-actions-header">
+      <h3 class="detail-section-title">
+        <i class="fas fa-cog"></i>
+        操作
+      </h3>
+      <div class="detail-section-header-actions">
+        {# 审批按钮 #}
+        {% block detail_approval_button_header %}
+        {% if can_approve %}
+        <a href="{% block detail_approval_url %}#{% endblock %}" class="btn btn-warning">
+          <i class="fas fa-check-circle"></i>
+          审批
+        </a>
+        {% endif %}
+        {% endblock detail_approval_button_header %}
+
+        {# 其他动作按钮 - 在标题右侧显示 #}
+        {% block detail_other_actions_header %}{% endblock %}
+      </div>
+    </div>
+    <div class="detail-section-body">
+      <div class="detail-actions">
+        {% block detail_actions %}
+        <div class="btn-group" role="group">
+          {# 编辑按钮 #}
+          {% block detail_edit_button %}
+          {% if can_edit %}
+          <a href="{% block detail_edit_url %}#{% endblock %}" class="btn btn-primary">
+            <i class="fas fa-edit"></i>
+            编辑
+          </a>
+          {% endif %}
+          {% endblock detail_edit_button %}
+
+          {# 删除按钮 #}
+          {% block detail_delete_button %}
+          {% if can_delete %}
+          <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
+            <i class="fas fa-trash"></i>
+            删除
+          </button>
+          {% endif %}
+          {% endblock detail_delete_button %}
+
+{# 其他动作按钮 #}
+          {% block detail_other_actions %}{% endblock %}
+        </div>
+        {% endblock detail_actions %}
+      </div>
+    </div>
+  </div>
+
+  {# ==================== 4. 历史记录或活动日志 ==================== #}
+  {% block detail_history %}
+  <div class="detail-section detail-history-section">
+    <div class="detail-section-header">
+      <h3 class="detail-section-title">
+        <i class="fas fa-history"></i>
+        历史记录
+      </h3>
+    </div>
+    <div class="detail-section-body">
+      {# 修改记录 #}
+      {% block detail_modification_history %}
+      <div class="mb-4">
+        <h5 class="detail-subsection-title">
+          <i class="fas fa-edit"></i>
+          修改记录
+        </h5>
+        <div class="detail-history-list">
+          {% block detail_modification_history_content %}
+          <div class="text-muted">暂无修改记录</div>
+          {% endblock %}
+        </div>
+      </div>
+      {% endblock detail_modification_history %}
+
+      {# 状态变更记录 #}
+      {% block detail_status_history %}
+      <div class="mb-4">
+        <h5 class="detail-subsection-title">
+          <i class="fas fa-exchange-alt"></i>
+          状态变更记录
+        </h5>
+        <div class="detail-history-list">
+          {% block detail_status_history_content %}
+          <div class="text-muted">暂无状态变更记录</div>
+          {% endblock %}
+        </div>
+      </div>
+      {% endblock detail_status_history %}
+
+      {# 审计日志 #}
+      {% block detail_audit_log %}
+      <div class="mb-4">
+        <h5 class="detail-subsection-title">
+          <i class="fas fa-file-alt"></i>
+          审计日志
+        </h5>
+        <div class="detail-history-list">
+          {% block detail_audit_log_content %}
+          <div class="text-muted">暂无审计日志</div>
+          {% endblock %}
+        </div>
+      </div>
+      {% endblock detail_audit_log %}
+    </div>
+  </div>
+  {% endblock detail_history %}
+
+  {# ==================== 5. 相关对象或链接 ==================== #}
+  {% block detail_related %}
+  <div class="detail-section detail-related-section">
+    <div class="detail-section-header">
+      <h3 class="detail-section-title">
+        <i class="fas fa-link"></i>
+        相关对象
+      </h3>
+    </div>
+    <div class="detail-section-body">
+      {# 关联记录 #}
+      {% block detail_related_records %}
+      <div class="mb-4">
+        <h5 class="detail-subsection-title">
+          <i class="fas fa-database"></i>
+          关联记录
+        </h5>
+        <div class="detail-related-list">
+          {% block detail_related_records_content %}
+          <div class="text-muted">暂无关联记录</div>
+          {% endblock %}
+        </div>
+      </div>
+      {% endblock detail_related_records %}
+
+      {# 链接到其他页面 #}
+      {% block detail_related_links %}
+      <div class="mb-4">
+        <h5 class="detail-subsection-title">
+          <i class="fas fa-external-link-alt"></i>
+          相关链接
+        </h5>
+        <div class="detail-related-links">
+          {% block detail_related_links_content %}
+          <div class="text-muted">暂无相关链接</div>
+          {% endblock %}
+        </div>
+      </div>
+      {% endblock detail_related_links %}
+    </div>
+  </div>
+  {% endblock detail_related %}
+
+  {# ==================== 6. 权限控制 ==================== #}
+  {# 权限控制通过 can_edit, can_delete, can_approve 等变量实现 #}
+  {# 在视图中设置这些变量，模板中通过 {% if %} 判断显示 #}
+
+  {# ==================== 7. 附件和文件 ==================== #}
+  {% block detail_attachments %}
+  <div class="detail-section detail-attachments-section">
+    <div class="detail-section-header">
+      <h3 class="detail-section-title">
+        <i class="fas fa-paperclip"></i>
+        附件和文件
+      </h3>
+    </div>
+    <div class="detail-section-body">
+      {% block detail_attachments_content %}
+      <div class="detail-attachments-list">
+        {# 附件列表 #}
+        {% if attachments %}
+        <div class="row">
+          {% for attachment in attachments %}
+          <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card attachment-card">
+              <div class="card-body">
+                <div class="attachment-icon">
+                  {% if attachment.file_type == 'pdf' %}
+                    <i class="fas fa-file-pdf text-danger"></i>
+                  {% elif attachment.file_type == 'image' %}
+                    <i class="fas fa-file-image text-primary"></i>
+                  {% elif attachment.file_type == 'video' %}
+                    <i class="fas fa-file-video text-warning"></i>
+                  {% elif attachment.file_type == 'word' %}
+                    <i class="fas fa-file-word text-info"></i>
+                  {% elif attachment.file_type == 'excel' %}
+                    <i class="fas fa-file-excel text-success"></i>
+                  {% else %}
+                    <i class="fas fa-file text-secondary"></i>
+                  {% endif %}
+                </div>
+                <h6 class="attachment-name">{{ attachment.name|truncatechars:20 }}</h6>
+                <p class="attachment-meta text-muted small">
+                  <i class="fas fa-calendar"></i>
+                  {{ attachment.uploaded_at|date:"Y-m-d" }}
+                </p>
+                <div class="attachment-actions">
+                  <a href="{{ attachment.file.url }}" class="btn btn-sm btn-primary" download>
+                    <i class="fas fa-download"></i>
+                    下载
+                  </a>
+                  {% if attachment.file_type == 'image' %}
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="previewImage('{{ attachment.file.url }}')">
+                    <i class="fas fa-eye"></i>
+                    预览
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted">暂无附件</div>
+        {% endif %}
+      </div>
+      {% endblock detail_attachments_content %}
+    </div>
+  </div>
+  {% endblock detail_attachments %}
+
+  {# ==================== 9. 分页或显示更多 ==================== #}
+  {# 如果历史记录或相关对象很多，可以使用分页 #}
+  {% block detail_pagination %}
+  {% if page_obj %}
+  <div class="detail-pagination">
+    <nav aria-label="详情分页">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+        </li>
+        {% endif %}
+        <li class="page-item active">
+          <span class="page-link">
+            第 {{ page_obj.number }} 页，共 {{ page_obj.paginator.num_pages }} 页
+          </span>
+        </li>
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+  {% endblock detail_pagination %}
+
+  {# ==================== 10. 数据和统计信息 ==================== #}
+  {% block detail_statistics %}
+  <div class="detail-section detail-statistics-section">
+    <div class="detail-section-header">
+      <h3 class="detail-section-title">
+        <i class="fas fa-chart-bar"></i>
+        数据和统计
+      </h3>
+    </div>
+    <div class="detail-section-body">
+      {% block detail_statistics_content %}
+      {# 进度条示例 #}
+      {% if progress_percentage %}
+      <div class="mb-4">
+        <h5 class="detail-subsection-title">进度</h5>
+        <div class="progress" style="height: 25px;">
+          <div class="progress-bar" role="progressbar" 
+               style="width: {{ progress_percentage }}%;" 
+               aria-valuenow="{{ progress_percentage }}" 
+               aria-valuemin="0" 
+               aria-valuemax="100">
+            {{ progress_percentage }}%
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# 图表和报告区域 #}
+      {% block detail_charts %}
+      <div class="detail-charts">
+        {# 子模板可以在这里添加图表 #}
+        {% block detail_charts_content %}{% endblock %}
+      </div>
+      {% endblock detail_charts %}
+
+      {# 统计信息卡片 #}
+      {% block detail_statistics_cards %}
+      <div class="row">
+        {% block detail_statistics_cards_content %}{% endblock %}
+      </div>
+      {% endblock detail_statistics_cards %}
+      {% endblock detail_statistics_content %}
+    </div>
+  </div>
+  {% endblock detail_statistics %}
+
+</div>
+
+{# ==================== 删除确认模态框 ==================== #}
+{% block detail_delete_modal %}
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmModalLabel">确认删除</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>您确定要删除此项吗？此操作不可撤销。</p>
+        {% block detail_delete_modal_content %}{% endblock %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <form method="post" action="{% block detail_delete_url %}#{% endblock %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">确认删除</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock detail_delete_modal %}
+
+{% endblock pm_content %}
+
+{% block module_extra_css %}{{ block.super }}
+<style>
+  .detail-page-container {
+    /* 继承两栏布局，确保主内容区与左边栏有正确距离 */
+    /* 两栏布局的间距由 two-col-content 的 padding 控制，这里不需要额外 padding */
+    padding: 0;
+  }
+  
+  .detail-section {
+    background: #fff;
+    border-radius: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    padding: 20px;
+    border: 1px solid #E0E0E0;
+  }
+  
+  .detail-section-header {
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  
+  /* 操作区域标题和按钮布局 */
+  .detail-actions-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+  
+  .detail-section-header-actions {
+    display: flex !important;
+    gap: 4px !important;
+    align-items: center !important;
+  }
+  
+  .detail-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    color: #333;
+    line-height: 1.5;
+  }
+  
+  .detail-section-title i {
+    margin-right: 8px;
+    color: #007bff;
+  }
+  
+  .detail-subsection-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    color: #555;
+    line-height: 1.5;
+  }
+  
+  .detail-subsection-title i {
+    margin-right: 5px;
+    color: #6c757d;
+  }
+  
+  .detail-field {
+    padding: 10px;
+    line-height: 1.5;
+  }
+  
+  .detail-field-label {
+    font-weight: 500;
+    color: #666;
+    font-size: 16px;
+    margin-bottom: 5px;
+    display: block;
+    line-height: 1.5;
+  }
+  
+  .detail-field-value {
+    color: #333;
+    font-size: 16px;
+    word-break: break-word;
+    line-height: 1.5;
+    padding: 8px;
+    background: #FFFFFF;
+  }
+
+  /* 统一所有字段的行距 */
+  .detail-section-body,
+  .detail-section-body * {
+    line-height: 1.5 !important;
+  }
+  
+  /* 每排5个字段的布局 */
+  .detail-section-body .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -8px;
+  }
+  
+  .col-5-fields {
+    flex: 0 0 calc(20% - 16px);
+    max-width: calc(20% - 16px);
+    padding: 0 8px;
+    margin-bottom: 16px;
+  }
+  
+  @media (max-width: 1200px) {
+    .col-5-fields {
+      flex: 0 0 calc(25% - 16px);
+      max-width: calc(25% - 16px);
+    }
+  }
+  
+  @media (max-width: 992px) {
+    .col-5-fields {
+      flex: 0 0 calc(33.333% - 16px);
+      max-width: calc(33.333% - 16px);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .col-5-fields {
+      flex: 0 0 calc(50% - 16px);
+      max-width: calc(50% - 16px);
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .col-5-fields {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+  }
+  
+  .detail-field-value {
+    color: #333;
+    font-size: 16px;
+    word-break: break-word;
+    line-height: 1.5;
+    padding: 8px;
+    background: #FFFFFF;
+  }
+
+  /* 统一所有字段的行距 */
+  .detail-section-body,
+  .detail-section-body * {
+    line-height: 1.5 !important;
+  }
+  
+  .detail-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .detail-history-list,
+  .detail-related-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .attachment-card {
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  
+  .attachment-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  
+  .attachment-icon {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .attachment-name {
+    font-size: 16px;
+    margin-bottom: 5px;
+  }
+  
+  .attachment-actions {
+    margin-top: 10px;
+  }
+  
+  .badge-status {
+    padding: 5px 10px;
+    border-radius: 0;
+    font-size: 16px;
+  }
+  
+  .detail-pagination {
+    margin-top: 20px;
+  }
+  
+  /* 统一所有字体大小为16px */
+  .detail-page-container,
+  .detail-section,
+  .detail-section-body,
+  .detail-section-body *,
+  .detail-field,
+  .detail-field *,
+  .detail-field-label,
+  .detail-field-value,
+  .detail-section-title,
+  .detail-subsection-title,
+  .detail-section-header,
+  .detail-section-header * {
+    font-size: 16px !important;
+  }
+  
+  /* 进度条样式 */
+  .detail-page-container .progress,
+  .two-col-content .progress {
+    height: 25px !important;
+    background-color: #E0E0E0 !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    display: block !important;
+    width: 100% !important;
+  }
+  
+  .detail-page-container .progress-bar,
+  .two-col-content .progress-bar {
+    height: 100% !important;
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: width 0.3s ease !important;
+    border-radius: 0 !important;
+  }
+  
+  .detail-page-container .progress-bar-striped,
+  .two-col-content .progress-bar-striped {
+    background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent) !important;
+    background-size: 1rem 1rem !important;
+  }
+  
+  .detail-page-container .progress-bar-animated,
+  .two-col-content .progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite !important;
+  }
+  
+  @keyframes progress-bar-stripes {
+    0% {
+      background-position: 1rem 0;
+    }
+    100% {
+      background-position: 0 0;
+    }
+  }
+  
+  /* 边框样式：只保留 detail-section 的外边框，内部元素无边框 */
+  
+  /* 统一所有字段的行距 - 全局规则 */
+  .detail-page-container,
+  .detail-section,
+  .detail-section-body,
+  .detail-section-body *,
+  .detail-field,
+  .detail-field *,
+  .detail-field-label,
+  .detail-field-value,
+  .detail-section-title,
+  .detail-subsection-title {
+    line-height: 1.5 !important;
+  }
+  
+  /* 确保文本内容行距统一 */
+  .detail-field-value p,
+  .detail-field-value span,
+  .detail-field-value div,
+  .detail-field-value code {
+    line-height: 1.5 !important;
+  }
+  
+  /* 将所有卡片改为直角 */
+  .detail-section,
+  .attachment-card,
+  .card {
+    border-radius: 0 !important;
+  }
+  
+    /* 按钮样式：黑底白字、间距4px、直角 - 只作用于详情页内容区域 */
+      .two-col-content .btn,
+  .two-col-content .btn-primary,
+  .two-col-content .btn-secondary,
+  .two-col-content .btn-danger,
+  .two-col-content .btn-warning,
+  .two-col-content .btn-success,
+  .two-col-content .btn-info,
+  .two-col-content .btn-sm,
+  .two-col-content button[type="submit"],
+  .two-col-content button[type="button"],
+  .detail-page-container .btn,
+  .detail-page-container .btn-primary,
+  .detail-page-container .btn-secondary,
+  .detail-page-container .btn-danger,
+  .detail-page-container .btn-warning,
+  .detail-page-container .btn-success,
+  .detail-page-container .btn-info,
+  .detail-page-container .btn-sm,
+  .detail-page-container button[type="submit"],
+  .detail-page-container button[type="button"] {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0 !important;
+    margin-right: 4px !important;
+    margin-bottom: 4px !important;
+    padding: 6px 12px !important;
+    margin-left: 0 !important;
+    margin-top: 0 !important;
+    text-align: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .two-col-content .btn:hover,
+  .two-col-content .btn-primary:hover,
+  .two-col-content .btn-secondary:hover,
+  .two-col-content .btn-danger:hover,
+  .two-col-content .btn-warning:hover,
+  .two-col-content .btn-success:hover,
+  .two-col-content .btn-info:hover,
+  .detail-page-container .btn:hover,
+  .detail-page-container .btn-primary:hover,
+  .detail-page-container .btn-secondary:hover,
+  .detail-page-container .btn-danger:hover,
+  .detail-page-container .btn-warning:hover,
+  .detail-page-container .btn-success:hover,
+  .detail-page-container .btn-info:hover {
+    background-color: #333333 !important;
+    color: #FFFFFF !important;
+    border-color: #333333 !important;
+  }
+  
+  .two-col-content .btn-group .btn,
+  .detail-page-container .btn-group .btn {
+    margin-right: 4px !important;
+  }
+  
+  .two-col-content .btn-group .btn:last-child,
+  .detail-page-container .btn-group .btn:last-child {
+    margin-right: 0 !important;
+  }
+  
+  /* 移除按钮伪元素可能导致的白框 */
+  .two-col-content .btn::before,
+  .two-col-content .btn::after,
+  .detail-page-container .btn::before,
+  .detail-page-container .btn::after {
+    display: none !important;
+    content: none !important;
+  }
+  
+  /* 修复按钮白框问题 */
+  .two-col-content .btn i,
+  .two-col-content .btn i::before,
+  .detail-page-container .btn i,
+  .detail-page-container .btn i::before {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-right: 4px !important;
+  }
+  
+  .two-col-content .btn *,
+  .detail-page-container .btn * {
+    background: transparent !important;
+  }
+  
+  /* 确保按钮内容区域没有额外的背景 */
+  .two-col-content .btn > *:first-child,
+  .detail-page-container .btn > *:first-child {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-left: 0 !important;
+  }
+</style>{% endblock module_extra_css %}
+
+{% block module_extra_js %}
+{{ block.super }}
+<script>
+  // 图片预览功能
+  function previewImage(imageUrl) {
+    // 创建模态框显示图片
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">图片预览</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img src="${imageUrl}" class="img-fluid" alt="预览图片">
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    modal.addEventListener('hidden.bs.modal', function() {
+      document.body.removeChild(modal);
+    });
+  }
+  
+  // 页面加载完成后的初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    // 可以在这里添加其他初始化逻辑
+  });
+</script>
+{% endblock module_extra_js %}
+
