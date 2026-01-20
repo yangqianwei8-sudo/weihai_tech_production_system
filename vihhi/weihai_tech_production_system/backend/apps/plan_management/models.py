@@ -754,7 +754,30 @@ class Plan(models.Model):
         if not self.pk and not self.status:
             self.status = 'draft'
         
+        # 修复：确保 plan_type 字段有值（数据库字段仍然存在，需要向后兼容）
+        # plan_type 字段已迁移到 level 字段，但数据库表中仍存在该字段且不允许为 null
+        # 将 level 的值映射到 plan_type（用于向后兼容）
+        from django.db import connection
+        
+        # 映射 level 到 plan_type
+        level_to_plan_type_map = {
+            'company': 'company',
+            'personal': 'personal',
+        }
+        plan_type_value = level_to_plan_type_map.get(self.level, 'company')
+        
+        is_new = not self.pk
+        
+        # 先保存记录（使用 update_fields 避免触发其他信号）
+        update_fields = kwargs.get('update_fields', None)
         super().save(*args, **kwargs)
+        
+        # 保存后立即更新 plan_type 字段（使用原始 SQL，因为模型中没有这个字段）
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE plan_plan SET plan_type = %s WHERE id = %s",
+                [plan_type_value, self.pk]
+            )
     
     def get_valid_transitions(self):
         """

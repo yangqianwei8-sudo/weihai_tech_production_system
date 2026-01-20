@@ -103,7 +103,9 @@
         // 初始化：展开包含激活项的子菜单 - vh-sb__parent 结构
         document.querySelectorAll('.vh-sb__parent').forEach(function(parent) {
             const activeChild = parent.querySelector('.vh-sb__child.is-active');
-            if (activeChild) {
+            // 检查是否有激活的子菜单项，或者后端传递了 expanded 属性
+            const shouldExpand = activeChild || parent.hasAttribute('data-expanded') && parent.getAttribute('data-expanded') === 'true';
+            if (shouldExpand) {
                 parent.classList.add('is-open');
             }
         });

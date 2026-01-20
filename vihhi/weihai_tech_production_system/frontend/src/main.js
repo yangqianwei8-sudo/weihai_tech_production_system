@@ -1,6 +1,5 @@
 // ================== Admin 页面硬终止 ==================
 // 必须在所有 import 之前检查，确保业务前端系统在 admin 页面完全不启动
-console.error('🔥 NEW MAIN.JS LOADED 🔥'); // 验证标记：如果看到这行，说明新 bundle 已加载
 if (
   window.__DISABLE_BUSINESS_APP__ === true ||
   document.documentElement?.dataset?.inAdmin === '1' ||

@@ -86,9 +86,12 @@ except ImportError:
                 # 如果父菜单没有 url，使用第一个子菜单的 URL
                 if nav_item['url'] == '#':
                     nav_item['url'] = children[0].get('url', '#')
-                # 如果任意子菜单激活，父菜单也激活
+                # 如果任意子菜单激活，父菜单也激活并展开
                 if any(child.get('active') for child in children):
                     nav_item['active'] = True
+                    nav_item['expanded'] = True
+                # 如果菜单结构定义中设置了 expanded 属性，则使用该值（默认展开）
+                elif item.get('expanded', False):
                     nav_item['expanded'] = True
             
             nav.append(nav_item)
@@ -137,6 +140,7 @@ PLAN_MANAGEMENT_MENU_STRUCTURE = [
         'label': '战略目标',
         'icon': '🎯',
         'permission': 'plan_management.manage_goal',
+        'expanded': True,  # 默认展开
         'children': [
             {'id': 'strategic_goal_list', 'label': '目标列表', 'icon': '🎯', 'url_name': 'plan_pages:strategic_goal_list', 'permission': 'plan_management.manage_goal'},
             {'id': 'strategic_goal_create', 'label': '创建目标', 'icon': '➕', 'url_name': 'plan_pages:strategic_goal_create', 'permission': 'plan_management.manage_goal'},
@@ -149,6 +153,7 @@ PLAN_MANAGEMENT_MENU_STRUCTURE = [
         'label': '计划管理',
         'icon': '📅',
         'permission': 'plan_management.view',
+        'expanded': True,  # 默认展开
         'children': [
             {'id': 'plan_list', 'label': '计划列表', 'icon': '📋', 'url_name': 'plan_pages:plan_list', 'permission': 'plan_management.view'},
             {'id': 'plan_create', 'label': '创建计划', 'icon': '➕', 'url_name': 'plan_pages:plan_create', 'permission': 'plan_management.plan.create'},
@@ -161,6 +166,7 @@ PLAN_MANAGEMENT_MENU_STRUCTURE = [
         'label': '计划分析',
         'icon': '📈',
         'permission': 'plan_management.view_analysis',
+        'expanded': True,  # 默认展开
         'children': [
             {'id': 'plan_completion_analysis', 'label': '完成度分析', 'icon': '✅', 'url_name': 'plan_pages:plan_completion_analysis', 'permission': 'plan_management.view_analysis'},
             {'id': 'plan_goal_achievement', 'label': '目标达成分析', 'icon': '🎯', 'url_name': 'plan_pages:plan_goal_achievement', 'permission': 'plan_management.view_analysis'},
@@ -351,7 +357,8 @@ def plan_management_home(request):
             context['company_plan_stats'] = company_plan_stats
             
             # 审批统计（仅管理视角）
-            pending_decisions = PlanDecision.objects.filter(decision__isnull=True)
+            # 待审批判定：decided_at is null（根据模型定义和注释）
+            pending_decisions = PlanDecision.objects.filter(decided_at__isnull=True)
             pending_total = pending_decisions.count()
             pending_start = pending_decisions.filter(request_type='start').count()
             pending_cancel = pending_decisions.filter(request_type='cancel').count()
@@ -928,8 +935,9 @@ def plan_create(request):
         return redirect('plan_pages:plan_list')
     
     if request.method == 'POST':
-        form = PlanForm(request.POST, user=request.user)
+        # 检查是否是草稿保存
         is_draft = request.POST.get('action') == 'draft'
+        form = PlanForm(request.POST, user=request.user, is_draft=is_draft)
         if form.is_valid():
             plan = form.save(commit=False)
             plan.created_by = request.user
@@ -1981,9 +1989,9 @@ def strategic_goal_create(request):
         return redirect('plan_pages:strategic_goal_list')
     
     if request.method == 'POST':
-        form = StrategicGoalForm(request.POST, user=request.user)
         # 检查是否是草稿保存
         is_draft = request.POST.get('action') == 'draft'
+        form = StrategicGoalForm(request.POST, user=request.user, is_draft=is_draft)
         
         if form.is_valid():
             goal = form.save(commit=False)
