@@ -575,3 +575,89 @@ if (typeof window !== 'undefined') {
     };
 }
 
+// ==================== 模态框 aria-hidden 修复 ====================
+/**
+ * 修复所有 Bootstrap 模态框的 aria-hidden 问题
+ * 解决当模态框关闭时，如果内部元素仍有焦点，会触发 aria-hidden 警告的问题
+ */
+(function() {
+    'use strict';
+
+    /**
+     * 移除模态框内部元素的焦点
+     */
+    function removeFocusFromModal(modalElement) {
+        if (!modalElement) return;
+        
+        const activeElement = document.activeElement;
+        if (activeElement && modalElement.contains(activeElement)) {
+            activeElement.blur();
+            // 确保焦点不在模态框内
+            setTimeout(() => {
+                if (modalElement.contains(document.activeElement)) {
+                    document.body.focus();
+                }
+            }, 0);
+        }
+    }
+
+    /**
+     * 修复单个模态框
+     */
+    function fixModal(modalElement) {
+        if (!modalElement) return;
+
+        // 监听 Bootstrap 模态框的隐藏事件
+        modalElement.addEventListener('hide.bs.modal', function() {
+            removeFocusFromModal(modalElement);
+        }, { capture: true });
+
+        // 监听隐藏完成事件
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            removeFocusFromModal(modalElement);
+        }, { capture: true });
+    }
+
+    /**
+     * 修复所有现有模态框
+     */
+    function fixAllModals() {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(fixModal);
+    }
+
+    /**
+     * 观察新创建的模态框
+     */
+    function observeNewModals() {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1 && node.classList && node.classList.contains('modal')) {
+                        fixModal(node);
+                    }
+                    if (node.querySelectorAll) {
+                        const modals = node.querySelectorAll('.modal');
+                        modals.forEach(fixModal);
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    // 初始化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            fixAllModals();
+            observeNewModals();
+        });
+    } else {
+        fixAllModals();
+        observeNewModals();
+    }
+})();

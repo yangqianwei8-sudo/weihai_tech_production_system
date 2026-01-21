@@ -1,5 +1,19 @@
 /* ===== 两栏布局样式 - 最小化版本（用于排查问题） ===== */
 
+/* 当使用 two-column-layout 时，强制禁用 body 的滚动条，只让 .two-col-main 滚动 */
+/* 避免双重滚动条问题：body 和 .two-col-main 不能同时有滚动条 */
+/* 使用多种选择器确保兼容性和优先级 */
+body:has(.two-column-layout) {
+  overflow-y: hidden !important; /* 强制禁用 body 滚动条 */
+  height: 100% !important;
+}
+
+/* 如果浏览器不支持 :has()，使用类名方式 */
+body.two-column-layout-active {
+  overflow-y: hidden !important;
+  height: 100% !important;
+}
+
 /* 布局容器 - 最基础设置，添加重置和 !important */
 .two-column-layout {
   display: flex !important;
