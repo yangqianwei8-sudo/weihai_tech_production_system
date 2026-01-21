@@ -82,23 +82,25 @@
   line-height: 1.2;
 }
 
-/* 3) 中部：占满剩余高度，禁止滚动 */
-.vh-sb__nav{
+/* ===== 导航区域 ===== */
+/* 中部：占满剩余高度，可滚动 */
+.vh-sb__nav {
   flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--spacing-sm, 8px) var(--spacing-xs, 4px);
-  padding-bottom: 80px;
-  min-height: 0;
+  padding-bottom: var(--vh-sb-nav-padding-bottom, 80px);
   display: flex;
   flex-direction: column;
 }
 
-/* group */
-.vh-sb__group{
+/* ===== 分组样式 ===== */
+.vh-sb__group {
   margin-bottom: var(--spacing-sm, 12px);
 }
-.vh-sb__group:last-child{
+
+.vh-sb__group:last-child {
   margin-bottom: 0;
 }
 .vh-sb__gtitle{
