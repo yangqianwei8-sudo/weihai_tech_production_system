@@ -41,7 +41,9 @@
 @import url('components/notifications.css');
 @import url('components/datepicker.css');
 @import url('components/tag-input.css');
-@import url('components/list-filters.css');
+@import url('components/two_column_layout.css');
+@import url('components/sidebar_v2.css');
+/* @import url('components/list-filters.css'); */ /* 已弃用：样式已合并到 layouts/list-layout.css */
 
 /* ============================================
    布局样式（可选）
@@ -51,6 +53,12 @@
 /* @import url('layouts/grid.css'); */
 /* @import url('layouts/sidebar.css'); */
 /* @import url('layouts/responsive.css'); */
+
+/* ============================================
+   其他通用样式
+   ============================================ */
+@import url('qixinbao-autofill.css');
+@import url('approval_path.css');
 
 /* ============================================
    模块特定样式（按需加载）
@@ -65,6 +73,10 @@
 /* @import url('modules/financial.css'); */
 /* @import url('modules/project.css'); */
 /* @import url('modules/personnel.css'); */
+
+/* ============================================
+   交互性修复
+   ============================================ */
 
 /* 确保表单容器可以正常交互 */
 .workspace-content,
@@ -83,19 +95,22 @@ form {
     pointer-events: auto;
 }
 
+/* ============================================
+   无障碍支持
+   ============================================ */
 
 /* 强制颜色模式支持 - 替代已弃用的-ms-high-contrast-adjust */
 @media (forced-colors: active) {
-  /* 确保在强制颜色模式下元素可见 */
-  * {
-    forced-color-adjust: auto;
-  }
-  
-  /* 对于需要保持自定义颜色的元素，使用preserve-parent */
-  .welcome-card-top,
-  .navbar,
-  button,
-  a {
-    forced-color-adjust: preserve-parent;
-  }
+    /* 确保在强制颜色模式下元素可见 */
+    * {
+        forced-color-adjust: auto;
+    }
+    
+    /* 对于需要保持自定义颜色的元素，使用preserve-parent */
+    .welcome-card-top,
+    .navbar,
+    button,
+    a {
+        forced-color-adjust: preserve-parent;
+    }
 }

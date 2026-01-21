@@ -48,7 +48,8 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-xs) var(--spacing-md);
-    border-radius: var(--radius-sm);
+    margin-left: var(--spacing-md);
+    border-radius: 0;
     position: relative;
     z-index: 1;
     font-size: var(--font-size-lg);
@@ -89,7 +90,7 @@
     align-items: center;
     gap: 4px;
     padding: var(--spacing-xs) var(--spacing-sm) !important;
-    border-radius: var(--radius-sm);
+    border-radius: 0;
     position: relative;
     font-weight: 500;
     font-size: var(--font-size-base);
@@ -105,7 +106,7 @@
     width: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
-    border-radius: 2px;
+    border-radius: 0;
 }
 
 /* 移除顶部栏链接悬停动画 */
@@ -211,7 +212,7 @@
 .dropdown-menu {
     background: #fff;
     border: 1px solid rgba(20, 47, 91, 0.15);
-    border-radius: var(--radius-md);
+    border-radius: 0;
     box-shadow: var(--shadow-lg);
     margin-top: var(--spacing-sm);
     padding: var(--spacing-sm) 0;
@@ -249,6 +250,10 @@
     flex-direction: row !important;
     align-items: center;
     width: 100%;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }
 
 .navbar-collapse {
@@ -279,6 +284,7 @@
 /* 右侧导航菜单（用户信息和退出登录） */
 .navbar-nav:not(.me-auto) {
     margin-left: auto;
+    margin-right: var(--spacing-md);
     flex-shrink: 0;
 }
 
@@ -292,7 +298,7 @@
 
 .navbar-nav::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
+    border-radius: 0;
 }
 
 .navbar-nav::-webkit-scrollbar-thumb:hover {
