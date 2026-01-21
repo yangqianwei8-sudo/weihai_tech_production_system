@@ -194,15 +194,15 @@
   font-weight: 600;
 }
 
-/* 子菜单项样式 */
+/* ===== 子菜单项样式 ===== */
 .vh-sb__child {
-  display: flex !important;
-  flex-direction: row !important;
+  display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 10px;
-  padding: 6px var(--spacing-sm, 12px) 6px 40px !important;
+  padding: 6px var(--spacing-sm, 12px) 6px var(--vh-sb-child-indent, 40px);
   border-radius: 0;
-  font-size: var(--font-size-sm, 12px) !important;
+  font-size: var(--font-size-sm, 12px);
   line-height: 1.4;
   color: var(--vh-text-muted, #666666);
   cursor: pointer;
@@ -210,7 +210,7 @@
   margin-bottom: 1px;
   text-decoration: none;
   user-select: none;
-  width: 100% !important;
+  width: 100%;
   font-weight: 400;
 }
 
@@ -220,17 +220,17 @@
 }
 
 .vh-sb__child.is-active {
-  background: #E8E8E8; /* 使用固定值，因为变量中没有完全匹配的 */
+  background: var(--vh-sb-active-bg, #E8E8E8);
   color: var(--vh-primary, #1A1A1A);
   font-weight: 600;
 }
 
-/* Badge样式 - 灰色黑色 */
-.vh-sb__badge{
+/* ===== Badge 样式 ===== */
+.vh-sb__badge {
   font-size: 10px;
   font-weight: 600;
   color: var(--vh-text-muted, #666666);
-  background: #E8E8E8; /* 使用固定值，因为变量中没有完全匹配的 */
+  background: var(--vh-sb-active-bg, #E8E8E8);
   border-radius: 0;
   padding: 2px 6px;
   margin-left: auto;
@@ -239,9 +239,10 @@
   min-width: 16px;
   text-align: center;
 }
-.vh-sb__badge--dot{
+
+.vh-sb__badge--dot {
   padding: 2px 6px;
-  background: #CCCCCC; /* 使用固定值，因为变量中没有完全匹配的 */
+  background: #CCCCCC;
   color: var(--vh-accent, #333333);
 }
 
