@@ -1,8 +1,7 @@
-/* ===== Sidebar V2 Fixed · 简洁、美观、大方风格 ===== */
-/* 风格：灰色黑色为主，卡片直角，无彩色图标 */
-
-/* ===== 引入通用样式 ===== */
-/* 
+/**
+ * Sidebar V2 Fixed - 固定侧边栏组件
+ * 风格：简洁、美观、大方，灰色黑色为主，卡片直角，无彩色图标
+ * 
  * 使用方式：
  * 1. 标准方式（推荐）：在模板中先引入 common.css，再引入此文件
  *    <link rel="stylesheet" href="{% static 'css/common.css' %}">
@@ -13,6 +12,18 @@
  *    @import url('../core/variables.css'); 
  */
 /* @import url('../core/variables.css'); */ /* 如果独立使用，取消此注释 */
+
+/* ===== 组件内部变量定义 ===== */
+:root {
+  --vh-sb-width: 232px;
+  --vh-sb-top-height: 56px;
+  --vh-sb-icon-size: 18px;
+  --vh-sb-child-indent: 40px;
+  --vh-sb-nav-padding-bottom: 80px;
+  --vh-sb-active-bg: #E8E8E8;
+  --vh-sb-bottom-bg: #FAFAFA;
+  --vh-sb-hover-border: #CCCCCC;
+}
 
 /* 1) 侧栏：固定在视口，不随页面滚动 */
 .vh-sb{
