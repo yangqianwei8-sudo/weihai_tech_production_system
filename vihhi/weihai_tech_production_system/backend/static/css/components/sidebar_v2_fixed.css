@@ -154,8 +154,8 @@
   filter: grayscale(100%) brightness(0.4);
 }
 
-/* 标签样式 */
-.vh-sb__label{
+/* ===== 标签样式 ===== */
+.vh-sb__label {
   flex: 1 1 auto;
   min-width: 0;
   white-space: nowrap;
@@ -163,7 +163,8 @@
   text-overflow: ellipsis;
 }
 
-/* 菜单项样式 - 简洁、直角 */
+/* ===== 菜单项样式 ===== */
+/* 简洁、直角设计 */
 .vh-sb__item {
   display: flex;
   align-items: center;
@@ -172,8 +173,8 @@
   border-radius: 0;
   font-size: 13px;
   line-height: 1.4;
-  color: var(--vh-accent, #333333) !important;
-  background: transparent !important;
+  color: var(--vh-accent, #333333);
+  background: transparent;
   cursor: pointer;
   transition: background-color var(--transition-base, 0.2s ease);
   margin-bottom: 1px;
@@ -183,13 +184,13 @@
 }
 
 .vh-sb__item:hover {
-  background: var(--vh-surface, #F5F5F5) !important;
-  color: var(--vh-primary, #1A1A1A) !important;
+  background: var(--vh-surface, #F5F5F5);
+  color: var(--vh-primary, #1A1A1A);
 }
 
 .vh-sb__item.is-active {
-  background: #E8E8E8 !important; /* 使用固定值，因为变量中没有完全匹配的 */
-  color: var(--vh-primary, #1A1A1A) !important;
+  background: var(--vh-sb-active-bg, #E8E8E8);
+  color: var(--vh-primary, #1A1A1A);
   font-weight: 600;
 }
 
