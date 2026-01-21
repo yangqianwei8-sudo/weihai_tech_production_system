@@ -44,15 +44,16 @@
   font-family: var(--font-family, "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif);
 }
 
-/* 2) 顶部：严格 56px */
-.vh-sb__top{
-  height: 56px;
-  flex: 0 0 56px;
+/* ===== 顶部区域 ===== */
+.vh-sb__top {
+  height: var(--vh-sb-top-height, 56px);
+  flex: 0 0 var(--vh-sb-top-height, 56px);
   border-bottom: 1px solid var(--vh-border, #E0E0E0);
   background: var(--vh-bg, #FFFFFF);
 }
-.vh-sb__topInner{
-  height: 56px;
+
+.vh-sb__topInner {
+  height: var(--vh-sb-top-height, 56px);
   padding: var(--spacing-sm, 12px) var(--spacing-md, 16px);
   display: flex;
   align-items: center;
