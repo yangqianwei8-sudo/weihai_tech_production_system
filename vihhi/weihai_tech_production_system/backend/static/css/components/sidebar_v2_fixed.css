@@ -25,9 +25,10 @@
   --vh-sb-hover-border: #CCCCCC;
 }
 
-/* 1) 侧栏：固定在视口，不随页面滚动 */
-.vh-sb{
-  width: 232px;
+/* ===== 主容器 ===== */
+/* 侧栏：固定在视口，不随页面滚动 */
+.vh-sb {
+  width: var(--vh-sb-width, 232px);
   position: fixed;
   top: var(--navbar-height, 62px);
   bottom: 0;
