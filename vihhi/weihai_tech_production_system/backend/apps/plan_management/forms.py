@@ -550,7 +550,9 @@ class PlanForm(forms.ModelForm):
                 attrs={
                     'class': 'form-control',
                     'type': 'date',
-                    'placeholder': '请选择计划结束日期'
+                    'placeholder': '系统自动计算',
+                    'readonly': True,
+                    'style': 'background-color: #e9ecef; cursor: not-allowed;'
                 }
             ),
             'responsible_person': forms.Select(attrs={'class': 'form-select'}),
@@ -690,6 +692,11 @@ class PlanForm(forms.ModelForm):
                     seen_projects.add(project_name)
         
         # 将 related_project 改为 ChoiceField，使用商机中的项目数据
+        # 先保存编辑时的初始值（如果存在）
+        related_project_initial = None
+        if self.instance and self.instance.pk and hasattr(self.instance, 'related_project'):
+            related_project_initial = self.instance.related_project
+        
         self.fields['related_project'] = forms.ChoiceField(
             choices=project_choices,
             required=False,
@@ -697,6 +704,10 @@ class PlanForm(forms.ModelForm):
             label='关联项目',
             help_text='项目信息来源于商机管理'
         )
+        
+        # 如果是编辑，恢复关联项目的初始值
+        if related_project_initial:
+            self.fields['related_project'].initial = related_project_initial
         
         # 计划编号字段处理：完全由系统自动生成，但必须显示
         # 新建和编辑时都显示，但都是只读的
@@ -727,8 +738,8 @@ class PlanForm(forms.ModelForm):
                 self.fields['start_time'].required = False
             if 'end_time' in self.fields:
                 self.fields['end_time'].required = False
-        
-        # 草稿模式下，所属部门和负责人也允许为空（虽然通常有默认值）
+            
+            # 草稿模式下，所属部门和负责人也允许为空（虽然通常有默认值）
             if self.is_draft:
                 if 'responsible_department' in self.fields:
                     self.fields['responsible_department'].required = False
@@ -745,6 +756,10 @@ class PlanForm(forms.ModelForm):
                 self.fields['end_time'].initial = self.instance.end_time.date()
         else:
             # 新建时，设置默认值
+            
+            # 设置计划层级默认为个人计划
+            if 'level' in self.fields:
+                self.fields['level'].initial = 'personal'
             
             # 设置开始日期默认为当天
             today = date.today()
@@ -1204,6 +1219,8 @@ class PlanItemForm(forms.ModelForm):
                 attrs={
                     'class': 'form-control form-control-sm',
                     'type': 'date',
+                    'readonly': True,
+                    'style': 'background-color: #e9ecef; cursor: not-allowed;'
                 }
             ),
         }

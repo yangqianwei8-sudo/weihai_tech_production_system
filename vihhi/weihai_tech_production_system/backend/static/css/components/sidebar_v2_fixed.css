@@ -186,6 +186,7 @@
 .vh-sb__item:hover {
   background: var(--vh-surface, #F5F5F5);
   color: var(--vh-primary, #1A1A1A);
+  text-decoration: none !important; /* 移除全局链接样式添加的下划线 */
 }
 
 .vh-sb__item.is-active {
@@ -217,6 +218,7 @@
 .vh-sb__child:hover {
   background: var(--vh-surface, #F5F5F5);
   color: var(--vh-primary, #1A1A1A);
+  text-decoration: none !important; /* 移除全局链接样式添加的下划线 */
 }
 
 .vh-sb__child.is-active {
@@ -258,6 +260,7 @@
 
 .vh-sb__parent .vh-sb__item--parent:hover {
   background: var(--vh-surface, #F5F5F5);
+  text-decoration: none !important; /* 移除全局链接样式添加的下划线 */
 }
 
 .vh-sb__parent .vh-sb__item--parent.is-active {
