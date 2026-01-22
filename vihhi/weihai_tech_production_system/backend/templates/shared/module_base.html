@@ -106,6 +106,19 @@
         padding-bottom: 0 !important;
       }
 
+      /* 确保下划线始终显示 */
+      .two-col-content .page-title-underline {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: calc(100% - 8px) !important;
+        height: 1px !important;
+        background-color: var(--vh-border-primary, #000000) !important;
+        margin-left: 8px !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+      }
+
       {% block module_content_wrapper_styles %}
       .module-content-wrapper {
         padding: 8px 8px 24px 8px;
