@@ -1309,6 +1309,7 @@ class ApprovalNotification(models.Model):
         ('company_plan_published', '公司计划发布'),
         ('personal_plan_published', '个人计划发布'),
         ('plan_accepted', '计划被接收'),
+        ('weekly_plan_reminder', '周计划提醒'),
     ]
     
     OBJECT_TYPE_CHOICES = [
