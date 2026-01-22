@@ -624,6 +624,7 @@ def plan_list(request):
     responsible_id = request.GET.get('responsible_person', '').strip() or request.GET.get('responsible', '').strip()  # 兼容旧参数名
     date_from = request.GET.get('date_from', '').strip()
     date_to = request.GET.get('date_to', '').strip()
+    risk_warning = request.GET.get('risk_warning', '').strip()  # 风险预警筛选
     
     # 查询计划
     # 注意：related_goal 现在允许为空（null=True），Django 会自动使用 LEFT OUTER JOIN
@@ -679,6 +680,13 @@ def plan_list(request):
     if date_to:
         plans = plans.filter(end_time__date__lte=date_to)
     
+    # 风险预警筛选（逾期周计划）
+    if risk_warning == 'overdue':
+        plans = plans.filter(
+            plan_period='weekly',
+            is_overdue=True
+        )
+    
     # 排序
     plans = plans.order_by('-created_time')
     
@@ -720,6 +728,12 @@ def plan_list(request):
     completed_count = Plan.objects.filter(status='completed').count()
     cancelled_count = Plan.objects.filter(status='cancelled').count()
     
+    # 风险预警统计（逾期周计划）
+    overdue_weekly_plans_count = Plan.objects.filter(
+        plan_period='weekly',
+        is_overdue=True
+    ).exclude(status__in=['completed', 'cancelled']).count()
+    
     # 获取所有用户和战略目标（用于筛选）
     all_users = User.objects.filter(is_active=True).order_by('username')
     all_goals = StrategicGoal.objects.filter(
@@ -760,6 +774,8 @@ def plan_list(request):
         'responsible_filter': responsible_id,  # 保持向后兼容
         'date_from': date_from,
         'date_to': date_to,
+        'risk_warning': risk_warning,
+        'overdue_weekly_plans_count': overdue_weekly_plans_count,
         # 用于筛选表单
         'filters': {
             'status': status_filter,
