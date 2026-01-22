@@ -116,6 +116,7 @@ from .forms import (
     PlanProgressUpdateForm,
     PlanIssueForm,
     PlanAdjustmentForm,
+    PlanItemFormSet,
 )
 
 def _build_plan_management_menu(permission_set, active_id=None):
@@ -953,7 +954,29 @@ def plan_create(request):
     if request.method == 'POST':
         # 检查是否是草稿保存
         is_draft = request.POST.get('action') == 'draft'
-        form = PlanForm(request.POST, user=request.user, is_draft=is_draft)
+        
+        # 检查详细信息表格是否有数据
+        formset_prefix = 'planitems'
+        total_forms = int(request.POST.get(f'{formset_prefix}-TOTAL_FORMS', 0))
+        has_formset_data = False
+        for i in range(total_forms):
+            # 检查该行是否被删除
+            if request.POST.get(f'{formset_prefix}-{i}-DELETE'):
+                continue
+            # 检查该行是否有任何数据
+            name = request.POST.get(f'{formset_prefix}-{i}-name', '').strip()
+            goal = request.POST.get(f'{formset_prefix}-{i}-related_goal', '').strip()
+            content = request.POST.get(f'{formset_prefix}-{i}-content', '').strip()
+            objective = request.POST.get(f'{formset_prefix}-{i}-plan_objective', '').strip()
+            start_time = request.POST.get(f'{formset_prefix}-{i}-start_time', '').strip()
+            end_time = request.POST.get(f'{formset_prefix}-{i}-end_time', '').strip()
+            if name or goal or content or objective or start_time or end_time:
+                has_formset_data = True
+                break
+        
+        # 如果详细信息表格有数据，基本信息表单的字段变为非必填
+        form = PlanForm(request.POST, user=request.user, is_draft=is_draft, has_formset_data=has_formset_data)
+        formset = PlanItemFormSet(request.POST, prefix='planitems', form_kwargs={'user': request.user})
         
         # 在表单验证前，先检查周计划的重复创建（非草稿模式）
         if not is_draft:
@@ -1009,7 +1032,7 @@ def plan_create(request):
                     # 如果解析失败，继续表单验证
                     pass
         
-        if form.is_valid():
+        if form.is_valid() and formset.is_valid():
             plan = form.save(commit=False)
             plan.created_by = request.user
             
@@ -1033,17 +1056,77 @@ def plan_create(request):
             if 'participants' in form.cleaned_data:
                 plan.participants.set(form.cleaned_data['participants'])
             
+            # 保存计划列表（详细信息区域的计划项）
+            # 注意：没有主计划与子计划的区分，所有计划都是平等的
+            created_plans = []
+            
+            # 保存基本信息区域的计划（如果有字段值）
+            if form.cleaned_data.get('name') or form.cleaned_data.get('content'):
+                plan.responsible_person = plan.responsible_person or request.user
+                plan.responsible_department = plan.responsible_department or (request.user.responsible_department if hasattr(request.user, 'responsible_department') else None)
+                plan.save()
+                if 'participants' in form.cleaned_data:
+                    plan.participants.set(form.cleaned_data['participants'])
+                created_plans.append(plan)
+            
+            # 保存详细信息区域的计划列表
+            for planitem_form in formset:
+                if planitem_form.cleaned_data and not planitem_form.cleaned_data.get('DELETE'):
+                    plan_item = planitem_form.save(commit=False)
+                    # 继承基本信息区域的默认值（负责人、部门、周期等）
+                    plan_item.responsible_person = plan.responsible_person or request.user
+                    plan_item.responsible_department = plan.responsible_department or (request.user.responsible_department if hasattr(request.user, 'responsible_department') else None)
+                    plan_item.plan_period = plan.plan_period
+                    plan_item.level = plan.level
+                    plan_item.status = 'draft' if is_draft else 'draft'
+                    # 不设置 parent_plan，所有计划都是平等的
+                    # 生成计划编号
+                    plan_item.plan_number = plan_item.generate_plan_number()
+                    plan_item.created_by = request.user
+                    plan_item.save()
+                    
+                    # 保存多对多关系
+                    if 'participants' in planitem_form.cleaned_data:
+                        plan_item.participants.set(planitem_form.cleaned_data['participants'])
+                    
+                    created_plans.append(plan_item)
+            
             if is_draft:
-                messages.success(request, f'计划 {plan.name} 已暂存为草稿')
+                messages.success(request, f'计划已暂存为草稿（共 {len(created_plans)} 个计划）')
             else:
-                messages.success(request, f'计划 {plan.name} 创建成功')
-            return redirect('plan_pages:plan_detail', plan_id=plan.id)
+                messages.success(request, f'成功创建 {len(created_plans)} 个计划')
+            # 跳转到第一个计划的详情页（如果有）
+            if created_plans:
+                return redirect('plan_pages:plan_detail', plan_id=created_plans[0].id)
+            else:
+                return redirect('plan_pages:plan_list')
         else:
-            messages.error(request, '表单验证失败，请检查输入')
+            # 显示详细的验证错误信息
+            error_messages = []
+            if not form.is_valid():
+                error_messages.append('基本信息表单验证失败：')
+                for field, errors in form.errors.items():
+                    error_messages.append(f'  - {field}: {", ".join(errors)}')
+            if not formset.is_valid():
+                error_messages.append('详细信息表单验证失败：')
+                if formset.non_form_errors():
+                    error_messages.append(f'  - {formset.non_form_errors()}')
+                for i, form_item in enumerate(formset):
+                    if form_item.errors:
+                        error_messages.append(f'  第 {i+1} 行: {form_item.errors}')
+                    if form_item.non_field_errors():
+                        error_messages.append(f'  第 {i+1} 行: {form_item.non_field_errors()}')
+            
+            if error_messages:
+                messages.error(request, '\n'.join(error_messages))
+            else:
+                messages.error(request, '表单验证失败，请检查输入')
+            
             # 关键：无效就回渲染，不要 redirect
             context = _context("创建计划", "➕", "创建新的工作计划", request=request)
             context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_create')
             context['form'] = form
+            context['formset'] = formset
             context['page_title'] = "创建计划"
             context['submit_text'] = "创建"
             context['cancel_url_name'] = 'plan_pages:plan_list'
@@ -1052,10 +1135,12 @@ def plan_create(request):
             return render(request, "plan_management/plan_form.html", context)
     else:
         form = PlanForm(user=request.user)
+        formset = PlanItemFormSet(prefix='planitems', form_kwargs={'user': request.user})
     
     context = _context("创建计划", "➕", "创建新的工作计划", request=request)
     context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_create')
     context['form'] = form
+    context['formset'] = formset
     context['page_title'] = "创建计划"
     context['submit_text'] = "创建"
     context['cancel_url_name'] = 'plan_pages:plan_list'
