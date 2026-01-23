@@ -279,6 +279,11 @@ class StrategicGoal(models.Model):
             changed_by=user,
             change_reason='状态转换'
         )
+        
+        # 触发状态变更后的动作
+        if new_status == 'published':
+            from backend.apps.plan_management.signals import handle_goal_published
+            handle_goal_published(self)
     
     def has_related_plans(self):
         """检查是否有关联的计划"""
@@ -873,6 +878,11 @@ class Plan(models.Model):
             changed_by=user,
             change_reason='状态转换'
         )
+        
+        # 触发状态变更后的动作
+        if new_status == 'published':
+            from backend.apps.plan_management.signals import handle_plan_published
+            handle_plan_published(self)
     
     def get_child_plans_count(self):
         """获取下级计划数量"""
