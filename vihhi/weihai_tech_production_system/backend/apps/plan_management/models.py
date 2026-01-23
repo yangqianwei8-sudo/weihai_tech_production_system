@@ -279,6 +279,11 @@ class StrategicGoal(models.Model):
             changed_by=user,
             change_reason='状态转换'
         )
+        
+        # 触发状态变更后的动作
+        if new_status == 'published':
+            from backend.apps.plan_management.signals import handle_goal_published
+            handle_goal_published(self)
     
     def has_related_plans(self):
         """检查是否有关联的计划"""
@@ -873,6 +878,11 @@ class Plan(models.Model):
             changed_by=user,
             change_reason='状态转换'
         )
+        
+        # 触发状态变更后的动作
+        if new_status == 'published':
+            from backend.apps.plan_management.signals import handle_plan_published
+            handle_plan_published(self)
     
     def get_child_plans_count(self):
         """获取下级计划数量"""
@@ -1429,11 +1439,35 @@ class ApprovalNotification(models.Model):
         ('plan_accepted', '计划被接收'),
         ('weekly_plan_reminder', '周计划提醒'),
         ('weekly_plan_overdue', '周计划逾期'),
+        # 新增事件类型
+        ('goal_creation', '目标创建待办'),
+        ('goal_decomposition', '目标分解待办'),
+        ('goal_progress_update', '目标进度更新待办'),
+        ('goal_progress_updated', '目标进度已更新'),
+        ('goal_overdue', '目标逾期'),
+        ('subordinate_goal_overdue', '下属目标逾期'),
+        ('company_plan_creation', '公司计划创建待办'),
+        ('personal_plan_creation', '个人计划创建待办'),
+        ('weekly_plan_decomposition', '周计划分解待办'),
+        ('daily_plan_decomposition', '日计划分解待办'),
+        ('plan_progress_update', '计划进度更新待办'),
+        ('plan_progress_updated', '计划进度已更新'),
+        ('plan_auto_started', '计划自动启动'),
+        ('plan_overdue', '计划逾期'),
+        ('subordinate_plan_overdue', '下属计划逾期'),
+        ('todo_overdue', '待办逾期'),
+        ('daily_todo_reminder', '每日待办提醒'),
+        ('weekly_summary', '周报'),
+        ('monthly_summary', '月报'),
+        ('daily_notification', '每日通知'),
     ]
     
     OBJECT_TYPE_CHOICES = [
         ('plan', '计划'),
         ('goal', '目标'),
+        ('todo', '待办'),
+        ('summary', '总结'),
+        ('notification', '通知'),
     ]
     
     user = models.ForeignKey(
@@ -1471,4 +1505,139 @@ class ApprovalNotification(models.Model):
     
     def __str__(self):
         return f"{self.title} - {self.user.username}"
+
+
+class Todo(models.Model):
+    """待办事项模型"""
+    
+    TODO_TYPE_CHOICES = [
+        # 目标管理
+        ('goal_creation', '目标创建'),
+        ('goal_decomposition', '目标分解'),
+        ('goal_progress_update', '目标进度更新'),
+        # 计划管理
+        ('company_plan_creation', '公司计划创建'),
+        ('personal_plan_creation', '个人计划创建'),
+        ('weekly_plan_decomposition', '周计划分解'),
+        ('daily_plan_decomposition', '日计划分解'),
+        ('plan_progress_update', '计划进度更新'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', '待处理'),
+        ('in_progress', '进行中'),
+        ('completed', '已完成'),
+        ('overdue', '已逾期'),
+        ('cancelled', '已取消'),
+    ]
+    
+    # 基本信息
+    todo_type = models.CharField(
+        max_length=50,
+        choices=TODO_TYPE_CHOICES,
+        verbose_name='待办类型'
+    )
+    title = models.CharField(max_length=200, verbose_name='待办标题')
+    description = models.TextField(blank=True, verbose_name='待办描述')
+    
+    # 关联对象（可选）
+    related_goal = models.ForeignKey(
+        StrategicGoal,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='todos',
+        verbose_name='关联目标'
+    )
+    related_plan = models.ForeignKey(
+        Plan,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='todos',
+        verbose_name='关联计划'
+    )
+    
+    # 责任人
+    assignee = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='assigned_todos',
+        verbose_name='负责人'
+    )
+    
+    # 时间信息
+    deadline = models.DateTimeField(verbose_name='截止时间')
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name='完成时间')
+    
+    # 状态
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name='状态'
+    )
+    is_overdue = models.BooleanField(default=False, db_index=True, verbose_name='是否逾期')
+    
+    # 系统字段
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='created_todos',
+        null=True,
+        blank=True,
+        verbose_name='创建人',
+        help_text='系统自动创建时可为空'
+    )
+    created_time = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
+    updated_time = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    
+    class Meta:
+        db_table = 'plan_todo'
+        verbose_name = '待办事项'
+        verbose_name_plural = verbose_name
+        ordering = ['-created_time']
+        indexes = [
+            models.Index(fields=['assignee', 'status']),
+            models.Index(fields=['deadline']),
+            models.Index(fields=['is_overdue', 'status']),
+            models.Index(fields=['todo_type', 'status']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_todo_type_display()} - {self.title} - {self.assignee.username}"
+    
+    def check_overdue(self):
+        """检查是否逾期"""
+        if self.status in ['completed', 'cancelled']:
+            self.is_overdue = False
+            return False
+        
+        now = timezone.now()
+        if now > self.deadline:
+            self.is_overdue = True
+            if self.status == 'pending':
+                self.status = 'overdue'
+            return True
+        else:
+            self.is_overdue = False
+            return False
+    
+    def save(self, *args, **kwargs):
+        # 自动检查逾期状态
+        self.check_overdue()
+        super().save(*args, **kwargs)
+    
+    def complete(self, user=None):
+        """完成待办事项"""
+        if self.status in ['completed', 'cancelled']:
+            return False
+        
+        self.status = 'completed'
+        self.completed_at = timezone.now()
+        self.is_overdue = False
+        if user:
+            self.updated_time = timezone.now()
+        self.save()
+        return True
 
