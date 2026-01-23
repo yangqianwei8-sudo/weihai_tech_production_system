@@ -260,6 +260,69 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 协作人员也可以根据部门过滤（如果有部门选择器）
     // 注意：协作人员是多选，需要特殊处理
+    
+    // 根据计划周期和开始时间自动计算结束时间
+    const planPeriodField = document.getElementById('id_plan_period');
+    const startTimeField = document.getElementById('id_start_time');
+    const endTimeField = document.getElementById('id_end_time');
+    
+    function calculateEndTime() {
+        if (!planPeriodField || !startTimeField || !endTimeField) {
+            return;
+        }
+        
+        const planPeriod = planPeriodField.value;
+        const startDate = startTimeField.value;
+        
+        if (!planPeriod || !startDate) {
+            return;
+        }
+        
+        const startDateObj = new Date(startDate);
+        if (isNaN(startDateObj.getTime())) {
+            return;
+        }
+        
+        let endDate = new Date(startDateObj);
+        
+        switch(planPeriod) {
+            case 'yearly':
+                endDate.setFullYear(endDate.getFullYear() + 1);
+                endDate.setDate(endDate.getDate() - 1);
+                break;
+            case 'quarterly':
+                endDate.setMonth(endDate.getMonth() + 3);
+                endDate.setDate(endDate.getDate() - 1);
+                break;
+            case 'monthly':
+                endDate.setMonth(endDate.getMonth() + 1);
+                endDate.setDate(endDate.getDate() - 1);
+                break;
+            case 'weekly':
+                endDate.setDate(endDate.getDate() + 6);
+                break;
+            case 'daily':
+                // 日计划，结束时间等于开始时间
+                break;
+            default:
+                return;
+        }
+        
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, '0');
+        const day = String(endDate.getDate()).padStart(2, '0');
+        endTimeField.value = `${year}-${month}-${day}`;
+    }
+    
+    if (planPeriodField && startTimeField && endTimeField) {
+        planPeriodField.addEventListener('change', calculateEndTime);
+        startTimeField.addEventListener('change', calculateEndTime);
+        
+        // 如果开始时间已有值，立即计算结束时间
+        if (startTimeField.value && planPeriodField.value) {
+            calculateEndTime();
+        }
+    }
 });
 </script>
 {% endblock %}
