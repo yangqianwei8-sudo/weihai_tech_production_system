@@ -6,16 +6,20 @@ P2-4: 待办中心服务
 - 待执行目标/计划（accepted，owner=user）
 - 今日应执行计划（in_progress，today在[start_time, end_time]）
 - 风险计划（逾期）
+- 系统生成的待办事项（Todo模型）
+- 本月待办（月度计划，状态为accepted）
+- 本周待办（周计划，状态为accepted）
+- 今日待办（日计划，状态为accepted或in_progress）
 
 原则：
-- 不存表，通过查询实现
+- 结合查询和Todo模型实现
 - 所有待办必须能点进去处理
 """
 from django.utils import timezone
 from django.urls import reverse
 from datetime import date, datetime, timedelta
 from typing import List, Dict, Any
-from ..models import StrategicGoal, Plan
+from ..models import StrategicGoal, Plan, Todo
 
 
 def get_user_todos(user) -> List[Dict[str, Any]]:
@@ -174,6 +178,40 @@ def get_user_todos(user) -> List[Dict[str, Any]]:
             'created_at': goal.end_date,
         })
     
+    # ========== 8. 系统生成的待办事项（Todo模型）==========
+    system_todos = Todo.objects.filter(
+        assignee=user,
+        status__in=['pending', 'in_progress', 'overdue']
+    ).select_related('related_goal', 'related_plan', 'created_by')
+    
+    for todo in system_todos:
+        # 自动检查逾期
+        todo.check_overdue()
+        
+        # 确定跳转链接
+        if todo.related_plan:
+            url = reverse('plan_pages:plan_detail', args=[todo.related_plan.id])
+            obj = todo.related_plan
+        elif todo.related_goal:
+            url = reverse('plan_pages:strategic_goal_detail', args=[todo.related_goal.id])
+            obj = todo.related_goal
+        else:
+            url = '#'
+            obj = None
+        
+        todos.append({
+            'type': f'system_{todo.todo_type}',
+            'title': todo.title,
+            'description': todo.description,
+            'priority': 'high' if todo.is_overdue else 'medium',
+            'url': url,
+            'object': obj,
+            'created_at': todo.created_time,
+            'deadline': todo.deadline,
+            'is_overdue': todo.is_overdue,
+            'todo_id': todo.id,  # 用于标记完成
+        })
+    
     # ========== 排序：优先级 > 创建时间 ==========
     priority_order = {'high': 0, 'medium': 1, 'low': 2}
     todos.sort(key=lambda x: (priority_order.get(x['priority'], 2), x['created_at'] or timezone.now()))
@@ -207,4 +245,134 @@ def get_user_todo_summary(user) -> Dict[str, int]:
     }
     
     return summary
+
+
+def get_monthly_todos(user) -> List[Dict[str, Any]]:
+    """
+    获取用户的本月待办列表（月度计划）
+    
+    Args:
+        user: User 对象
+    
+    Returns:
+        List[Dict]: 本月待办列表
+    """
+    now = timezone.now()
+    current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # 下个月第一天
+    if now.month == 12:
+        next_month_start = now.replace(year=now.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        next_month_start = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    # 查询本月月度计划，状态为accepted或in_progress
+    monthly_plans = Plan.objects.filter(
+        level='personal',
+        plan_period='monthly',
+        status__in=['accepted', 'in_progress'],
+        owner=user,
+        start_time__gte=current_month_start,
+        start_time__lt=next_month_start
+    ).select_related('responsible_person', 'related_goal')
+    
+    todos = []
+    for plan in monthly_plans:
+        todos.append({
+            'type': 'monthly_plan',
+            'title': plan.name,
+            'description': f'月度计划，进度：{plan.progress}%',
+            'priority': 'high' if plan.is_overdue else 'medium',
+            'url': reverse('plan_pages:plan_detail', args=[plan.id]),
+            'object': plan,
+            'created_at': plan.accepted_at or plan.created_time,
+            'progress': plan.progress,
+        })
+    
+    return todos
+
+
+def get_weekly_todos(user) -> List[Dict[str, Any]]:
+    """
+    获取用户的本周待办列表（周计划）
+    
+    Args:
+        user: User 对象
+    
+    Returns:
+        List[Dict]: 本周待办列表
+    """
+    now = timezone.now()
+    today = now.date()
+    # 本周一
+    days_since_monday = today.weekday()
+    week_start = today - timedelta(days=days_since_monday)
+    week_start_datetime = timezone.make_aware(datetime.combine(week_start, datetime.min.time()))
+    # 下周一
+    week_end_datetime = week_start_datetime + timedelta(days=7)
+    
+    # 查询本周周计划，状态为accepted或in_progress
+    weekly_plans = Plan.objects.filter(
+        level='personal',
+        plan_period='weekly',
+        status__in=['accepted', 'in_progress'],
+        owner=user,
+        start_time__gte=week_start_datetime,
+        start_time__lt=week_end_datetime
+    ).select_related('responsible_person', 'related_goal')
+    
+    todos = []
+    for plan in weekly_plans:
+        todos.append({
+            'type': 'weekly_plan',
+            'title': plan.name,
+            'description': f'周计划，进度：{plan.progress}%',
+            'priority': 'high' if plan.is_overdue else 'medium',
+            'url': reverse('plan_pages:plan_detail', args=[plan.id]),
+            'object': plan,
+            'created_at': plan.accepted_at or plan.created_time,
+            'progress': plan.progress,
+        })
+    
+    return todos
+
+
+def get_daily_todos(user) -> List[Dict[str, Any]]:
+    """
+    获取用户的今日待办列表（日计划）
+    
+    Args:
+        user: User 对象
+    
+    Returns:
+        List[Dict]: 今日待办列表
+    """
+    now = timezone.now()
+    today = now.date()
+    today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+    today_end = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+    
+    # 查询今日日计划，状态为accepted或in_progress
+    daily_plans = Plan.objects.filter(
+        level='personal',
+        plan_period='daily',
+        status__in=['accepted', 'in_progress'],
+        owner=user,
+        start_time__gte=today_start,
+        start_time__lte=today_end
+    ).select_related('responsible_person', 'related_goal')
+    
+    todos = []
+    for plan in daily_plans:
+        todos.append({
+            'type': 'daily_plan',
+            'title': plan.name,
+            'description': f'日计划，进度：{plan.progress}%',
+            'priority': 'high' if plan.is_overdue else 'high',  # 日计划优先级高
+            'url': reverse('plan_pages:plan_detail', args=[plan.id]),
+            'object': plan,
+            'created_at': plan.accepted_at or plan.created_time,
+            'progress': plan.progress,
+        })
+    
+    return todos
 
