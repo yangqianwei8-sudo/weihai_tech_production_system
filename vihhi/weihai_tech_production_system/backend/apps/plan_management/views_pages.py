@@ -10,9 +10,10 @@ from django.db.models import Q, Count, Sum, Avg
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from django import forms
 from decimal import Decimal, InvalidOperation
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from backend.apps.system_management.services import get_user_permission_codes
 from backend.apps.system_management.models import User, Department
 
@@ -119,6 +120,102 @@ from .forms import (
     PlanItemFormSet,
 )
 
+
+def _form_errors_plain(form):
+    """从表单提取纯文本错误信息，避免 HTML 标签（如 ul/li）混入 messages。"""
+    parts = []
+    for field, errs in form.errors.items():
+        f = form.fields.get(field)
+        label = (f.label if f and hasattr(f, 'label') else None) or field
+        for e in (list(errs) if errs else []):
+            parts.append(f'{label}: {e}')
+    return '; '.join(parts)
+
+
+def _validate_plan_fields(plan):
+    """
+    验证计划的必填字段
+    
+    Args:
+        plan: Plan 实例
+        
+    Returns:
+        tuple: (is_valid: bool, errors: list) 
+            is_valid: 是否通过验证
+            errors: 错误信息列表，每个元素为 {'field': 字段名, 'label': 字段标签, 'message': 错误信息}
+    """
+    errors = []
+    
+    # 必填字段列表
+    required_fields = [
+        ('name', '计划名称'),
+        ('level', '计划层级'),
+        ('plan_period', '计划周期'),
+        ('responsible_person', '负责人'),
+        ('start_time', '开始时间'),
+        ('end_time', '结束时间'),
+        ('related_goal', '关联战略目标'),
+    ]
+    
+    # 检查必填字段
+    for field_name, field_label in required_fields:
+        value = getattr(plan, field_name, None)
+        if not value:
+            errors.append({
+                'field': field_name,
+                'label': field_label,
+                'message': f'{field_label}为必填项，请填写'
+            })
+    
+    # 检查计划内容（如果计划项为空，则基本信息表单的 content 必填）
+    if not plan.content or not plan.content.strip():
+        # 检查是否有子计划（计划项）
+        has_child_plans = plan.child_plans.exists()
+        if not has_child_plans:
+            errors.append({
+                'field': 'content',
+                'label': '计划内容',
+                'message': '计划内容为必填项，请填写计划内容或添加计划项'
+            })
+    
+    # 检查计划目标
+    if not plan.plan_objective or not plan.plan_objective.strip():
+        errors.append({
+            'field': 'plan_objective',
+            'label': '计划目标',
+            'message': '计划目标为必填项，请填写'
+        })
+    
+    # 检查验收标准
+    if not plan.acceptance_criteria or not plan.acceptance_criteria.strip():
+        errors.append({
+            'field': 'acceptance_criteria',
+            'label': '验收标准',
+            'message': '验收标准为必填项，请填写'
+        })
+    
+    # 检查协作计划：如果选择了协作人员，必须填写协作计划
+    if plan.participants.exists():
+        if not plan.collaboration_plan or not plan.collaboration_plan.strip():
+            errors.append({
+                'field': 'collaboration_plan',
+                'label': '协作计划',
+                'message': '如果选择了协作人员，必须填写协作计划'
+            })
+    
+    # 检查时间范围
+    if plan.start_time and plan.end_time:
+        if plan.end_time < plan.start_time:
+            errors.append({
+                'field': 'end_time',
+                'label': '结束时间',
+                'message': '结束时间不能早于开始时间'
+            })
+    
+    is_valid = len(errors) == 0
+    return is_valid, errors
+
+
 def _build_plan_management_menu(permission_set, active_id=None):
     """生成计划管理模块左侧菜单（统一格式，兼容旧接口）"""
     # 使用统一的菜单构建函数
@@ -189,9 +286,12 @@ def _filter_plans_by_permission(plans, user, permission_set):
     根据用户权限过滤计划列表
     
     权限级别（从高到低）：
-    1. view_all: 查看全部计划（包括其他人的个人计划）
-    2. view_assigned: 查看本人负责或参与的计划，以及所有公司计划
-    3. view: 只能查看公司计划和自己负责/参与的个人计划
+    1. 超级用户: 查看全部计划
+    2. 显式 view_all: 仅当拥有 plan_management.plan.view_all 时查看全部（不含 __all__ 特权）
+    3. 普通员工: 只能查看本人的计划（owner=user 或 responsible_person=user）
+    
+    注意：system_admin / general_manager 等 __all__ 角色不再自动拥有「查看全部计划」；
+    员工只能看到本人的工作计划。若需某人查看全部，须单独分配 plan_management.plan.view_all。
     
     Args:
         plans: 计划查询集
@@ -208,27 +308,14 @@ def _filter_plans_by_permission(plans, user, permission_set):
     if getattr(user, 'is_superuser', False):
         return plans
     
-    # 检查是否有查看全部权限（最高级别）
-    if _permission_granted('plan_management.plan.view_all', permission_set):
+    # 仅显式拥有 plan_management.plan.view_all 时可见全部（不把 __all__ 当作 view_all）
+    if 'plan_management.plan.view_all' in permission_set:
         return plans
     
-    # 检查是否有查看负责计划权限
-    if _permission_granted('plan_management.plan.view_assigned', permission_set):
-        # 可以查看：自己负责的计划、自己拥有的计划、自己参与的计划、所有公司计划
-        return plans.filter(
-            Q(responsible_person=user) |
-            Q(owner=user) |
-            Q(participants=user) |
-            Q(level='company')
-        ).distinct()
-    
-    # 如果只有基础 view 权限，只能查看公司计划和自己负责/参与的个人计划
-    # 这是默认行为，确保个人计划的隐私性
+    # 普通员工（含 view_assigned、view、__all__ 等）：只能查看本人的计划
     return plans.filter(
-        Q(level='company') |
         Q(responsible_person=user) |
-        Q(owner=user) |
-        Q(participants=user)
+        Q(owner=user)
     ).distinct()
 
 
@@ -300,8 +387,8 @@ def plan_management_home(request):
     
     try:
         # ========== P2-5: 导入所有 service ==========
-        from backend.apps.plan_management.services.goal_stats_service import get_user_goal_stats, get_company_goal_stats
-        from backend.apps.plan_management.services.plan_stats_service import get_user_plan_stats, get_company_plan_stats
+        from backend.apps.plan_management.services.goal_stats_service import get_user_goal_stats, get_company_goal_stats, get_user_collaboration_goal_stats
+        from backend.apps.plan_management.services.plan_stats_service import get_user_plan_stats, get_company_plan_stats, get_user_collaboration_plan_stats
         from backend.apps.plan_management.services.todo_service import get_user_todos
         from backend.apps.plan_management.services.risk_query_service import get_user_risk_items
         
@@ -334,6 +421,33 @@ def plan_management_home(request):
         
         context['plan_cards'] = plan_cards
         context['plan_stats'] = plan_stats
+        
+        # ========== 我协作的统计 ==========
+        collaboration_plan_stats = get_user_collaboration_plan_stats(request.user)
+        collaboration_goal_stats = get_user_collaboration_goal_stats(request.user)
+        
+        collaboration_plan_cards = [{
+            'label': '我协作的计划',
+            'icon': '🤝',
+            'value': str(collaboration_plan_stats['total']),
+            'subvalue': f'执行中 {collaboration_plan_stats["in_progress"]} | 今日应执行 {collaboration_plan_stats["today"]} | 逾期 {collaboration_plan_stats["overdue"]}',
+            'url': reverse('plan_pages:plan_list') + '?participating=1',
+            'variant': 'info' if collaboration_plan_stats['total'] > 0 else 'secondary'
+        }]
+        
+        collaboration_goal_cards = [{
+            'label': '我协作的目标',
+            'icon': '🤝',
+            'value': str(collaboration_goal_stats['total']),
+            'subvalue': f'执行中 {collaboration_goal_stats["in_progress"]} | 逾期 {collaboration_goal_stats["overdue"]} | 本月需完成 {collaboration_goal_stats["this_month"]}',
+            'url': reverse('plan_pages:strategic_goal_list') + '?participating=1',
+            'variant': 'info' if collaboration_goal_stats['total'] > 0 else 'secondary'
+        }]
+        
+        context['collaboration_plan_stats'] = collaboration_plan_stats
+        context['collaboration_goal_stats'] = collaboration_goal_stats
+        context['collaboration_plan_cards'] = collaboration_plan_cards
+        context['collaboration_goal_cards'] = collaboration_goal_cards
         
         # ========== 第三行：待办 & 风险 ==========
         # 我的待办（左）
@@ -473,6 +587,309 @@ def plan_management_home(request):
         
         context['can_view_management'] = can_view_management
         
+        # ========== 第五行：下属工作情况（仅部门负责人可见）==========
+        from backend.apps.system_management.services import get_subordinate_users, is_department_manager
+        from django.db.models import Q, Count
+        from django.utils import timezone
+        from datetime import datetime, timedelta
+        
+        is_manager = is_department_manager(request.user)
+        context['is_department_manager'] = is_manager
+        
+        # 初始化subordinates变量
+        subordinates = get_subordinate_users(request.user) if is_manager else User.objects.none()
+        
+        if is_manager:
+            context['subordinates_count'] = subordinates.count()
+            
+            # 获取下属的计划统计
+            subordinate_plan_stats = []
+            now = timezone.now()
+            
+            for subordinate in subordinates[:10]:  # 最多显示10个下属
+                # 获取下属的计划
+                subordinate_plans = Plan.objects.filter(
+                    Q(owner=subordinate) | Q(responsible_person=subordinate) | Q(created_by=subordinate)
+                ).distinct()
+                
+                # 统计
+                total = subordinate_plans.count()
+                in_progress = subordinate_plans.filter(status='in_progress').count()
+                overdue = subordinate_plans.filter(
+                    status__in=['draft', 'published', 'accepted', 'in_progress'],
+                    end_time__lt=now
+                ).count()
+                
+                # 今日应执行
+                today = now.date()
+                today_plans = subordinate_plans.filter(
+                    status__in=['draft', 'published', 'accepted', 'in_progress'],
+                    start_time__lte=now,
+                    end_time__gte=now
+                )
+                
+                subordinate_plan_stats.append({
+                    'user': subordinate,
+                    'user_name': subordinate.get_full_name() or subordinate.username,
+                    'total': total,
+                    'in_progress': in_progress,
+                    'overdue': overdue,
+                    'today': today_plans.count(),
+                })
+            
+            context['subordinate_plan_stats'] = subordinate_plan_stats
+            
+            # 获取下属的目标统计
+            subordinate_goal_stats = []
+            for subordinate in subordinates[:10]:
+                subordinate_goals = StrategicGoal.objects.filter(
+                    Q(owner=subordinate) | Q(responsible_person=subordinate) | Q(created_by=subordinate)
+                ).distinct()
+                
+                total = subordinate_goals.count()
+                in_progress = subordinate_goals.filter(status='in_progress').count()
+                overdue = subordinate_goals.filter(
+                    status__in=['draft', 'published', 'in_progress'],
+                    end_date__lt=today
+                ).count()
+                
+                # 本月需完成
+                month_start = today.replace(day=1)
+                month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+                this_month = subordinate_goals.filter(
+                    status__in=['draft', 'published', 'in_progress'],
+                    end_date__gte=month_start,
+                    end_date__lte=month_end
+                ).count()
+                
+                subordinate_goal_stats.append({
+                    'user': subordinate,
+                    'user_name': subordinate.get_full_name() or subordinate.username,
+                    'total': total,
+                    'in_progress': in_progress,
+                    'overdue': overdue,
+                    'this_month': this_month,
+                })
+            
+            context['subordinate_goal_stats'] = subordinate_goal_stats
+            
+            # 计算"全部"分类的汇总数据（我的 + 下属的）
+            # 汇总下属的计划统计
+            subordinate_plan_summary = {
+                'total': sum(stat['total'] for stat in subordinate_plan_stats),
+                'in_progress': sum(stat['in_progress'] for stat in subordinate_plan_stats),
+                'today': sum(stat['today'] for stat in subordinate_plan_stats),
+                'overdue': sum(stat['overdue'] for stat in subordinate_plan_stats),
+            }
+            
+            # 汇总下属的目标统计
+            subordinate_goal_summary = {
+                'total': sum(stat['total'] for stat in subordinate_goal_stats),
+                'in_progress': sum(stat['in_progress'] for stat in subordinate_goal_stats),
+                'overdue': sum(stat['overdue'] for stat in subordinate_goal_stats),
+                'this_month': sum(stat['this_month'] for stat in subordinate_goal_stats),
+            }
+            
+            # 获取下属协作的统计
+            subordinate_collaboration_plan_stats = []
+            subordinate_collaboration_goal_stats = []
+            subordinate_collaboration_plan_summary = {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0}
+            subordinate_collaboration_goal_summary = {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0}
+            
+            for subordinate in subordinates[:10]:
+                # 下属协作的计划（作为参与者，排除自己负责的）
+                sub_collab_plans = Plan.objects.filter(participants=subordinate).exclude(responsible_person=subordinate)
+                sub_collab_plan_total = sub_collab_plans.count()
+                sub_collab_plan_in_progress = sub_collab_plans.filter(status='in_progress').count()
+                sub_collab_plan_overdue = sub_collab_plans.filter(
+                    status__in=['draft', 'published', 'accepted', 'in_progress'],
+                    end_time__lt=now
+                ).count()
+                today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+                today_end = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+                sub_collab_plan_today = sub_collab_plans.filter(
+                    status='in_progress',
+                    start_time__lte=today_end,
+                    end_time__gte=today_start
+                ).count()
+                
+                subordinate_collaboration_plan_summary['total'] += sub_collab_plan_total
+                subordinate_collaboration_plan_summary['in_progress'] += sub_collab_plan_in_progress
+                subordinate_collaboration_plan_summary['today'] += sub_collab_plan_today
+                subordinate_collaboration_plan_summary['overdue'] += sub_collab_plan_overdue
+                
+                # 下属协作的目标（作为参与者，排除自己负责的）
+                sub_collab_goals = StrategicGoal.objects.filter(participants=subordinate).exclude(responsible_person=subordinate)
+                sub_collab_goal_total = sub_collab_goals.count()
+                sub_collab_goal_in_progress = sub_collab_goals.filter(status='in_progress').count()
+                sub_collab_goal_overdue = sub_collab_goals.filter(
+                    status__in=['published', 'accepted', 'in_progress'],
+                    end_date__lt=today
+                ).count()
+                month_start = today.replace(day=1)
+                month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+                sub_collab_goal_this_month = sub_collab_goals.filter(
+                    end_date__year=today.year,
+                    end_date__month=today.month,
+                    status__in=['published', 'accepted', 'in_progress']
+                ).count()
+                
+                subordinate_collaboration_goal_summary['total'] += sub_collab_goal_total
+                subordinate_collaboration_goal_summary['in_progress'] += sub_collab_goal_in_progress
+                subordinate_collaboration_goal_summary['overdue'] += sub_collab_goal_overdue
+                subordinate_collaboration_goal_summary['this_month'] += sub_collab_goal_this_month
+            
+            context['subordinate_collaboration_plan_summary'] = subordinate_collaboration_plan_summary
+            context['subordinate_collaboration_goal_summary'] = subordinate_collaboration_goal_summary
+            
+            # "全部" = 我负责的 + 下属负责的 + 我协作的 + 下属协作的
+            all_plan_stats = {
+                'total': plan_stats['total'] + subordinate_plan_summary['total'] + collaboration_plan_stats['total'] + subordinate_collaboration_plan_summary['total'],
+                'in_progress': plan_stats['in_progress'] + subordinate_plan_summary['in_progress'] + collaboration_plan_stats['in_progress'] + subordinate_collaboration_plan_summary['in_progress'],
+                'today': plan_stats['today'] + subordinate_plan_summary['today'] + collaboration_plan_stats['today'] + subordinate_collaboration_plan_summary['today'],
+                'overdue': plan_stats['overdue'] + subordinate_plan_summary['overdue'] + collaboration_plan_stats['overdue'] + subordinate_collaboration_plan_summary['overdue'],
+            }
+            
+            all_goal_stats = {
+                'total': goal_stats['total'] + subordinate_goal_summary['total'] + collaboration_goal_stats['total'] + subordinate_collaboration_goal_summary['total'],
+                'in_progress': goal_stats['in_progress'] + subordinate_goal_summary['in_progress'] + collaboration_goal_stats['in_progress'] + subordinate_collaboration_goal_summary['in_progress'],
+                'overdue': goal_stats['overdue'] + subordinate_goal_summary['overdue'] + collaboration_goal_stats['overdue'] + subordinate_collaboration_goal_summary['overdue'],
+                'this_month': goal_stats['this_month'] + subordinate_goal_summary['this_month'] + collaboration_goal_stats['this_month'] + subordinate_collaboration_goal_summary['this_month'],
+            }
+            
+            context['all_plan_stats'] = all_plan_stats
+            context['all_goal_stats'] = all_goal_stats
+            context['subordinate_plan_summary'] = subordinate_plan_summary
+            context['subordinate_goal_summary'] = subordinate_goal_summary
+            
+            # 为手风琴分类准备卡片数据
+            # 全部分类的卡片
+            all_goal_cards = [{
+                'label': '全部目标',
+                'icon': '🎯',
+                'value': str(all_goal_stats['total']),
+                'subvalue': f'执行中 {all_goal_stats["in_progress"]} | 逾期 {all_goal_stats["overdue"]} | 本月需完成 {all_goal_stats["this_month"]}',
+                'url': reverse('plan_pages:strategic_goal_list'),
+                'variant': 'primary' if all_goal_stats['total'] > 0 else 'secondary'
+            }]
+            
+            all_plan_cards = [{
+                'label': '全部计划',
+                'icon': '📋',
+                'value': str(all_plan_stats['total']),
+                'subvalue': f'执行中 {all_plan_stats["in_progress"]} | 今日应执行 {all_plan_stats["today"]} | 逾期 {all_plan_stats["overdue"]}',
+                'url': reverse('plan_pages:plan_list'),
+                'variant': 'primary' if all_plan_stats['total'] > 0 else 'secondary'
+            }]
+            
+            # 我负责的分类的卡片（使用现有的）
+            my_goal_cards = goal_cards
+            my_plan_cards = plan_cards
+            
+            # 我下属的分类的卡片
+            subordinate_goal_cards = [{
+                'label': '下属目标',
+                'icon': '🎯',
+                'value': str(subordinate_goal_summary['total']),
+                'subvalue': f'执行中 {subordinate_goal_summary["in_progress"]} | 逾期 {subordinate_goal_summary["overdue"]} | 本月需完成 {subordinate_goal_summary["this_month"]}',
+                'url': reverse('plan_pages:strategic_goal_list'),
+                'variant': 'success' if subordinate_goal_summary['total'] > 0 else 'secondary'
+            }]
+            
+            subordinate_plan_cards = [{
+                'label': '下属计划',
+                'icon': '📋',
+                'value': str(subordinate_plan_summary['total']),
+                'subvalue': f'执行中 {subordinate_plan_summary["in_progress"]} | 今日应执行 {subordinate_plan_summary["today"]} | 逾期 {subordinate_plan_summary["overdue"]}',
+                'url': reverse('plan_pages:plan_list'),
+                'variant': 'success' if subordinate_plan_summary['total'] > 0 else 'secondary'
+            }]
+            
+            # 下属协作的卡片
+            subordinate_collaboration_goal_cards = [{
+                'label': '下属协作目标',
+                'icon': '🤝',
+                'value': str(subordinate_collaboration_goal_summary['total']),
+                'subvalue': f'执行中 {subordinate_collaboration_goal_summary["in_progress"]} | 逾期 {subordinate_collaboration_goal_summary["overdue"]} | 本月需完成 {subordinate_collaboration_goal_summary["this_month"]}',
+                'url': reverse('plan_pages:strategic_goal_list'),
+                'variant': 'warning' if subordinate_collaboration_goal_summary['total'] > 0 else 'secondary'
+            }]
+            
+            subordinate_collaboration_plan_cards = [{
+                'label': '下属协作计划',
+                'icon': '🤝',
+                'value': str(subordinate_collaboration_plan_summary['total']),
+                'subvalue': f'执行中 {subordinate_collaboration_plan_summary["in_progress"]} | 今日应执行 {subordinate_collaboration_plan_summary["today"]} | 逾期 {subordinate_collaboration_plan_summary["overdue"]}',
+                'url': reverse('plan_pages:plan_list'),
+                'variant': 'warning' if subordinate_collaboration_plan_summary['total'] > 0 else 'secondary'
+            }]
+            
+            context['all_goal_cards'] = all_goal_cards
+            context['all_plan_cards'] = all_plan_cards
+            context['my_goal_cards'] = my_goal_cards
+            context['my_plan_cards'] = my_plan_cards
+            context['subordinate_goal_cards'] = subordinate_goal_cards
+            context['subordinate_plan_cards'] = subordinate_plan_cards
+            context['subordinate_collaboration_goal_cards'] = subordinate_collaboration_goal_cards
+            context['subordinate_collaboration_plan_cards'] = subordinate_collaboration_plan_cards
+        else:
+            context['subordinates_count'] = 0
+            context['subordinate_plan_stats'] = []
+            context['subordinate_goal_stats'] = []
+            # 非部门负责人，全部 = 我负责的 + 我协作的
+            context['subordinate_plan_summary'] = {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0}
+            context['subordinate_goal_summary'] = {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0}
+            context['subordinate_plan_summary'] = {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0}
+            context['subordinate_goal_summary'] = {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0}
+            context['subordinate_collaboration_plan_summary'] = {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0}
+            context['subordinate_collaboration_goal_summary'] = {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0}
+            
+            # 全部 = 我负责的 + 我协作的
+            all_plan_stats = {
+                'total': plan_stats['total'] + collaboration_plan_stats['total'],
+                'in_progress': plan_stats['in_progress'] + collaboration_plan_stats['in_progress'],
+                'today': plan_stats['today'] + collaboration_plan_stats['today'],
+                'overdue': plan_stats['overdue'] + collaboration_plan_stats['overdue'],
+            }
+            
+            all_goal_stats = {
+                'total': goal_stats['total'] + collaboration_goal_stats['total'],
+                'in_progress': goal_stats['in_progress'] + collaboration_goal_stats['in_progress'],
+                'overdue': goal_stats['overdue'] + collaboration_goal_stats['overdue'],
+                'this_month': goal_stats['this_month'] + collaboration_goal_stats['this_month'],
+            }
+            
+            context['all_plan_stats'] = all_plan_stats
+            context['all_goal_stats'] = all_goal_stats
+            
+            # 非部门负责人，只显示"全部"、"我负责的"和"我协作的"
+            all_goal_cards = [{
+                'label': '全部目标',
+                'icon': '🎯',
+                'value': str(all_goal_stats['total']),
+                'subvalue': f'执行中 {all_goal_stats["in_progress"]} | 逾期 {all_goal_stats["overdue"]} | 本月需完成 {all_goal_stats["this_month"]}',
+                'url': reverse('plan_pages:strategic_goal_list'),
+                'variant': 'primary' if all_goal_stats['total'] > 0 else 'secondary'
+            }]
+            
+            all_plan_cards = [{
+                'label': '全部计划',
+                'icon': '📋',
+                'value': str(all_plan_stats['total']),
+                'subvalue': f'执行中 {all_plan_stats["in_progress"]} | 今日应执行 {all_plan_stats["today"]} | 逾期 {all_plan_stats["overdue"]}',
+                'url': reverse('plan_pages:plan_list'),
+                'variant': 'primary' if all_plan_stats['total'] > 0 else 'secondary'
+            }]
+            
+            context['all_goal_cards'] = all_goal_cards
+            context['all_plan_cards'] = all_plan_cards
+            context['my_goal_cards'] = goal_cards
+            context['my_plan_cards'] = plan_cards
+            context['subordinate_goal_cards'] = []
+            context['subordinate_plan_cards'] = []
+            context['subordinate_collaboration_goal_cards'] = []
+            context['subordinate_collaboration_plan_cards'] = []
+        
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)
@@ -485,6 +902,33 @@ def plan_management_home(request):
         context.setdefault('goal_stats', {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0})
         context.setdefault('plan_stats', {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0})
         context.setdefault('can_view_management', False)
+        context.setdefault('is_department_manager', False)
+        context.setdefault('subordinates_count', 0)
+        context.setdefault('subordinate_plan_stats', [])
+        context.setdefault('subordinate_goal_stats', [])
+        context.setdefault('all_plan_stats', {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0})
+        context.setdefault('all_goal_stats', {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0})
+        context.setdefault('subordinate_plan_summary', {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0})
+        context.setdefault('subordinate_goal_summary', {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0})
+        context.setdefault('all_goal_cards', [])
+        context.setdefault('all_plan_cards', [])
+        context.setdefault('my_goal_cards', [])
+        context.setdefault('my_plan_cards', [])
+        context.setdefault('subordinate_goal_cards', [])
+        context.setdefault('subordinate_plan_cards', [])
+        context.setdefault('collaboration_goal_cards', [])
+        context.setdefault('collaboration_plan_cards', [])
+        context.setdefault('subordinate_collaboration_goal_cards', [])
+        context.setdefault('subordinate_collaboration_plan_cards', [])
+        context.setdefault('collaboration_plan_stats', {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0})
+        context.setdefault('collaboration_goal_stats', {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0})
+        context.setdefault('subordinate_collaboration_plan_summary', {'total': 0, 'in_progress': 0, 'today': 0, 'overdue': 0})
+        context.setdefault('subordinate_collaboration_goal_summary', {'total': 0, 'in_progress': 0, 'overdue': 0, 'this_month': 0})
+        context.setdefault('category_data', {
+            'all': {'plan_status_dist': None, 'goal_status_dist': None, 'risk_items': [], 'todo_items': [], 'my_work': {}, 'recent_activities': {}},
+            'mine': {'plan_status_dist': None, 'goal_status_dist': None, 'risk_items': [], 'todo_items': [], 'my_work': {}, 'recent_activities': {}},
+            'collaboration': {'plan_status_dist': None, 'goal_status_dist': None, 'risk_items': [], 'todo_items': [], 'my_work': {}, 'recent_activities': {}},
+        })
     
     # ========== 安全字段检查（统一获取，避免重复）==========
     plan_fields = {f.name for f in Plan._meta.get_fields()}
@@ -604,17 +1048,12 @@ def plan_management_home(request):
     my_work['my_goals_count'] = my_goals_qs.count()
     
     # 我参与的计划（仅当 participants 字段存在才统计，避免 FieldError）
+    # 注意：根据权限要求，员工只能看到本人的和公司级的工作计划
+    # 所以这里只显示用户作为负责人或所有者的计划，不显示仅作为参与者的计划
     participating_plans = []
     participating_plans_count = 0
-    if 'participants' in plan_fields:
-        participating_qs = Plan.objects.filter(participants=request.user).exclude(responsible_person=request.user).distinct().order_by('-updated_time')
-        participating_plans = [{
-            'title': p.name,
-            'role': '参与者',
-            'progress': getattr(p, 'progress', 0) or 0,
-            'url': reverse('plan_pages:plan_detail', args=[p.id])
-        } for p in participating_qs[:5]]
-        participating_plans_count = participating_qs.count()
+    # 移除"我参与的计划"功能，因为员工只能看到本人的和公司级的计划
+    # 如果用户只是参与者但不是负责人或所有者，则不应该看到该计划
     
     my_work['participating_plans'] = participating_plans
     my_work['participating_plans_count'] = participating_plans_count
@@ -701,6 +1140,275 @@ def plan_management_home(request):
         pass
     
     context['recent_activities'] = recent_activities
+    
+    # ========== 为每个分类准备完整数据 ==========
+    # 由于代码量很大，我们为每个分类准备数据字典
+    # 每个分类需要：plan_status_dist, goal_status_dist, risk_items, todo_items, my_work, recent_activities
+    
+    # 确保subordinates变量已定义（如果还没有）
+    if 'subordinates' not in locals():
+        subordinates = get_subordinate_users(request.user) if is_manager else User.objects.none()
+    
+    # 确保is_manager和subordinates_count已定义
+    if 'is_manager' not in locals():
+        is_manager = is_department_manager(request.user)
+    if 'subordinates_count' not in context:
+        context['subordinates_count'] = subordinates.count() if is_manager else 0
+    
+    # 分类数据字典
+    category_data = {}
+    
+    # 1. 全部分类的数据（合并所有）
+    # 计划状态分布：合并所有分类的计划
+    all_plans_qs = Plan.objects.filter(
+        Q(owner=request.user) | Q(responsible_person=request.user) | Q(created_by=request.user) |
+        Q(participants=request.user)
+    ).distinct()
+    if is_manager and subordinates.exists():
+        all_plans_qs = all_plans_qs | Plan.objects.filter(
+            Q(owner__in=subordinates) | Q(responsible_person__in=subordinates) | Q(created_by__in=subordinates) |
+            Q(participants__in=subordinates)
+        ).distinct()
+    
+    all_plan_status_rows = all_plans_qs.values('status').annotate(count=Count('id'))
+    all_plan_status_dist = {}
+    for row in all_plan_status_rows:
+        code = row['status']
+        cnt = row['count']
+        all_plan_status_dist[str(code)] = {
+            'label': plan_status_label_map.get(code, str(code)),
+            'count': cnt
+        }
+    
+    # 目标状态分布：合并所有分类的目标
+    all_goals_qs = StrategicGoal.objects.filter(
+        Q(owner=request.user) | Q(responsible_person=request.user) | Q(created_by=request.user) |
+        Q(participants=request.user)
+    ).distinct()
+    if is_manager and subordinates.exists():
+        all_goals_qs = all_goals_qs | StrategicGoal.objects.filter(
+            Q(owner__in=subordinates) | Q(responsible_person__in=subordinates) | Q(created_by__in=subordinates) |
+            Q(participants__in=subordinates)
+        ).distinct()
+    
+    all_goal_status_rows = all_goals_qs.values('status').annotate(count=Count('id'))
+    all_goal_status_dist = {}
+    for row in all_goal_status_rows:
+        code = row['status']
+        cnt = row['count']
+        all_goal_status_dist[str(code)] = {
+            'label': goal_status_label_map.get(code, str(code)),
+            'count': cnt
+        }
+    
+    category_data['all'] = {
+        'plan_status_dist': all_plan_status_dist or None,
+        'goal_status_dist': all_goal_status_dist or None,
+        'risk_items': risk_items,  # 使用现有的风险项
+        'todo_items': all_todo_items[:10],  # 使用现有的待办项
+        'my_work': my_work,  # 使用现有的我的工作
+        'recent_activities': recent_activities,  # 使用现有的最近活动
+    }
+    
+    # 2. 我负责的分类的数据
+    my_responsible_plans_qs = Plan.objects.filter(responsible_person=request.user)
+    my_responsible_plan_status_rows = my_responsible_plans_qs.values('status').annotate(count=Count('id'))
+    my_responsible_plan_status_dist = {}
+    for row in my_responsible_plan_status_rows:
+        code = row['status']
+        cnt = row['count']
+        my_responsible_plan_status_dist[str(code)] = {
+            'label': plan_status_label_map.get(code, str(code)),
+            'count': cnt
+        }
+    
+    my_responsible_goals_qs = StrategicGoal.objects.filter(responsible_person=request.user)
+    my_responsible_goal_status_rows = my_responsible_goals_qs.values('status').annotate(count=Count('id'))
+    my_responsible_goal_status_dist = {}
+    for row in my_responsible_goal_status_rows:
+        code = row['status']
+        cnt = row['count']
+        my_responsible_goal_status_dist[str(code)] = {
+            'label': goal_status_label_map.get(code, str(code)),
+            'count': cnt
+        }
+    
+    # 我负责的风险项和待办项（只包含我负责的）
+    from backend.apps.plan_management.services.risk_query_service import get_user_risk_items
+    my_responsible_risk_items = [item for item in risk_items if hasattr(item.get('object'), 'responsible_person') and item['object'].responsible_person == request.user]
+    my_responsible_todos = [todo for todo in all_todo_items if todo.get('responsible') == request.user.get_full_name() or todo.get('responsible') == request.user.username]
+    
+    category_data['mine'] = {
+        'plan_status_dist': my_responsible_plan_status_dist or None,
+        'goal_status_dist': my_responsible_goal_status_dist or None,
+        'risk_items': my_responsible_risk_items[:5],
+        'todo_items': my_responsible_todos[:10],
+        'my_work': my_work,  # 使用现有的我的工作
+        'recent_activities': recent_activities,  # 使用现有的最近活动
+    }
+    
+    # 3. 下属负责的分类的数据（仅部门负责人）
+    if is_manager and subordinates.exists():
+        subordinate_responsible_plans_qs = Plan.objects.filter(responsible_person__in=subordinates)
+        subordinate_responsible_plan_status_rows = subordinate_responsible_plans_qs.values('status').annotate(count=Count('id'))
+        subordinate_responsible_plan_status_dist = {}
+        for row in subordinate_responsible_plan_status_rows:
+            code = row['status']
+            cnt = row['count']
+            subordinate_responsible_plan_status_dist[str(code)] = {
+                'label': plan_status_label_map.get(code, str(code)),
+                'count': cnt
+            }
+        
+        subordinate_responsible_goals_qs = StrategicGoal.objects.filter(responsible_person__in=subordinates)
+        subordinate_responsible_goal_status_rows = subordinate_responsible_goals_qs.values('status').annotate(count=Count('id'))
+        subordinate_responsible_goal_status_dist = {}
+        for row in subordinate_responsible_goal_status_rows:
+            code = row['status']
+            cnt = row['count']
+            subordinate_responsible_goal_status_dist[str(code)] = {
+                'label': goal_status_label_map.get(code, str(code)),
+                'count': cnt
+            }
+        
+        # 下属负责的风险项和待办项
+        subordinate_responsible_risk_items = [item for item in risk_items if hasattr(item.get('object'), 'responsible_person') and item['object'].responsible_person in subordinates]
+        subordinate_responsible_todos = []
+        
+        # 下属负责的工作
+        subordinate_work = {
+            'my_plans': [],
+            'my_plans_count': subordinate_responsible_plans_qs.count(),
+            'my_goals': [],
+            'my_goals_count': subordinate_responsible_goals_qs.count(),
+            'participating_plans': [],
+            'participating_plans_count': 0,
+        }
+        
+        # 下属负责的最近活动
+        subordinate_recent_activities = {
+            'recent_plans': [],
+            'recent_goals': [],
+            'recent_approvals': [],
+        }
+        
+        category_data['subordinate'] = {
+            'plan_status_dist': subordinate_responsible_plan_status_dist or None,
+            'goal_status_dist': subordinate_responsible_goal_status_dist or None,
+            'risk_items': subordinate_responsible_risk_items[:5],
+            'todo_items': subordinate_responsible_todos[:10],
+            'my_work': subordinate_work,
+            'recent_activities': subordinate_recent_activities,
+        }
+    
+    # 4. 我协作的分类的数据
+    my_collaboration_plans_qs = Plan.objects.filter(participants=request.user).exclude(responsible_person=request.user)
+    my_collaboration_plan_status_rows = my_collaboration_plans_qs.values('status').annotate(count=Count('id'))
+    my_collaboration_plan_status_dist = {}
+    for row in my_collaboration_plan_status_rows:
+        code = row['status']
+        cnt = row['count']
+        my_collaboration_plan_status_dist[str(code)] = {
+            'label': plan_status_label_map.get(code, str(code)),
+            'count': cnt
+        }
+    
+    my_collaboration_goals_qs = StrategicGoal.objects.filter(participants=request.user).exclude(responsible_person=request.user)
+    my_collaboration_goal_status_rows = my_collaboration_goals_qs.values('status').annotate(count=Count('id'))
+    my_collaboration_goal_status_dist = {}
+    for row in my_collaboration_goal_status_rows:
+        code = row['status']
+        cnt = row['count']
+        my_collaboration_goal_status_dist[str(code)] = {
+            'label': goal_status_label_map.get(code, str(code)),
+            'count': cnt
+        }
+    
+    # 我协作的风险项和待办项
+    my_collaboration_risk_items = []
+    my_collaboration_todos = []
+    
+    # 我协作的工作
+    my_collaboration_work = {
+        'my_plans': [],
+        'my_plans_count': my_collaboration_plans_qs.count(),
+        'my_goals': [],
+        'my_goals_count': my_collaboration_goals_qs.count(),
+        'participating_plans': [],
+        'participating_plans_count': 0,
+    }
+    
+    # 我协作的最近活动
+    my_collaboration_recent_activities = {
+        'recent_plans': [],
+        'recent_goals': [],
+        'recent_approvals': [],
+    }
+    
+    category_data['collaboration'] = {
+        'plan_status_dist': my_collaboration_plan_status_dist or None,
+        'goal_status_dist': my_collaboration_goal_status_dist or None,
+        'risk_items': my_collaboration_risk_items[:5],
+        'todo_items': my_collaboration_todos[:10],
+        'my_work': my_collaboration_work,
+        'recent_activities': my_collaboration_recent_activities,
+    }
+    
+    # 5. 下属协作的分类的数据（仅部门负责人）
+    if is_manager and subordinates.exists():
+        subordinate_collaboration_plans_qs = Plan.objects.filter(participants__in=subordinates).exclude(responsible_person__in=subordinates)
+        subordinate_collaboration_plan_status_rows = subordinate_collaboration_plans_qs.values('status').annotate(count=Count('id'))
+        subordinate_collaboration_plan_status_dist = {}
+        for row in subordinate_collaboration_plan_status_rows:
+            code = row['status']
+            cnt = row['count']
+            subordinate_collaboration_plan_status_dist[str(code)] = {
+                'label': plan_status_label_map.get(code, str(code)),
+                'count': cnt
+            }
+        
+        subordinate_collaboration_goals_qs = StrategicGoal.objects.filter(participants__in=subordinates).exclude(responsible_person__in=subordinates)
+        subordinate_collaboration_goal_status_rows = subordinate_collaboration_goals_qs.values('status').annotate(count=Count('id'))
+        subordinate_collaboration_goal_status_dist = {}
+        for row in subordinate_collaboration_goal_status_rows:
+            code = row['status']
+            cnt = row['count']
+            subordinate_collaboration_goal_status_dist[str(code)] = {
+                'label': goal_status_label_map.get(code, str(code)),
+                'count': cnt
+            }
+        
+        # 下属协作的风险项和待办项
+        subordinate_collaboration_risk_items = []
+        subordinate_collaboration_todos = []
+        
+        # 下属协作的工作
+        subordinate_collaboration_work = {
+            'my_plans': [],
+            'my_plans_count': subordinate_collaboration_plans_qs.count(),
+            'my_goals': [],
+            'my_goals_count': subordinate_collaboration_goals_qs.count(),
+            'participating_plans': [],
+            'participating_plans_count': 0,
+        }
+        
+        # 下属协作的最近活动
+        subordinate_collaboration_recent_activities = {
+            'recent_plans': [],
+            'recent_goals': [],
+            'recent_approvals': [],
+        }
+        
+        category_data['subordinate_collaboration'] = {
+            'plan_status_dist': subordinate_collaboration_plan_status_dist or None,
+            'goal_status_dist': subordinate_collaboration_goal_status_dist or None,
+            'risk_items': subordinate_collaboration_risk_items[:5],
+            'todo_items': subordinate_collaboration_todos[:10],
+            'my_work': subordinate_collaboration_work,
+            'recent_activities': subordinate_collaboration_recent_activities,
+        }
+    
+    context['category_data'] = category_data
     
     # 构建上下文
     page_context = _context(
@@ -842,15 +1550,15 @@ def plan_list(request):
             not plan.decisions.filter(decision__isnull=True).exists()
         )
     
-    # 统计信息（所有状态）
-    total_count = Plan.objects.count()
-    draft_count = Plan.objects.filter(status='draft').count()
-    in_progress_count = Plan.objects.filter(status='in_progress').count()
-    completed_count = Plan.objects.filter(status='completed').count()
-    cancelled_count = Plan.objects.filter(status='cancelled').count()
+    # 统计信息：基于当前权限过滤后的 plans，与列表数据一致
+    total_count = plans.count()
+    draft_count = plans.filter(status='draft').count()
+    in_progress_count = plans.filter(status='in_progress').count()
+    completed_count = plans.filter(status='completed').count()
+    cancelled_count = plans.filter(status='cancelled').count()
     
     # 风险预警统计（逾期周计划）
-    overdue_weekly_plans_count = Plan.objects.filter(
+    overdue_weekly_plans_count = plans.filter(
         plan_period='weekly',
         is_overdue=True
     ).exclude(status__in=['completed', 'cancelled']).count()
@@ -1064,6 +1772,7 @@ def strategic_goal_list(request):
 @login_required
 def plan_create(request):
     """计划创建页面"""
+    
     permission_set = get_user_permission_codes(request.user)
     
     # 权限检查
@@ -1072,9 +1781,6 @@ def plan_create(request):
         return redirect('plan_pages:plan_list')
     
     if request.method == 'POST':
-        # 检查是否是草稿保存
-        is_draft = request.POST.get('action') == 'draft'
-        
         # 检查详细信息表格是否有数据
         formset_prefix = 'planitems'
         total_forms = int(request.POST.get(f'{formset_prefix}-TOTAL_FORMS', 0))
@@ -1095,11 +1801,15 @@ def plan_create(request):
                 break
         
         # 如果详细信息表格有数据，基本信息表单的字段变为非必填
-        form = PlanForm(request.POST, user=request.user, is_draft=is_draft, has_formset_data=has_formset_data)
+        form = PlanForm(request.POST, user=request.user, has_formset_data=has_formset_data)
         formset = PlanItemFormSet(request.POST, prefix='planitems', form_kwargs={'user': request.user})
         
-        # 在表单验证前，先检查周计划的重复创建（非草稿模式）
-        if not is_draft:
+        # 在表单验证前，先检查周计划的重复创建
+        plan_period = request.POST.get('plan_period')
+        responsible_person_id = request.POST.get('responsible_person')
+        start_time_str = request.POST.get('start_time')
+        
+        if plan_period == 'weekly' and responsible_person_id and start_time_str:
             plan_period = request.POST.get('plan_period')
             responsible_person_id = request.POST.get('responsible_person')
             start_time_str = request.POST.get('start_time')
@@ -1107,7 +1817,6 @@ def plan_create(request):
             if plan_period == 'weekly' and responsible_person_id and start_time_str:
                 try:
                     from django.utils.dateparse import parse_date
-                    from .models import Plan
                     from datetime import datetime as dt
                     
                     responsible_person = User.objects.get(id=int(responsible_person_id))
@@ -1169,79 +1878,55 @@ def plan_create(request):
                     # 如果解析失败，继续表单验证
                     pass
         
-        if form.is_valid() and formset.is_valid():
+        # 表单验证
+        form_valid = form.is_valid()
+        formset_valid = formset.is_valid()
+        
+        if form_valid and formset_valid:
             # 保存计划列表（详细信息区域的计划项）
             # 注意：没有主计划与子计划的区分，所有计划都是平等的
             created_plans = []
             
-            # 保存基本信息区域的计划（如果有字段值）
-            # 只有当基本信息表单有实际数据时才创建计划对象
-            if form.cleaned_data.get('name') or form.cleaned_data.get('content'):
-                plan = form.save(commit=False)
-                plan.created_by = request.user
-                
-                # P2-3: 确保 level 正确设置
-                if not plan.level:
-                    if plan.parent_plan:
-                        plan.level = 'personal'
-                        # 个人计划的 owner = responsible_person
-                        if plan.responsible_person and not plan.owner:
-                            plan.owner = plan.responsible_person
-                    else:
-                        plan.level = 'company'
-                
-                # 如果是草稿保存，设置状态为 draft
-                if is_draft:
-                    plan.status = 'draft'
-                
-                plan.responsible_person = plan.responsible_person or request.user
-                plan.responsible_department = plan.responsible_department or (request.user.responsible_department if hasattr(request.user, 'responsible_department') else None)
-                plan.save()
-                
-                # 保存多对多关系
-                if 'participants' in form.cleaned_data:
-                    plan.participants.set(form.cleaned_data['participants'])
-                
-                created_plans.append(plan)
+            # 基本信息区域只保留所属部门、负责人、表单编号，不再创建计划
+            # 所有计划都通过FormSet（详细信息区域）创建
             
             # 获取基本信息表单的默认值（用于 FormSet 中的计划项）
-            # 如果基本信息表单没有数据，使用当前用户作为默认值
-            default_responsible_person = None
-            default_responsible_department = None
-            default_plan_period = None
-            default_level = 'company'
-            
-            if created_plans:
-                # 如果基本信息表单创建了计划，使用该计划的默认值
-                default_plan = created_plans[0]
-                default_responsible_person = default_plan.responsible_person
-                default_responsible_department = default_plan.responsible_department
-                default_plan_period = default_plan.plan_period
-                default_level = default_plan.level
-            else:
-                # 如果基本信息表单没有数据，从表单中获取默认值（即使没有保存）
-                form_obj = form.save(commit=False)
-                default_responsible_person = form_obj.responsible_person or request.user
-                default_responsible_department = form_obj.responsible_department or (request.user.responsible_department if hasattr(request.user, 'responsible_department') else None)
-                # 从表单数据中获取 plan_period，如果没有则使用默认值
-                default_plan_period = form_obj.plan_period or request.POST.get('plan_period') or 'monthly'
-                default_level = form_obj.level or 'company'
+            # 基本信息区域只保留所属部门、负责人、表单编号，从表单中获取默认值
+            form_obj = form.save(commit=False)
+            default_responsible_person = form_obj.responsible_person or request.user
+            default_responsible_department = form_obj.responsible_department or (request.user.responsible_department if hasattr(request.user, 'responsible_department') else None)
+            # 从表单数据中获取 plan_period，如果没有则使用默认值
+            default_plan_period = form_obj.plan_period or request.POST.get('plan_period') or 'monthly'
+            default_level = form_obj.level or 'company'
             
             # 保存详细信息区域的计划列表
+            # 先收集所有验证错误，而不是遇到第一个错误就返回
+            validation_errors = []
+            plan_items_to_save = []
+            
             for planitem_form in formset:
-                if planitem_form.cleaned_data and not planitem_form.cleaned_data.get('DELETE'):
-                    # 检查该行是否有实际数据（不是空行）
-                    has_data = (
-                        planitem_form.cleaned_data.get('name') or
-                        planitem_form.cleaned_data.get('related_goal') or
-                        planitem_form.cleaned_data.get('content') or
-                        planitem_form.cleaned_data.get('plan_objective') or
-                        planitem_form.cleaned_data.get('start_time') or
-                        planitem_form.cleaned_data.get('end_time')
-                    )
-                    
-                    # 只有当该行有实际数据时才保存
-                    if has_data:
+                
+                # 如果 cleaned_data 不存在，跳过（可能是空行）
+                if not planitem_form.cleaned_data:
+                    continue
+                
+                # 检查是否被标记为删除
+                if planitem_form.cleaned_data.get('DELETE'):
+                    continue
+                
+                # 检查该行是否有实际数据（不是空行）
+                has_data = (
+                    planitem_form.cleaned_data.get('name') or
+                    planitem_form.cleaned_data.get('related_goal') or
+                    planitem_form.cleaned_data.get('content') or
+                    planitem_form.cleaned_data.get('plan_objective') or
+                    planitem_form.cleaned_data.get('acceptance_criteria') or
+                    planitem_form.cleaned_data.get('start_time') or
+                    planitem_form.cleaned_data.get('end_time')
+                )
+                
+                # 只有当该行有实际数据时才保存
+                if has_data:
                         plan_item = planitem_form.save(commit=False)
                         # 继承基本信息区域的默认值（负责人、部门、周期等）
                         plan_item.responsible_person = default_responsible_person or request.user
@@ -1249,127 +1934,254 @@ def plan_create(request):
                         # 确保 plan_period 有值（必填字段）
                         plan_item.plan_period = default_plan_period or 'monthly'
                         plan_item.level = default_level or 'company'
-                        plan_item.status = 'draft' if is_draft else 'draft'
+                        # 日计划无须审批，创建即为发布；其他计划默认为草稿
+                        if plan_item.plan_period == 'daily':
+                            plan_item.status = 'published'
+                            # 设置发布时间戳
+                            if not plan_item.published_at:
+                                from django.utils import timezone
+                                plan_item.published_at = timezone.now()
+                        else:
+                            plan_item.status = 'draft'
+                        
+                        # 验证必填字段
+                        missing_fields = []
+                        if not plan_item.name or not plan_item.name.strip():
+                            missing_fields.append('计划名称')
+                        if not plan_item.content or not plan_item.content.strip():
+                            missing_fields.append('计划内容')
+                        if not plan_item.start_time:
+                            missing_fields.append('计划开始时间')
+                        if not plan_item.end_time:
+                            missing_fields.append('计划结束时间')
+                        if not plan_item.responsible_person:
+                            missing_fields.append('计划负责人')
+                        
+                        if missing_fields:
+                            validation_errors.append(f'第 {planitem_form.prefix} 行计划缺少必填字段：{", ".join(missing_fields)}')
+                            continue  # 跳过这个计划项，不保存
+                        
+                        # 检查时间逻辑
+                        if plan_item.start_time and plan_item.end_time and plan_item.start_time >= plan_item.end_time:
+                            validation_errors.append(f'第 {planitem_form.prefix} 行计划的开始时间必须早于结束时间')
+                            continue  # 跳过这个计划项，不保存
+                        
                         # 不设置 parent_plan，所有计划都是平等的
                         # 生成计划编号
                         plan_item.plan_number = plan_item.generate_plan_number()
                         plan_item.created_by = request.user
-                        plan_item.save()
-                        
-                        # 保存多对多关系
-                        if 'participants' in planitem_form.cleaned_data:
-                            plan_item.participants.set(planitem_form.cleaned_data['participants'])
-                        
-                        created_plans.append(plan_item)
+                        plan_items_to_save.append((plan_item, planitem_form))
             
-            # 处理审批流程配置
-            workflow_template_id = request.POST.get('workflow_template', '').strip()
-            if workflow_template_id and not is_draft:
+            # 如果有验证错误，在本页展示（不写入 messages，避免累积到登录页等）
+            if validation_errors:
+                if created_plans:
+                    messages.warning(request, '部分计划已创建，但部分计划创建失败，请检查并重新创建。')
+                    return redirect('plan_pages:plan_detail', plan_id=created_plans[0].id)
+                context = _context("创建计划", "➕", "创建新的工作计划", request=request)
+                context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_create')
+                context['form'] = form
+                context['formset'] = formset
+                context['validation_errors'] = validation_errors
+                context['page_title'] = "创建计划"
+                context['submit_text'] = "创建"
+                context['cancel_url_name'] = 'plan_pages:plan_list'
+                context['form_js_file'] = 'js/plan_form_date_calculator.js'
+                context['form_page_subtitle_text'] = '请填写计划基本信息'
+                from backend.apps.workflow_engine.models import WorkflowTemplate
+                available_workflows = WorkflowTemplate.objects.filter(
+                    status='active',
+                    applicable_models__contains=['plan']
+                ).order_by('name')
+                context['available_workflows'] = available_workflows
+                import json
+                context['workflow_details_json'] = json.dumps({str(wf.id): {
+                    'name': wf.name,
+                    'description': wf.description or '',
+                    'allow_withdraw': wf.allow_withdraw,
+                    'allow_reject': wf.allow_reject,
+                    'allow_transfer': wf.allow_transfer,
+                    'timeout_hours': wf.timeout_hours,
+                    'timeout_action': wf.get_timeout_action_display() if wf.timeout_hours else None,
+                } for wf in available_workflows})
+                return render(request, "plan_management/plan_form.html", context)
+            
+            # 保存所有通过验证的计划项
+            for plan_item, planitem_form in plan_items_to_save:
+                # 确保 plan_period 有值（数据库约束要求不能为空）
+                if not plan_item.plan_period:
+                    plan_item.plan_period = default_plan_period or 'monthly'
+                
                 try:
-                    from backend.apps.workflow_engine.models import WorkflowTemplate, ApprovalNode
-                    from backend.apps.workflow_engine.services import ApprovalEngine
+                    # 保存前记录旧状态（用于日志）
+                    old_status = plan_item.status if plan_item.pk else None
+                    plan_item.save()
                     
-                    workflow_template = WorkflowTemplate.objects.get(
-                        id=int(workflow_template_id),
-                        status='active',
-                        applicable_models__contains=['plan']
-                    )
+                    # 日计划创建即为发布，需要记录状态变更日志
+                    if plan_item.plan_period == 'daily' and plan_item.status == 'published':
+                        from .models import PlanStatusLog
+                        PlanStatusLog.objects.create(
+                            plan=plan_item,
+                            old_status=old_status or '',
+                            new_status='published',
+                            changed_by=request.user,
+                            change_reason='日计划创建即为发布（无须审批）'
+                        )
                     
-                    # 检查工作流模板是否有节点配置
-                    node_count = workflow_template.nodes.count()
-                    if node_count == 0:
-                        logging.warning(f'工作流模板 {workflow_template.name} 没有配置节点')
-                        messages.warning(request, f'选择的审批流程模板未配置节点，请先在后台配置审批节点后再使用')
-                    else:
-                        # 为每个创建的计划启动审批流程
-                        success_count = 0
-                        for plan in created_plans:
-                            try:
-                                instance = ApprovalEngine.start_approval(
-                                    workflow=workflow_template,
-                                    content_object=plan,
-                                    applicant=request.user,
-                                    comment=f'创建计划：{plan.name}'
-                                )
-                                success_count += 1
-                                logging.info(f'计划 {plan.plan_number} 的审批流程已启动，审批实例: {instance.instance_number}')
-                            except Exception as e:
-                                logging.error(f'启动计划 {plan.id} 的审批流程失败: {str(e)}', exc_info=True)
-                                messages.warning(request, f'计划 {plan.name} 的审批流程启动失败: {str(e)}，请手动提交审批')
-                        
-                        if success_count > 0:
-                            messages.info(request, f'{success_count} 个计划已自动提交审批')
-                except ValueError as e:
-                    logging.warning(f'审批流程ID格式错误: {str(e)}')
-                    messages.warning(request, '审批流程配置无效，请重新选择')
-                except WorkflowTemplate.DoesNotExist:
-                    logging.warning(f'审批流程模板不存在: {workflow_template_id}')
-                    messages.warning(request, '选择的审批流程不存在或已停用，请重新选择')
+                    
+                    # 保存多对多关系
+                    if 'participants' in planitem_form.cleaned_data and planitem_form.cleaned_data['participants'] is not None:
+                        # 确保 participants 是可迭代对象（不能是 None）
+                        participants = planitem_form.cleaned_data['participants']
+                        if participants:
+                            plan_item.participants.set(participants)
+                        else:
+                            plan_item.participants.clear()
+                    created_plans.append(plan_item)
                 except Exception as e:
-                    logging.error(f'处理审批流程配置时发生错误: {str(e)}', exc_info=True)
-                    messages.warning(request, f'审批流程配置处理失败: {str(e)}')
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.exception('保存计划项失败: %s', str(e))
+                    
+                    validation_errors.append(f'第 {planitem_form.prefix} 行计划保存失败：{str(e)}')
+                    continue
             
-            if is_draft:
-                messages.success(request, f'计划已暂存为草稿（共 {len(created_plans)} 个计划）')
-            else:
-                if workflow_template_id:
-                    messages.success(request, f'成功创建 {len(created_plans)} 个计划，已自动提交审批')
-                else:
-                    messages.success(request, f'成功创建 {len(created_plans)} 个计划')
-            # 跳转到第一个计划的详情页（如果有）
-            if created_plans:
+            # 如果保存后有验证错误，在本页展示（不写入 messages）
+            if validation_errors:
+                if created_plans:
+                    messages.warning(request, '部分计划已创建，但部分计划创建失败，请检查并重新创建。')
+                    return redirect('plan_pages:plan_detail', plan_id=created_plans[0].id)
+                context = _context("创建计划", "➕", "创建新的工作计划", request=request)
+                context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_create')
+                context['form'] = form
+                context['formset'] = formset
+                context['validation_errors'] = validation_errors
+                context['page_title'] = "创建计划"
+                context['submit_text'] = "创建"
+                context['cancel_url_name'] = 'plan_pages:plan_list'
+                context['form_js_file'] = 'js/plan_form_date_calculator.js'
+                context['form_page_subtitle_text'] = '请填写计划基本信息'
+                from backend.apps.workflow_engine.models import WorkflowTemplate
+                available_workflows = WorkflowTemplate.objects.filter(
+                    status='active',
+                    applicable_models__contains=['plan']
+                ).order_by('name')
+                context['available_workflows'] = available_workflows
+                import json
+                context['workflow_details_json'] = json.dumps({str(wf.id): {
+                    'name': wf.name,
+                    'description': wf.description or '',
+                    'allow_withdraw': wf.allow_withdraw,
+                    'allow_reject': wf.allow_reject,
+                    'allow_transfer': wf.allow_transfer,
+                    'timeout_hours': wf.timeout_hours,
+                    'timeout_action': wf.get_timeout_action_display() if wf.timeout_hours else None,
+                } for wf in available_workflows})
+                return render(request, "plan_management/plan_form.html", context)
+            
+            if not created_plans:
+                # 如果没有创建任何计划，可能是所有行都是空的（本页展示，不写入 messages）
+                context = _context("创建计划", "➕", "创建新的工作计划", request=request)
+                context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_create')
+                context['form'] = form
+                context['formset'] = formset
+                context['form_validation_errors'] = ['请至少填写一个计划的完整信息']
+                context['page_title'] = "创建计划"
+                context['submit_text'] = "创建"
+                context['cancel_url_name'] = 'plan_pages:plan_list'
+                context['form_js_file'] = 'js/plan_form_date_calculator.js'
+                context['form_page_subtitle_text'] = '请填写计划基本信息'
+                from backend.apps.workflow_engine.models import WorkflowTemplate
+                available_workflows = WorkflowTemplate.objects.filter(
+                    status='active',
+                    applicable_models__contains=['plan']
+                ).order_by('name')
+                context['available_workflows'] = available_workflows
+                import json
+                context['workflow_details_json'] = json.dumps({str(wf.id): {
+                    'name': wf.name,
+                    'description': wf.description or '',
+                    'allow_withdraw': wf.allow_withdraw,
+                    'allow_reject': wf.allow_reject,
+                    'allow_transfer': wf.allow_transfer,
+                    'timeout_hours': wf.timeout_hours,
+                    'timeout_action': wf.get_timeout_action_display() if wf.timeout_hours else None,
+                } for wf in available_workflows})
+                return render(request, "plan_management/plan_form.html", context)
+            
+            
+            # 创建按钮功能：直接创建计划
+            # 日计划无须审批，创建即为发布；其他计划默认为草稿，用户可以在详情页手动提交审批
+            daily_plans_count = sum(1 for p in created_plans if p.plan_period == 'daily')
+            other_plans_count = len(created_plans) - daily_plans_count
+            
+            if daily_plans_count > 0:
+                messages.success(request, f'成功创建 {daily_plans_count} 个日计划（已自动发布）')
+            if other_plans_count > 0:
+                messages.info(request, f'成功创建 {other_plans_count} 个计划（草稿状态），您可以在详情页提交审批')
+            
+            # 跳转到第一个计划的详情页
+            # 确保 created_plans 不为空（这应该不会发生，因为上面已经检查过了）
+            if created_plans and len(created_plans) > 0:
+                
                 return redirect('plan_pages:plan_detail', plan_id=created_plans[0].id)
             else:
-                return redirect('plan_pages:plan_list')
+                # 如果 somehow created_plans 为空，本页展示错误（不写入 messages）
+                context = _context("创建计划", "➕", "创建新的工作计划", request=request)
+                context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_create')
+                context['form'] = form
+                context['formset'] = formset
+                context['form_validation_errors'] = ['未能成功创建任何计划，请检查表单数据']
+                context['page_title'] = "创建计划"
+                context['submit_text'] = "创建"
+                context['cancel_url_name'] = 'plan_pages:plan_list'
+                context['form_js_file'] = 'js/plan_form_date_calculator.js'
+                context['form_page_subtitle_text'] = '请填写计划基本信息'
+                from backend.apps.workflow_engine.models import WorkflowTemplate
+                available_workflows = WorkflowTemplate.objects.filter(
+                    status='active',
+                    applicable_models__contains=['plan']
+                ).order_by('name')
+                context['available_workflows'] = available_workflows
+                import json
+                context['workflow_details_json'] = json.dumps({str(wf.id): {
+                    'name': wf.name,
+                    'description': wf.description or '',
+                    'allow_withdraw': wf.allow_withdraw,
+                    'allow_reject': wf.allow_reject,
+                    'allow_transfer': wf.allow_transfer,
+                    'timeout_hours': wf.timeout_hours,
+                    'timeout_action': wf.get_timeout_action_display() if wf.timeout_hours else None,
+                } for wf in available_workflows})
+                return render(request, "plan_management/plan_form.html", context)
         else:
-            # 显示详细的验证错误信息
+            # 表单/FormSet 校验失败：本页展示纯文本错误（不写入 messages，避免累积到登录页；不用 str(errors) 避免 HTML）
             error_messages = []
             if not form.is_valid():
                 error_messages.append('基本信息表单验证失败：')
                 for field, errors in form.errors.items():
-                    error_messages.append(f'  - {field}: {", ".join(errors)}')
+                    error_messages.append(f'  - {field}: {", ".join(str(e) for e in errors)}')
             if not formset.is_valid():
                 error_messages.append('详细信息表单验证失败：')
-                if formset.non_form_errors():
-                    error_messages.append(f'  - {formset.non_form_errors()}')
+                nf = formset.non_form_errors()
+                if nf:
+                    error_messages.append(f'  - {", ".join(str(e) for e in nf)}')
                 for i, form_item in enumerate(formset):
                     if form_item.errors:
-                        error_messages.append(f'  第 {i+1} 行: {form_item.errors}')
+                        error_messages.append(f'  第 {i+1} 行: {_form_errors_plain(form_item)}')
                     if form_item.non_field_errors():
-                        error_messages.append(f'  第 {i+1} 行: {form_item.non_field_errors()}')
-            
-            if error_messages:
-                messages.error(request, '\n'.join(error_messages))
-            else:
-                messages.error(request, '表单验证失败，请检查输入')
-            
-            # 关键：无效就回渲染，不要 redirect
+                        error_messages.append(f'  第 {i+1} 行: {", ".join(str(e) for e in form_item.non_field_errors())}')
+            if not error_messages:
+                error_messages.append('表单验证失败，请检查输入')
             context = _context("创建计划", "➕", "创建新的工作计划", request=request)
             context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_create')
             context['form'] = form
             context['formset'] = formset
+            context['form_validation_errors'] = error_messages
             context['page_title'] = "创建计划"
             context['submit_text'] = "创建"
             context['cancel_url_name'] = 'plan_pages:plan_list'
             context['form_js_file'] = 'js/plan_form_date_calculator.js'
             context['form_page_subtitle_text'] = '请填写计划基本信息'
-            # 查询适用于计划的审批流程模板
-            from backend.apps.workflow_engine.models import WorkflowTemplate
-            available_workflows = WorkflowTemplate.objects.filter(
-                status='active',
-                applicable_models__contains=['plan']
-            ).order_by('name')
-            context['available_workflows'] = available_workflows
-            import json
-            context['workflow_details_json'] = json.dumps({str(wf.id): {
-                'name': wf.name,
-                'description': wf.description or '',
-                'allow_withdraw': wf.allow_withdraw,
-                'allow_reject': wf.allow_reject,
-                'allow_transfer': wf.allow_transfer,
-                'timeout_hours': wf.timeout_hours,
-                'timeout_action': wf.get_timeout_action_display() if wf.timeout_hours else None,
-            } for wf in available_workflows})
             return render(request, "plan_management/plan_form.html", context)
     else:
         # GET 请求：从 URL 参数中读取 plan_period（用于待办事项跳转）
@@ -1397,23 +2209,13 @@ def plan_create(request):
     context['cancel_url_name'] = 'plan_pages:plan_list'
     context['form_js_file'] = 'js/plan_form_date_calculator.js'
     context['form_page_subtitle_text'] = '请填写计划基本信息'
-    context['available_workflows'] = available_workflows
-    import json
-    context['workflow_details_json'] = json.dumps({str(wf.id): {
-        'name': wf.name,
-        'description': wf.description or '',
-        'allow_withdraw': wf.allow_withdraw,
-        'allow_reject': wf.allow_reject,
-        'allow_transfer': wf.allow_transfer,
-        'timeout_hours': wf.timeout_hours,
-        'timeout_action': wf.get_timeout_action_display() if wf.timeout_hours else None,
-    } for wf in available_workflows})
     return render(request, "plan_management/plan_form.html", context)
 
 
 @login_required
 def plan_detail(request, plan_id):
     """计划详情页面"""
+    
     permission_set = get_user_permission_codes(request.user)
     
     # 权限检查
@@ -1429,18 +2231,15 @@ def plan_detail(request, plan_id):
         id=plan_id
     )
     
-    # 权限检查：根据后台配置的权限判断是否可以查看该计划
-    # 个人计划只能由 owner、responsible_person、参与者或有 view_all 权限的用户查看
-    has_view_all = _permission_granted('plan_management.plan.view_all', permission_set)
-    if plan.level == 'personal':
-        if not has_view_all:
-            # 检查是否是计划的所有者、负责人或参与者
-            is_owner = plan.owner == request.user
-            is_responsible = plan.responsible_person == request.user
-            is_participant = request.user in plan.participants.all()
-            if not (is_owner or is_responsible or is_participant):
-                messages.error(request, '您没有权限查看该个人计划')
-                return redirect('plan_pages:plan_list')
+    # 权限检查：员工只能查看本人的计划（owner 或 responsible_person）
+    # 仅显式 plan_management.plan.view_all 可查看任意计划（不含 __all__）
+    has_view_all = 'plan_management.plan.view_all' in permission_set
+    if not has_view_all:
+        is_owner = plan.owner == request.user
+        is_responsible = plan.responsible_person == request.user
+        if not (is_owner or is_responsible):
+            messages.error(request, '您没有权限查看该计划')
+            return redirect('plan_pages:plan_list')
     
     # 获取进度记录
     progress_records = PlanProgressRecord.objects.filter(
@@ -1464,6 +2263,71 @@ def plan_detail(request, plan_id):
     child_plans = plan.child_plans.select_related(
         'responsible_person', 'responsible_department', 'related_goal'
     ).all()
+    
+    # 获取关联信息（用于关联信息卡片）
+    # 关联项目（如果有）
+    related_projects = []
+    try:
+        from backend.apps.production_management.models import Project
+        related_projects = Project.objects.filter(related_plan=plan).select_related(
+            'project_manager'
+        ).order_by('-created_time')[:20]
+    except Exception:
+        pass
+    
+    # 获取审计日志（用于审计信息卡片）
+    audit_logs = []
+    try:
+        from backend.apps.system_management.models import AuditLog
+        
+        # 使用 _meta.label 格式（如 "plan_management.Plan"）
+        object_type = Plan._meta.label
+        audit_logs = AuditLog.objects.filter(
+            object_type=object_type,
+            object_id=str(plan.id)
+        ).select_related('actor').order_by('-created_time')[:50]
+    except Exception:
+        # AuditLog 不存在或查询失败，使用空列表
+        pass
+    
+    # 获取审批实例（用于审批信息卡片）
+    approval_instances = []
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from backend.apps.workflow_engine.models import ApprovalInstance
+        
+        content_type = ContentType.objects.get_for_model(Plan)
+        approval_instances = ApprovalInstance.objects.filter(
+            content_type=content_type,
+            object_id=plan.id
+        ).select_related('workflow', 'applicant', 'current_node').prefetch_related(
+            'records__node', 'records__approver', 'records__transferred_to'
+        ).order_by('-created_time')
+        
+        # 对每个实例的审批记录进行排序（按节点序号和时间）
+        for instance in approval_instances:
+            instance.records_sorted = sorted(
+                instance.records.all(),
+                key=lambda r: (r.node.sequence if r.node else 999, r.approval_time or r.created_time)
+            )
+    except Exception:
+        # ApprovalInstance 不存在或查询失败，使用空列表
+        pass
+    
+    # 获取附件（用于附件与文件信息卡片）
+    attachments = []
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from .models import Attachment
+        
+        content_type = ContentType.objects.get_for_model(Plan)
+        attachments = Attachment.objects.filter(
+            content_type=content_type,
+            object_id=plan.id
+        ).select_related('uploaded_by').order_by('-uploaded_at')
+    except Exception:
+        # Attachment 不存在或查询失败，使用空列表
+        pass
     
     # 计算时间进度
     def _progress_percent(plan):
@@ -1504,10 +2368,6 @@ def plan_detail(request, plan_id):
     context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_list')
     
     # P1: 权限判断（围绕 decision 的裁决）
-    # 允许草稿和已取消状态的计划提交审批
-    can_submit_approval = (_permission_granted('plan_management.plan.create', permission_set) or plan.responsible_person == request.user) and plan.status in ['draft', 'cancelled']
-    can_request_cancel = (_permission_granted('plan_management.plan.create', permission_set) or plan.responsible_person == request.user) and plan.status == 'in_progress'
-    
     # 检查是否存在 pending 的决策（同时检查审批引擎和 PlanDecision）
     from django.contrib.contenttypes.models import ContentType
     from backend.apps.workflow_engine.models import ApprovalInstance
@@ -1550,6 +2410,44 @@ def plan_detail(request, plan_id):
     pending_decisions = PlanDecision.objects.filter(plan=plan, decided_at__isnull=True).order_by('-requested_at')
     
     can_approve = _permission_granted('plan_management.approve_plan', permission_set) or request.user.is_superuser
+    
+    # 获取当前用户可以审批的审批实例（用于三栏布局）
+    current_approval_instance = None
+    if can_approve and pending_approval_instances.exists():
+        from backend.apps.workflow_engine.services import ApprovalEngine
+        user_pending_approvals = ApprovalEngine.get_pending_approvals(request.user)
+        # 找到当前计划中用户可以审批的实例
+        for instance in pending_approval_instances:
+            if instance in user_pending_approvals:
+                current_approval_instance = instance
+                break
+        # 如果没找到，取第一个待审批实例（用于显示状态）
+        if not current_approval_instance and pending_approval_instances.exists():
+            current_approval_instance = pending_approval_instances.first()
+        
+        # 为当前审批实例添加排序后的审批记录
+        if current_approval_instance:
+            current_approval_instance.records_sorted = sorted(
+                current_approval_instance.records.all(),
+                key=lambda r: (r.node.sequence if r.node else 999, r.approval_time or r.created_time)
+            )
+    
+    # 获取所有用户列表（用于转交）
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    all_users = User.objects.filter(is_active=True).order_by('username')[:100]
+    
+    # P1: 权限判断（围绕 decision 的裁决）
+    # 允许草稿和已取消状态的计划提交审批
+    # 检查权限：plan_management.plan.create 或负责人
+    has_create_permission = _permission_granted('plan_management.plan.create', permission_set)
+    is_responsible = plan.responsible_person == request.user
+    is_valid_status = plan.status in ['draft', 'cancelled']
+    
+    # 计算是否可以提交审批（需要权限、状态正确、无待审批请求）
+    # 注意：字段验证已在创建/编辑时完成，这里不再检查数据完整性
+    can_submit_approval = (has_create_permission or is_responsible) and is_valid_status and not has_pending_start
+    can_request_cancel = (has_create_permission or is_responsible) and plan.status == 'in_progress' and not has_pending_cancel
     
     # 检查是否可以申请调整
     can_manage = _permission_granted('plan_management.plan.manage', permission_set) or request.user.is_superuser
@@ -1608,6 +2506,26 @@ def plan_detail(request, plan_id):
     
     can_start_execution = plan.status == 'accepted'
     
+    # 确保 attachments 变量已定义（防止在某些代码路径中未定义）
+    try:
+        # 检查 attachments 是否已定义
+        _ = attachments
+    except NameError:
+        # 如果未定义，则初始化
+        attachments = []
+        try:
+            from django.contrib.contenttypes.models import ContentType
+            from .models import Attachment
+            
+            content_type = ContentType.objects.get_for_model(Plan)
+            attachments = Attachment.objects.filter(
+                content_type=content_type,
+                object_id=plan.id
+            ).select_related('uploaded_by').order_by('-uploaded_at')
+        except Exception:
+            # Attachment 不存在或查询失败，使用空列表
+            attachments = []
+    
     context.update({
         'plan': plan,
         'object': plan,  # 为 detail_base.html 模板提供 object 变量
@@ -1615,6 +2533,10 @@ def plan_detail(request, plan_id):
         'status_logs': status_logs,
         'issues': issues,
         'child_plans': child_plans,
+        'related_projects': related_projects,  # 关联信息
+        'audit_logs': audit_logs,  # 审计信息
+        'approval_instances': approval_instances,  # 审批信息
+        'attachments': attachments,  # 附件信息
         'inactivity_logs': inactivity_logs,  # P2: 不作为记录
         'progress_percent': progress_percent,  # 时间进度百分比
         'can_edit': (
@@ -1631,10 +2553,12 @@ def plan_detail(request, plan_id):
             not pending_approval_instances.exists()
         ),
         # P1 新增权限
-        'can_submit_approval': can_submit_approval and not has_pending_start,
-        'can_request_cancel': can_request_cancel and not has_pending_cancel,
+        'can_submit_approval': can_submit_approval,
+        'can_request_cancel': can_request_cancel,
         'pending_decisions': pending_decisions,  # 向后兼容
         'pending_approval_instances': pending_approval_instances,  # 审批引擎的审批实例
+        'current_approval_instance': current_approval_instance,  # 当前用户可以审批的实例（用于三栏布局）
+        'all_users': all_users,  # 所有用户列表（用于转交）
         'can_approve': can_approve,
         # 计划调整申请权限
         'can_request_adjustment': can_request_adjustment and not has_pending_adjustment,
@@ -1642,7 +2566,12 @@ def plan_detail(request, plan_id):
         'can_accept': can_accept,
         'can_start_execution': can_start_execution,
     })
-    return render(request, "plan_management/plan_detail.html", context)
+    
+    # 检查是否使用三栏布局模板（可以通过URL参数或设置控制）
+    use_three_column = request.GET.get('layout') == 'three_column' or False
+    template_name = "plan_management/plan_detail_three_column.html" if use_three_column else "plan_management/plan_detail.html"
+    
+    return render(request, template_name, context)
 
 
 @login_required
@@ -1689,6 +2618,66 @@ def plan_edit(request, plan_id):
         if form.is_valid():
             # 如果计划是已取消状态，编辑后需要恢复为草稿状态并记录日志
             old_status = plan.status
+            plan = form.save(commit=False)
+            
+            # 验证必填字段
+            missing_fields = []
+            if not plan.name or not plan.name.strip():
+                missing_fields.append('计划名称')
+            if not plan.content or not plan.content.strip():
+                missing_fields.append('计划内容')
+            if not plan.start_time:
+                missing_fields.append('计划开始时间')
+            if not plan.end_time:
+                missing_fields.append('计划结束时间')
+            if not plan.responsible_person:
+                missing_fields.append('计划负责人')
+            
+            if missing_fields:
+                error_msg = f'保存失败：请填写以下必填字段：{", ".join(missing_fields)}'
+                # 使用 context 传递错误，不写入 messages
+                formset = PlanItemFormSet(prefix='planitems', form_kwargs={'user': request.user})
+                context = _context(
+                    f"编辑计划 - {plan.name}",
+                    "✏️",
+                    "编辑工作计划",
+                    request=request,
+                )
+                context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_list')
+                context['form'] = form
+                context['formset'] = formset
+                context['plan'] = plan
+                context['page_title'] = f"编辑计划 - {plan.name}"
+                context['submit_text'] = "保存"
+                context['cancel_url'] = reverse('plan_pages:plan_detail', args=[plan.id])
+                context['form_js_file'] = 'js/plan_form_date_calculator.js'
+                context['form_page_subtitle_text'] = '请修改计划信息'
+                context['form_validation_errors'] = [error_msg]
+                return render(request, "plan_management/plan_form.html", context)
+            
+            # 检查时间逻辑
+            if plan.start_time and plan.end_time and plan.start_time >= plan.end_time:
+                error_msg = '保存失败：计划开始时间必须早于结束时间'
+                # 使用 context 传递错误，不写入 messages
+                formset = PlanItemFormSet(prefix='planitems', form_kwargs={'user': request.user})
+                context = _context(
+                    f"编辑计划 - {plan.name}",
+                    "✏️",
+                    "编辑工作计划",
+                    request=request,
+                )
+                context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_list')
+                context['form'] = form
+                context['formset'] = formset
+                context['plan'] = plan
+                context['page_title'] = f"编辑计划 - {plan.name}"
+                context['submit_text'] = "保存"
+                context['cancel_url'] = reverse('plan_pages:plan_detail', args=[plan.id])
+                context['form_js_file'] = 'js/plan_form_date_calculator.js'
+                context['form_page_subtitle_text'] = '请修改计划信息'
+                context['form_validation_errors'] = [error_msg]
+                return render(request, "plan_management/plan_form.html", context)
+            
             plan = form.save()
             
             # 如果计划从已取消状态恢复为草稿，记录状态变更日志
@@ -1717,7 +2706,14 @@ def plan_edit(request, plan_id):
             messages.success(request, f'计划 {plan.name} 更新成功')
             return redirect('plan_pages:plan_detail', plan_id=plan.id)
         else:
-            messages.error(request, '表单验证失败，请检查输入')
+            # 使用 context 传递错误，不写入 messages
+            # 提取表单错误信息
+            error_messages = []
+            if form.errors:
+                error_messages.append(_form_errors_plain(form))
+            if not error_messages:
+                error_messages.append('表单验证失败，请检查输入')
+            
             # 创建空的 formset（编辑页面不使用 FormSet）
             formset = PlanItemFormSet(prefix='planitems', form_kwargs={'user': request.user})
             # 关键：无效就回渲染，不要 redirect
@@ -1736,6 +2732,7 @@ def plan_edit(request, plan_id):
             context['cancel_url'] = reverse('plan_pages:plan_detail', args=[plan.id])
             context['form_js_file'] = 'js/plan_form_date_calculator.js'
             context['form_page_subtitle_text'] = '请修改计划信息'
+            context['form_validation_errors'] = error_messages
             return render(request, "plan_management/plan_form.html", context)
     else:
         form = PlanForm(instance=plan, user=request.user)
@@ -2507,6 +3504,7 @@ def plan_progress_update(request, plan_id):
         messages.error(request, '只有执行中的计划可以更新进度')
         return redirect('plan_pages:plan_detail', plan_id=plan_id)
     
+    error_messages = []  # 初始化错误列表
     if request.method == 'POST':
         form = PlanProgressUpdateForm(request.POST, plan=plan)
         if form.is_valid():
@@ -2516,7 +3514,11 @@ def plan_progress_update(request, plan_id):
             messages.success(request, '进度更新成功')
             return redirect('plan_pages:plan_execution_track', plan_id=plan_id)
         else:
-            messages.error(request, '表单验证失败，请检查输入')
+            # 使用 context 传递错误，不写入 messages
+            if form.errors:
+                error_messages.append(_form_errors_plain(form))
+            if not error_messages:
+                error_messages.append('表单验证失败，请检查输入')
     else:
         form = PlanProgressUpdateForm(plan=plan)
     
@@ -2529,6 +3531,8 @@ def plan_progress_update(request, plan_id):
     context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_progress_update')
     context['form'] = form
     context['plan'] = plan
+    if error_messages:
+        context['form_validation_errors'] = error_messages
     return render(request, "plan_management/plan_progress_update.html", context)
 
 
@@ -2685,9 +3689,7 @@ def strategic_goal_create(request):
         return redirect('plan_pages:strategic_goal_list')
     
     if request.method == 'POST':
-        # 检查是否是草稿保存
-        is_draft = request.POST.get('action') == 'draft'
-        form = StrategicGoalForm(request.POST, user=request.user, is_draft=is_draft)
+        form = StrategicGoalForm(request.POST, user=request.user)
         
         if form.is_valid():
             goal = form.save(commit=False)
@@ -2703,19 +3705,19 @@ def strategic_goal_create(request):
                 else:
                     goal.level = 'company'
             
-            # 如果是草稿保存，设置状态为 draft
-            if is_draft:
-                goal.status = 'draft'
-            
+            goal.status = 'draft'
             goal.save()
             
-            if is_draft:
-                messages.success(request, f'战略目标 {goal.name} 已暂存为草稿')
-            else:
-                messages.success(request, f'战略目标 {goal.name} 创建成功')
+            messages.success(request, f'战略目标 {goal.name} 创建成功')
             return redirect('plan_pages:strategic_goal_detail', goal_id=goal.id)
         else:
-            messages.error(request, '表单验证失败，请检查输入')
+            # 使用 context 传递错误，不写入 messages
+            error_messages = []
+            if form.errors:
+                error_messages.append(_form_errors_plain(form))
+            if not error_messages:
+                error_messages.append('表单验证失败，请检查输入')
+            
             # 关键：invalid 时回渲染，不要 redirect
             context = _context("创建战略目标", "➕", "创建新的战略目标", request=request)
             context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='strategic_goal_create')
@@ -2727,6 +3729,7 @@ def strategic_goal_create(request):
             context['form_page_subtitle_text'] = '请填写目标基本信息'
             context['create_url_name'] = 'plan_pages:strategic_goal_create'
             context['business_module'] = 'goal'  # 业务模块名称，用于表单编号生成
+            context['form_validation_errors'] = error_messages
             return render(request, "goal_management/goal_form.html", context)
     else:
         form = StrategicGoalForm(user=request.user)
@@ -2798,6 +3801,66 @@ def strategic_goal_detail(request, goal_id):
     
     # 获取关联计划数量
     related_plans_count = Plan.objects.filter(related_goal=goal).count()
+    
+    # 获取关联计划列表（用于关联信息卡片）
+    related_plans = Plan.objects.filter(related_goal=goal).select_related(
+        'responsible_person', 'responsible_department'
+    ).order_by('-created_time')[:20]
+    
+    # 获取审计日志（用于审计信息卡片）
+    audit_logs = []
+    try:
+        from backend.apps.system_management.models import AuditLog
+        
+        # 使用 _meta.label 格式（如 "plan_management.StrategicGoal"）
+        object_type = StrategicGoal._meta.label
+        audit_logs = AuditLog.objects.filter(
+            object_type=object_type,
+            object_id=str(goal.id)
+        ).select_related('actor').order_by('-created_time')[:50]
+    except Exception:
+        # AuditLog 不存在或查询失败，使用空列表
+        pass
+    
+    # 获取审批实例（用于审批信息卡片）
+    approval_instances = []
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from backend.apps.workflow_engine.models import ApprovalInstance
+        
+        content_type = ContentType.objects.get_for_model(StrategicGoal)
+        approval_instances = ApprovalInstance.objects.filter(
+            content_type=content_type,
+            object_id=goal.id
+        ).select_related('workflow', 'applicant', 'current_node').prefetch_related(
+            'records__node', 'records__approver', 'records__transferred_to'
+        ).order_by('-created_time')
+        
+        # 对每个实例的审批记录进行排序（按节点序号和时间）
+        for instance in approval_instances:
+            instance.records_sorted = sorted(
+                instance.records.all(),
+                key=lambda r: (r.node.sequence if r.node else 999, r.approval_time or r.created_time)
+            )
+    except Exception:
+        # ApprovalInstance 不存在或查询失败，使用空列表
+        pass
+    
+    # 获取附件（用于附件与文件信息卡片）
+    attachments = []
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from backend.apps.plan_management.models import Attachment
+        
+        content_type = ContentType.objects.get_for_model(StrategicGoal)
+        attachments = Attachment.objects.filter(
+            content_type=content_type,
+            object_id=goal.id
+        ).select_related('uploaded_by').order_by('-uploaded_at')
+    except Exception:
+        # Attachment 不存在或查询失败，使用空列表
+        pass
+    
     # 处理状态转换（发布目标）- P2-2
     if request.method == 'POST' and 'publish_goal' in request.POST:
         if goal.status == 'draft':
@@ -2891,6 +3954,10 @@ def strategic_goal_detail(request, goal_id):
         'adjustments': adjustments,
         'child_goals': child_goals,
         'related_plans_count': related_plans_count,
+        'related_plans': related_plans,  # 关联信息
+        'audit_logs': audit_logs,  # 审计信息
+        'approval_instances': approval_instances,  # 审批信息
+        'attachments': attachments,  # 附件信息
         'can_edit': _permission_granted('plan_management.manage_goal', permission_set) and goal.status in ['draft', 'published'],
         'can_delete': _permission_granted('plan_management.manage_goal', permission_set) and goal.status == 'draft' and not goal.has_related_plans(),
         'can_publish': can_publish,
@@ -2926,7 +3993,13 @@ def strategic_goal_edit(request, goal_id):
             messages.success(request, f'战略目标 {goal.name} 更新成功')
             return redirect('plan_pages:strategic_goal_detail', goal_id=goal.id)
         else:
-            messages.error(request, '表单验证失败，请检查输入')
+            # 使用 context 传递错误，不写入 messages
+            error_messages = []
+            if form.errors:
+                error_messages.append(_form_errors_plain(form))
+            if not error_messages:
+                error_messages.append('表单验证失败，请检查输入')
+            
             # 关键：invalid 时回渲染，不要 redirect
             context = _context(
                 f"编辑战略目标 - {goal.name}",
@@ -2940,6 +4013,7 @@ def strategic_goal_edit(request, goal_id):
             context['page_title'] = "编辑战略目标"
             context['submit_text'] = "保存"
             context['create_url_name'] = 'plan_pages:strategic_goal_create'
+            context['form_validation_errors'] = error_messages
             return render(request, "goal_management/goal_form.html", context)
     else:
         form = StrategicGoalForm(instance=goal, user=request.user)
@@ -3503,6 +4577,109 @@ def plan_delete(request, plan_id):
 
 @login_required
 @require_http_methods(["POST"])
+def plan_batch_delete(request):
+    """批量删除计划"""
+    from backend.apps.plan_management.models import Plan, PlanDecision
+    from django.contrib.contenttypes.models import ContentType
+    from backend.apps.workflow_engine.models import ApprovalInstance
+    
+    permission_set = get_user_permission_codes(request.user)
+    
+    # 权限检查
+    if not _permission_granted('plan_management.plan.manage', permission_set):
+        return JsonResponse({'success': False, 'message': '您没有权限删除计划'}, status=403)
+    
+    try:
+        # 获取参数
+        ids_str = request.POST.get('ids', '')
+        
+        if not ids_str:
+            return JsonResponse({'success': False, 'message': '请选择要删除的计划'}, status=400)
+        
+        # 解析计划ID列表
+        plan_ids = [int(id.strip()) for id in ids_str.split(',') if id.strip()]
+        
+        if not plan_ids:
+            return JsonResponse({'success': False, 'message': '无效的计划ID列表'}, status=400)
+        
+        # 批量删除（检查删除条件）
+        plans = Plan.objects.filter(id__in=plan_ids)
+        deleted_count = 0
+        failed_plans = []
+        plan_content_type = ContentType.objects.get_for_model(Plan)
+        
+        for plan in plans:
+            # 检查是否可以删除
+            can_delete = True
+            delete_reason = []
+            
+            # 检查状态
+            if plan.status != 'draft':
+                can_delete = False
+                delete_reason.append('只有草稿状态的计划可以删除')
+            
+            # 检查是否有下级计划
+            if plan.get_child_plans_count() > 0:
+                can_delete = False
+                delete_reason.append('该计划有下级计划，无法删除')
+            
+            # 检查是否有待审批的决策请求
+            pending_decisions = plan.decisions.filter(decision__isnull=True)
+            if pending_decisions.exists():
+                can_delete = False
+                delete_reason.append('该计划有待审批的请求，无法删除')
+            
+            # 检查是否有待审批的审批实例
+            pending_approval_instances = ApprovalInstance.objects.filter(
+                content_type=plan_content_type,
+                object_id=plan.id,
+                status__in=['pending', 'in_progress']
+            )
+            if pending_approval_instances.exists():
+                can_delete = False
+                delete_reason.append('该计划有正在进行的审批流程，无法删除')
+            
+            if not can_delete:
+                failed_plans.append({
+                    'name': plan.name,
+                    'reason': '; '.join(delete_reason)
+                })
+                continue
+            
+            try:
+                plan_name = plan.name
+                plan.delete()
+                deleted_count += 1
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.exception('删除计划失败: %s', str(e))
+                failed_plans.append({
+                    'name': plan.name,
+                    'reason': f'删除失败：{str(e)}'
+                })
+        
+        message = f'成功删除 {deleted_count} 个计划'
+        if failed_plans:
+            message += f'，{len(failed_plans)} 个计划删除失败'
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'deleted_count': deleted_count,
+            'failed_count': len(failed_plans),
+            'failed_plans': failed_plans
+        })
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('批量删除计划失败: %s', str(e))
+        return JsonResponse({'success': False, 'message': f'批量删除失败：{str(e)}'}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
 def create_child_goal(request, parent_goal_id):
     """创建下级目标（AJAX）"""
     permission_set = get_user_permission_codes(request.user)
@@ -3869,10 +5046,11 @@ def plan_statistics(request):
 
 # ==================== P1 决策接口（围绕 decision 的裁决） ====================
 
-@login_required
 @require_http_methods(["POST"])
-def plan_request_start(request, plan_id):
-    """发起启动计划请求（提交审批）"""
+@login_required
+def plan_submit_approval(request, plan_id):
+    """提交计划启动审批（使用通用审批服务）"""
+    import logging
     logger = logging.getLogger(__name__)
     permission_set = get_user_permission_codes(request.user)
     plan = get_object_or_404(Plan, id=plan_id)
@@ -3888,27 +5066,28 @@ def plan_request_start(request, plan_id):
         messages.error(request, f'只有草稿或已取消状态的计划可以提交审批，当前状态：{plan.get_status_display()}')
         return redirect('plan_pages:plan_detail', plan_id=plan_id)
     
-    # 检查是否已存在 pending 的 start 请求（同时检查审批引擎和 PlanDecision）
+    # 检查是否已存在待审批的实例
     from django.contrib.contenttypes.models import ContentType
     from backend.apps.workflow_engine.models import ApprovalInstance
-    from backend.apps.plan_management.services.plan_approval import PlanApprovalService
+    from backend.apps.plan_management.services.plan_approval_v2 import PlanStartApprovalService
     
     plan_content_type = ContentType.objects.get_for_model(Plan)
     existing_pending_approval = ApprovalInstance.objects.filter(
         content_type=plan_content_type,
         object_id=plan.id,
-        workflow__code=PlanApprovalService.PLAN_START_WORKFLOW_CODE,
+        workflow__code='plan_start_approval',
         status__in=['pending', 'in_progress']
     ).exists()
     
-    existing_pending_decision = PlanDecision.objects.filter(
-        plan=plan,
-        request_type='start',
-        decided_at__isnull=True
-    ).exists()
-    
-    if existing_pending_approval or existing_pending_decision:
+    if existing_pending_approval:
         messages.warning(request, '该计划已有待处理的启动请求')
+        return redirect('plan_pages:plan_detail', plan_id=plan_id)
+    
+    # 字段验证：检查必填字段是否完整
+    is_valid, validation_errors = _validate_plan_fields(plan)
+    if not is_valid:
+        error_messages = [error['message'] for error in validation_errors]
+        messages.error(request, f'提交审批失败：请先完善计划信息。\n' + '\n'.join([f'• {msg}' for msg in error_messages]))
         return redirect('plan_pages:plan_detail', plan_id=plan_id)
     
     # 如果计划是已取消状态，先将其改为草稿状态，并记录状态变更日志
@@ -3934,41 +5113,49 @@ def plan_request_start(request, plan_id):
             messages.error(request, f'状态变更记录失败: {str(e)}')
             return redirect('plan_pages:plan_detail', plan_id=plan_id)
     
-    # 优先使用审批引擎
+    # 使用通用审批服务提交审批
     try:
-        from backend.apps.plan_management.services.plan_decisions import request_start, PlanDecisionError
-        
-        # 检查验收标准
-        if not plan.acceptance_criteria or not plan.acceptance_criteria.strip():
-            messages.error(request, '提交审批前必须填写验收标准，明确说明如何判定计划完成。请在计划编辑页面填写验收标准。')
-            return redirect('plan_pages:plan_detail', plan_id=plan_id)
-        
-        decision = request_start(plan, request.user, request.POST.get('reason', ''))
-        
-        # 检查是否成功创建了审批实例
-        from backend.apps.workflow_engine.models import ApprovalInstance
-        from django.contrib.contenttypes.models import ContentType
-        plan_content_type = ContentType.objects.get_for_model(Plan)
-        approval_instance = ApprovalInstance.objects.filter(
-            content_type=plan_content_type,
-            object_id=plan.id,
-            status__in=['pending', 'in_progress']
+        # 先检查审批流程模板是否存在
+        from backend.apps.workflow_engine.models import WorkflowTemplate
+        workflow_template = WorkflowTemplate.objects.filter(
+            code='plan_start_approval',
+            status='active'
         ).first()
         
-        if approval_instance:
-            messages.success(request, f'已提交审批请求，审批实例编号：{approval_instance.instance_number}')
+        if not workflow_template:
+            messages.error(request, '审批流程模板未配置，请联系管理员配置"计划启动审批"流程模板')
+            logger.error(f'审批流程模板不存在: plan_start_approval, plan_id={plan_id}')
+            return redirect('plan_pages:plan_detail', plan_id=plan_id)
+        
+        # 检查计划数据完整性（调试用）
+        logger.info(f'提交审批前检查计划数据: plan_id={plan_id}, name={plan.name}, content={bool(plan.content)}, start_time={plan.start_time}, end_time={plan.end_time}, status={plan.status}, responsible_person={plan.responsible_person}')
+        
+        service = PlanStartApprovalService()
+        comment = request.POST.get('comment', '')
+        
+        instance = service.submit_approval(
+            obj=plan,
+            applicant=request.user,
+            comment=comment or f'申请启动计划：{plan.plan_number} - {plan.name}'
+        )
+        
+        if instance:
+            # 审批结果走通知中心，不写入 messages，避免出现在登录页等
+            logger.info(f'提交审批成功: instance_number={instance.instance_number}, plan_id={plan_id}')
         else:
-            messages.info(request, '已提交审批请求，正在等待审批')
+            messages.error(request, '提交审批失败：审批流程未正确配置，请联系管理员')
+            logger.error(f'提交审批失败: 返回None, plan_id={plan_id}, workflow_code=plan_start_approval')
             
-    except PlanDecisionError as e:
-        # 业务规则错误（如验收标准未填写、状态不允许等）
-        messages.error(request, str(e))
-        logger.warning(f'提交审批请求失败（业务规则）: {str(e)}, plan_id={plan_id}, user={request.user.username}')
+    except ValueError as e:
+        # 业务规则错误（验证失败）
+        error_msg = str(e)
+        messages.error(request, f'提交审批失败：{error_msg}')
+        logger.warning(f'提交审批请求失败（业务规则验证）: {error_msg}, plan_id={plan_id}, user={request.user.username}, plan_status={plan.status}, plan_name={plan.name}')
     except Exception as e:
         # 其他异常（如数据库错误、审批引擎错误等）
         error_msg = str(e)
-        messages.error(request, f'提交审批请求失败: {error_msg}')
-        logger.error(f'提交审批请求失败（系统错误）: {str(e)}, plan_id={plan_id}, user={request.user.username}', exc_info=True)
+        messages.error(request, f'提交审批请求失败：{error_msg}')
+        logger.error(f'提交审批请求失败（系统错误）: {error_msg}, plan_id={plan_id}, user={request.user.username}', exc_info=True)
     
     return redirect('plan_pages:plan_detail', plan_id=plan_id)
 
@@ -4017,7 +5204,7 @@ def plan_request_cancel(request, plan_id):
     try:
         from backend.apps.plan_management.services.plan_decisions import request_cancel
         decision = request_cancel(plan, request.user, request.POST.get('reason', ''))
-        messages.success(request, '已发起取消审批请求')
+        # 审批/取消结果走通知中心，不写入 messages
     except Exception as e:
         messages.error(request, f'发起取消审批请求失败: {str(e)}')
     
@@ -4044,8 +5231,7 @@ def decision_approve(request, decision_id):
     try:
         # decide() 函数内部已经创建了状态变更日志，这里不需要重复创建
         decision_obj = decide(decision_id, request.user, approve=True, reason=request.POST.get('reason'))
-        
-        messages.success(request, f'审批通过，计划状态已更新为：{plan.get_status_display()}')
+        # 审批结果走通知中心，不写入 messages
     except PermissionDenied as e:
         messages.error(request, str(e))
         return redirect('plan_pages:plan_detail', plan_id=plan.id)
@@ -4085,8 +5271,7 @@ def decision_reject(request, decision_id):
             messages.error(request, '未知的请求类型')
             return redirect('plan_pages:plan_detail', plan_id=plan.id)
         
-        # reject 不改状态，只记录日志
-        messages.success(request, '已驳回请求，计划状态保持不变')
+        # reject 不改状态，只记录日志；审批结果走通知中心，不写入 messages
     except PermissionDenied as e:
         messages.error(request, str(e))
         return redirect('plan_pages:plan_detail', plan_id=plan.id)
@@ -4136,12 +5321,18 @@ def plan_adjustment_create(request, plan_id):
             adjustment.created_by = request.user
             adjustment.original_end_time = plan.end_time
             adjustment.save()
-            messages.success(request, '调整申请已提交，等待审批')
+            # 审批相关结果走通知中心，不写入 messages
             return redirect('plan_pages:plan_detail', plan_id=plan_id)
         else:
-            messages.error(request, '表单验证失败，请检查输入')
+            # 使用 context 传递错误，不写入 messages
+            error_messages = []
+            if form.errors:
+                error_messages.append(_form_errors_plain(form))
+            if not error_messages:
+                error_messages.append('表单验证失败，请检查输入')
     else:
         form = PlanAdjustmentForm(plan=plan)
+        error_messages = []
     
     context = _context(
         f"申请调整 - {plan.name}",
@@ -4150,6 +5341,8 @@ def plan_adjustment_create(request, plan_id):
         request=request,
     )
     context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='plan_list')
+    if error_messages:
+        context['form_validation_errors'] = error_messages
     context['form'] = form
     context['plan'] = plan
     context['page_title'] = f"申请调整 - {plan.name}"
@@ -4254,8 +5447,7 @@ def plan_adjustment_approve(request, adjustment_id):
                 changed_by=request.user,
                 change_reason=f'调整申请已批准：截止时间从 {old_end_time.strftime("%Y-%m-%d %H:%M")} 调整为 {adjustment.new_end_time.strftime("%Y-%m-%d %H:%M")}'
             )
-        
-        messages.success(request, '调整申请已批准，计划截止时间已更新')
+        # 审批结果走通知中心，不写入 messages
         return redirect('plan_pages:plan_adjustment_list')
     
     context = _context(
@@ -4298,8 +5490,7 @@ def plan_adjustment_reject(request, adjustment_id):
         adjustment.approved_time = timezone.now()
         adjustment.approval_notes = approval_notes
         adjustment.save()
-        
-        messages.success(request, '调整申请已拒绝')
+        # 审批结果走通知中心，不写入 messages
         return redirect('plan_pages:plan_adjustment_list')
     
     context = _context(
