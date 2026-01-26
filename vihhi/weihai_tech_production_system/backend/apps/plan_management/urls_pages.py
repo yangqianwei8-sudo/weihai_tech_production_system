@@ -13,6 +13,7 @@ urlpatterns = [
     
     # 计划列表
     path("plans/", views_pages.plan_list, name="plan_list"),
+    path("plans/batch-delete/", views_pages.plan_batch_delete, name="plan_batch_delete"),
     
     # 计划管理
     path("plans/create/", views_pages.plan_create, name="plan_create"),
@@ -32,7 +33,7 @@ urlpatterns = [
     path("plans/<int:plan_id>/complete/", views_pages.plan_complete, name="plan_complete"),
     
     # P1 决策接口（围绕 decision 的裁决）
-    path("plans/<int:plan_id>/requests/start/", views_pages.plan_request_start, name="plan_request_start"),
+    path("plans/<int:plan_id>/submit-approval/", views_pages.plan_submit_approval, name="plan_submit_approval"),
     path("plans/<int:plan_id>/requests/cancel/", views_pages.plan_request_cancel, name="plan_request_cancel"),
     path("decisions/<int:decision_id>/approve/", views_pages.decision_approve, name="decision_approve"),
     path("decisions/<int:decision_id>/reject/", views_pages.decision_reject, name="decision_reject"),
