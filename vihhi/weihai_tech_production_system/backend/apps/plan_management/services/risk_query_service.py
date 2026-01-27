@@ -50,7 +50,7 @@ def _build_risk_item(risk_type, obj, days_overdue, status):
         }
 
 
-def get_user_risk_items(user, limit=5) -> List[Dict[str, Any]]:
+def get_user_risk_items(user, limit=5, filter_department_id=None, filter_responsible_person_id=None, filter_start_date=None, filter_end_date=None) -> List[Dict[str, Any]]:
     """
     获取用户的风险项（需要立刻处理的）
     
@@ -63,6 +63,10 @@ def get_user_risk_items(user, limit=5) -> List[Dict[str, Any]]:
     Args:
         user: User 对象
         limit: 返回数量限制，默认5条
+        filter_department_id: 筛选部门ID（可选）
+        filter_responsible_person_id: 筛选负责人ID（可选）
+        filter_start_date: 筛选开始日期（可选，格式：'YYYY-MM-DD'）
+        filter_end_date: 筛选结束日期（可选，格式：'YYYY-MM-DD'）
     
     Returns:
         List[Dict]: 风险项列表
@@ -79,25 +83,80 @@ def get_user_risk_items(user, limit=5) -> List[Dict[str, Any]]:
     today = now.date()
     risk_items = []
     
+    # 辅助函数：应用筛选条件到查询集
+    def apply_filters(qs, model_type='plan'):
+        if filter_department_id:
+            try:
+                if model_type == 'plan':
+                    qs = qs.filter(responsible_department_id=filter_department_id)
+                elif model_type == 'goal':
+                    qs = qs.filter(responsible_department_id=filter_department_id)
+            except ValueError:
+                pass
+        if filter_responsible_person_id:
+            try:
+                if model_type == 'plan':
+                    qs = qs.filter(responsible_person_id=filter_responsible_person_id)
+                elif model_type == 'goal':
+                    qs = qs.filter(responsible_person_id=filter_responsible_person_id)
+            except ValueError:
+                pass
+        if filter_start_date:
+            try:
+                start_date = datetime.strptime(filter_start_date, '%Y-%m-%d').date()
+                qs = qs.filter(created_time__gte=start_date)
+            except ValueError:
+                pass
+        if filter_end_date:
+            try:
+                end_date = datetime.strptime(filter_end_date, '%Y-%m-%d').date()
+                end_datetime = datetime.combine(end_date, datetime.max.time())
+                qs = qs.filter(created_time__lte=end_datetime)
+            except ValueError:
+                pass
+        return qs
+    
     # ========== 逾期目标（需要立刻处理的）==========
-    overdue_goals = StrategicGoal.objects.filter(
-        level='personal',
-        owner=user,
-        status__in=['published', 'accepted', 'in_progress'],
-        end_date__lt=today
-    ).select_related('parent_goal', 'responsible_person')
+    # 根据筛选条件决定查询逻辑
+    if filter_responsible_person_id or filter_department_id:
+        # 筛选了负责人或部门，查询所有符合条件的目标
+        overdue_goals = StrategicGoal.objects.filter(
+            level='personal',
+            status__in=['published', 'accepted', 'in_progress'],
+            end_date__lt=today
+        ).select_related('parent_goal', 'responsible_person')
+        overdue_goals = apply_filters(overdue_goals, 'goal')
+    else:
+        # 没有筛选，查询当前用户拥有的个人目标
+        overdue_goals = StrategicGoal.objects.filter(
+            level='personal',
+            owner=user,
+            status__in=['published', 'accepted', 'in_progress'],
+            end_date__lt=today
+        ).select_related('parent_goal', 'responsible_person')
     
     for goal in overdue_goals:
         days_overdue = (today - goal.end_date).days
         risk_items.append(_build_risk_item('goal_risk', goal, days_overdue, goal.status))
     
     # ========== 逾期计划（需要立刻处理的）==========
-    overdue_plans = Plan.objects.filter(
-        level='personal',
-        owner=user,
-        status__in=['draft', 'published', 'accepted', 'in_progress'],
-        end_time__lt=now
-    ).select_related('parent_plan', 'responsible_person')
+    # 根据筛选条件决定查询逻辑
+    if filter_responsible_person_id or filter_department_id:
+        # 筛选了负责人或部门，查询所有符合条件的计划
+        overdue_plans = Plan.objects.filter(
+            level='personal',
+            status__in=['draft', 'published', 'accepted', 'in_progress'],
+            end_time__lt=now
+        ).select_related('parent_plan', 'responsible_person')
+        overdue_plans = apply_filters(overdue_plans, 'plan')
+    else:
+        # 没有筛选，查询当前用户拥有的个人计划
+        overdue_plans = Plan.objects.filter(
+            level='personal',
+            owner=user,
+            status__in=['draft', 'published', 'accepted', 'in_progress'],
+            end_time__lt=now
+        ).select_related('parent_plan', 'responsible_person')
     
     for plan in overdue_plans:
         days_overdue = (today - plan.end_time.date()).days
@@ -113,13 +172,17 @@ def get_user_risk_items(user, limit=5) -> List[Dict[str, Any]]:
     return risk_items[:limit]
 
 
-def get_responsible_risk_items(responsible_user, limit=5) -> List[Dict[str, Any]]:
+def get_responsible_risk_items(responsible_user, limit=5, filter_department_id=None, filter_responsible_person_id=None, filter_start_date=None, filter_end_date=None) -> List[Dict[str, Any]]:
     """
     获取指定负责人负责的风险项
     
     Args:
         responsible_user: 负责人User对象
         limit: 返回数量限制，默认5条
+        filter_department_id: 筛选部门ID（可选）
+        filter_responsible_person_id: 筛选负责人ID（可选）
+        filter_start_date: 筛选开始日期（可选，格式：'YYYY-MM-DD'）
+        filter_end_date: 筛选结束日期（可选，格式：'YYYY-MM-DD'）
     
     Returns:
         List[Dict]: 风险项列表
@@ -128,12 +191,54 @@ def get_responsible_risk_items(responsible_user, limit=5) -> List[Dict[str, Any]
     today = now.date()
     risk_items = []
     
+    # 如果筛选了负责人，但当前负责人不匹配，返回空列表
+    if filter_responsible_person_id:
+        try:
+            if str(responsible_user.id) != str(filter_responsible_person_id):
+                return []
+        except (ValueError, AttributeError):
+            pass
+    
+    # 辅助函数：应用筛选条件到查询集
+    def apply_filters(qs, model_type='plan'):
+        if filter_department_id:
+            try:
+                if model_type == 'plan':
+                    qs = qs.filter(responsible_department_id=filter_department_id)
+                elif model_type == 'goal':
+                    qs = qs.filter(responsible_department_id=filter_department_id)
+            except ValueError:
+                pass
+        if filter_responsible_person_id:
+            try:
+                if model_type == 'plan':
+                    qs = qs.filter(responsible_person_id=filter_responsible_person_id)
+                elif model_type == 'goal':
+                    qs = qs.filter(responsible_person_id=filter_responsible_person_id)
+            except ValueError:
+                pass
+        if filter_start_date:
+            try:
+                start_date = datetime.strptime(filter_start_date, '%Y-%m-%d').date()
+                qs = qs.filter(created_time__gte=start_date)
+            except ValueError:
+                pass
+        if filter_end_date:
+            try:
+                end_date = datetime.strptime(filter_end_date, '%Y-%m-%d').date()
+                end_datetime = datetime.combine(end_date, datetime.max.time())
+                qs = qs.filter(created_time__lte=end_datetime)
+            except ValueError:
+                pass
+        return qs
+    
     # ========== 逾期目标（负责人负责的）==========
     overdue_goals = StrategicGoal.objects.filter(
         responsible_person=responsible_user,
         status__in=['published', 'accepted', 'in_progress'],
         end_date__lt=today
     ).select_related('parent_goal', 'responsible_person', 'owner')
+    overdue_goals = apply_filters(overdue_goals, 'goal')
     
     for goal in overdue_goals:
         days_overdue = (today - goal.end_date).days
@@ -145,6 +250,7 @@ def get_responsible_risk_items(responsible_user, limit=5) -> List[Dict[str, Any]
         status__in=['draft', 'published', 'accepted', 'in_progress'],
         end_time__lt=now
     ).select_related('parent_plan', 'responsible_person', 'owner')
+    overdue_plans = apply_filters(overdue_plans, 'plan')
     
     for plan in overdue_plans:
         days_overdue = (today - plan.end_time.date()).days
@@ -160,13 +266,17 @@ def get_responsible_risk_items(responsible_user, limit=5) -> List[Dict[str, Any]
     return risk_items[:limit]
 
 
-def get_subordinates_risk_items(subordinates, limit=5) -> List[Dict[str, Any]]:
+def get_subordinates_risk_items(subordinates, limit=5, filter_department_id=None, filter_responsible_person_id=None, filter_start_date=None, filter_end_date=None) -> List[Dict[str, Any]]:
     """
     获取下属负责的风险项
     
     Args:
         subordinates: 下属用户QuerySet或列表
         limit: 返回数量限制，默认5条
+        filter_department_id: 筛选部门ID（可选）
+        filter_responsible_person_id: 筛选负责人ID（可选）
+        filter_start_date: 筛选开始日期（可选，格式：'YYYY-MM-DD'）
+        filter_end_date: 筛选结束日期（可选，格式：'YYYY-MM-DD'）
     
     Returns:
         List[Dict]: 风险项列表
@@ -178,12 +288,55 @@ def get_subordinates_risk_items(subordinates, limit=5) -> List[Dict[str, Any]]:
     if not subordinates.exists() if hasattr(subordinates, 'exists') else not subordinates:
         return []
     
+    # 如果筛选了负责人，只包含该负责人的风险项
+    if filter_responsible_person_id:
+        try:
+            subordinates = subordinates.filter(id=filter_responsible_person_id)
+            if not subordinates.exists():
+                return []
+        except (ValueError, AttributeError):
+            pass
+    
+    # 辅助函数：应用筛选条件到查询集
+    def apply_filters(qs, model_type='plan'):
+        if filter_department_id:
+            try:
+                if model_type == 'plan':
+                    qs = qs.filter(responsible_department_id=filter_department_id)
+                elif model_type == 'goal':
+                    qs = qs.filter(responsible_department_id=filter_department_id)
+            except ValueError:
+                pass
+        if filter_responsible_person_id:
+            try:
+                if model_type == 'plan':
+                    qs = qs.filter(responsible_person_id=filter_responsible_person_id)
+                elif model_type == 'goal':
+                    qs = qs.filter(responsible_person_id=filter_responsible_person_id)
+            except ValueError:
+                pass
+        if filter_start_date:
+            try:
+                start_date = datetime.strptime(filter_start_date, '%Y-%m-%d').date()
+                qs = qs.filter(created_time__gte=start_date)
+            except ValueError:
+                pass
+        if filter_end_date:
+            try:
+                end_date = datetime.strptime(filter_end_date, '%Y-%m-%d').date()
+                end_datetime = datetime.combine(end_date, datetime.max.time())
+                qs = qs.filter(created_time__lte=end_datetime)
+            except ValueError:
+                pass
+        return qs
+    
     # ========== 逾期目标（下属负责的）==========
     overdue_goals = StrategicGoal.objects.filter(
         responsible_person__in=subordinates,
         status__in=['published', 'accepted', 'in_progress'],
         end_date__lt=today
     ).select_related('parent_goal', 'responsible_person', 'owner')
+    overdue_goals = apply_filters(overdue_goals, 'goal')
     
     for goal in overdue_goals:
         days_overdue = (today - goal.end_date).days
@@ -195,6 +348,7 @@ def get_subordinates_risk_items(subordinates, limit=5) -> List[Dict[str, Any]]:
         status__in=['draft', 'published', 'accepted', 'in_progress'],
         end_time__lt=now
     ).select_related('parent_plan', 'responsible_person', 'owner')
+    overdue_plans = apply_filters(overdue_plans, 'plan')
     
     for plan in overdue_plans:
         days_overdue = (today - plan.end_time.date()).days

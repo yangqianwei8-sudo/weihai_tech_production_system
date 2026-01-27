@@ -194,15 +194,39 @@ BACKEND_PID=$!
 echo "  后端进程 ID: $BACKEND_PID"
 echo "  后端日志: tail -f /tmp/django_dev.log"
 
-sleep 3
+# 等待后端服务启动（Django runserver 会 fork 子进程，需要更多时间）
+echo "  等待后端服务启动..."
+sleep 5
 
-# 检查后端是否启动成功
-if ! ps -p $BACKEND_PID > /dev/null 2>&1; then
-    echo -e "${RED}✗ 后端服务启动失败${NC}"
-    echo "  查看日志: tail -20 /tmp/django_dev.log"
-    echo ""
-    tail -20 /tmp/django_dev.log
-    exit 1
+# 检查后端是否启动成功（通过端口监听状态，因为 Django 会 fork 子进程）
+BACKEND_ACTUAL_PID=""
+if command -v lsof >/dev/null 2>&1; then
+    BACKEND_ACTUAL_PID=$(lsof -ti :$BACKEND_PORT 2>/dev/null | head -1)
+elif command -v ss >/dev/null 2>&1; then
+    BACKEND_ACTUAL_PID=$(ss -tlnp 2>/dev/null | grep ":$BACKEND_PORT " | grep -oP 'pid=\K[0-9]+' | head -1)
+fi
+
+if [ -z "$BACKEND_ACTUAL_PID" ]; then
+    # 如果端口未监听，检查父进程是否还在
+    if ! ps -p $BACKEND_PID > /dev/null 2>&1; then
+        echo -e "${RED}✗ 后端服务启动失败${NC}"
+        echo "  查看日志: tail -20 /tmp/django_dev.log"
+        echo ""
+        tail -20 /tmp/django_dev.log
+        exit 1
+    else
+        # 父进程存在但端口未监听，可能是启动中，再等待一下
+        echo "  后端进程存在，等待端口监听..."
+        sleep 3
+        if command -v lsof >/dev/null 2>&1; then
+            BACKEND_ACTUAL_PID=$(lsof -ti :$BACKEND_PORT 2>/dev/null | head -1)
+        elif command -v ss >/dev/null 2>&1; then
+            BACKEND_ACTUAL_PID=$(ss -tlnp 2>/dev/null | grep ":$BACKEND_PORT " | grep -oP 'pid=\K[0-9]+' | head -1)
+        fi
+        if [ -z "$BACKEND_ACTUAL_PID" ]; then
+            echo -e "${YELLOW}⚠ 警告: 后端进程存在但端口仍未监听，请检查日志${NC}"
+        fi
+    fi
 fi
 
 # 启动前端
@@ -242,16 +266,24 @@ echo "检查服务状态..."
 BACKEND_RUNNING=false
 FRONTEND_RUNNING=false
 
-if ps -p $BACKEND_PID > /dev/null 2>&1; then
-    # 检查端口是否真的在监听
-    if (command -v netstat >/dev/null 2>&1 && netstat -tlnp 2>/dev/null | grep -q ":$BACKEND_PORT ") || \
-       (command -v ss >/dev/null 2>&1 && ss -tlnp 2>/dev/null | grep -q ":$BACKEND_PORT "); then
-        echo -e "${GREEN}✓ 后端服务运行中 (PID: $BACKEND_PID, 端口: $BACKEND_PORT)${NC}"
-        BACKEND_RUNNING=true
-    else
-        echo -e "${YELLOW}⚠ 后端进程存在但端口未监听${NC}"
-    fi
+# 检查后端服务（优先通过端口监听状态判断，因为 Django 会 fork 子进程）
+BACKEND_ACTUAL_PID=""
+if command -v lsof >/dev/null 2>&1; then
+    BACKEND_ACTUAL_PID=$(lsof -ti :$BACKEND_PORT 2>/dev/null | head -1)
+elif command -v ss >/dev/null 2>&1; then
+    BACKEND_ACTUAL_PID=$(ss -tlnp 2>/dev/null | grep ":$BACKEND_PORT " | grep -oP 'pid=\K[0-9]+' | head -1)
+fi
+
+if [ -n "$BACKEND_ACTUAL_PID" ]; then
+    # 端口在监听，服务正常运行
+    echo -e "${GREEN}✓ 后端服务运行中 (PID: $BACKEND_ACTUAL_PID, 端口: $BACKEND_PORT)${NC}"
+    BACKEND_RUNNING=true
+elif ps -p $BACKEND_PID > /dev/null 2>&1; then
+    # 父进程存在但端口未监听
+    echo -e "${YELLOW}⚠ 后端进程存在但端口未监听（可能正在启动中）${NC}"
+    echo "  查看日志: tail -20 /tmp/django_dev.log"
 else
+    # 进程不存在，启动失败
     echo -e "${RED}✗ 后端服务启动失败${NC}"
     echo "  查看日志: tail -20 /tmp/django_dev.log"
     echo ""
@@ -304,4 +336,5 @@ echo "停止服务:"
 echo "  - pkill -f 'manage.py runserver.*$BACKEND_PORT'"
 echo "  - pkill -f 'vue-cli-service serve'"
 echo "=========================================="
+
 
