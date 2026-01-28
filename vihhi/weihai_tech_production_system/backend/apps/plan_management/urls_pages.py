@@ -69,5 +69,10 @@ urlpatterns = [
     path("analysis/completion/", views_pages.plan_completion_analysis, name="plan_completion_analysis"),
     path("analysis/goal-achievement/", views_pages.plan_goal_achievement, name="plan_goal_achievement"),
     path("analysis/statistics/", views_pages.plan_statistics, name="plan_statistics"),
+
+    # 待办闭环（数据库待办 TodoTask）
+    path("todos/", views_pages.todo_task_list, name="todo_task_list"),
+    path("todos/<int:todo_id>/complete/", views_pages.todo_task_complete, name="todo_task_complete"),
+    path("todos/<int:todo_id>/cancel/", views_pages.todo_task_cancel, name="todo_task_cancel"),
 ]
 

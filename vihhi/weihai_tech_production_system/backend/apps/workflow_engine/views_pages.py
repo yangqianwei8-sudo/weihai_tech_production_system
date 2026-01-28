@@ -18,7 +18,7 @@ from backend.core.views import _build_full_top_nav, _permission_granted
 WORKFLOW_ENGINE_MENU = [
     {
         'id': 'workflow_home',
-        'label': '审批引擎首页',
+        'label': '首页',
         'icon': '🏠',
         'url_name': 'workflow_engine:workflow_home_alt',
         'permission': 'workflow_engine.view',
