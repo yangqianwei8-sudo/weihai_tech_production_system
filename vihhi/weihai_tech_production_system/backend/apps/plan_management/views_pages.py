@@ -6569,48 +6569,56 @@ def goal_adjustment_approve(request, adjustment_id):
     if request.method == 'POST':
         approval_notes = request.POST.get('approval_notes', '')
         
-        # 更新调整申请状态
-        adjustment.status = 'approved'
-        adjustment.approved_by = request.user
-        adjustment.approved_time = timezone.now()
-        adjustment.approval_notes = approval_notes
-        adjustment.save()
+        # 检查是否有工作流审批实例
+        from django.contrib.contenttypes.models import ContentType
+        from backend.apps.workflow_engine.models import ApprovalInstance
+        from backend.apps.plan_management.services.plan_approval_v2 import GoalAdjustmentApprovalService
         
-        # 根据调整类型更新目标的相关字段
-        from django.db import transaction
-        with transaction.atomic():
-            # 时间调整
-            if adjustment.adjustment_type == 'time':
-                if adjustment.new_start_date:
-                    goal.start_date = adjustment.new_start_date
-                if adjustment.new_end_date:
-                    goal.end_date = adjustment.new_end_date
-                goal.save(update_fields=['start_date', 'end_date'])
-            
-            # 负责人调整
-            elif adjustment.adjustment_type == 'responsible':
-                if adjustment.new_responsible_person:
-                    goal.responsible_person = adjustment.new_responsible_person
-                    goal.save(update_fields=['responsible_person'])
-            
-            # 目标值调整
-            elif adjustment.adjustment_type == 'target_value':
-                if adjustment.new_target_value is not None:
-                    goal.target_value = adjustment.new_target_value
-                    goal.save(update_fields=['target_value'])
-            
-            # 内容调整（只更新调整内容，不更新目标字段）
-            # 内容调整通常通过调整内容字段记录，不直接修改目标内容
+        content_type = ContentType.objects.get_for_model(GoalAdjustment)
+        approval_instance = ApprovalInstance.objects.filter(
+            content_type=content_type,
+            object_id=adjustment.id,
+            workflow__code='goal_adjustment_approval',
+            status__in=['pending', 'in_progress']
+        ).first()
         
-        # 记录状态日志
-        from backend.apps.plan_management.models import GoalStatusLog
-        GoalStatusLog.objects.create(
-            goal=goal,
-            old_status=goal.status,
-            new_status=goal.status,
-            changed_by=request.user,
-            change_reason=f'调整申请已批准：{adjustment.get_adjustment_type_display()}'
-        )
+        if approval_instance:
+            # 使用工作流引擎审批
+            try:
+                service = GoalAdjustmentApprovalService()
+                success = service.approve(
+                    instance_id=approval_instance.id,
+                    approver=request.user,
+                    comment=approval_notes
+                )
+                if success:
+                    # 工作流引擎会自动处理审批完成后的回调
+                    # 这里我们需要在回调中更新调整申请状态
+                    # 如果工作流引擎没有回调，我们需要手动更新
+                    adjustment.refresh_from_db()
+                    if adjustment.status == 'pending':
+                        # 如果工作流引擎没有自动更新，手动更新
+                        adjustment.status = 'approved'
+                        adjustment.approved_by = request.user
+                        adjustment.approved_time = timezone.now()
+                        adjustment.approval_notes = approval_notes
+                        adjustment.save()
+                        _apply_goal_adjustment(adjustment, request.user)
+                else:
+                    messages.error(request, '审批失败，请重试')
+                    return redirect('plan_pages:goal_adjustment_list')
+            except Exception as e:
+                logger.error(f'工作流审批失败: {str(e)}', exc_info=True)
+                messages.error(request, f'审批失败：{str(e)}')
+                return redirect('plan_pages:goal_adjustment_list')
+        else:
+            # 使用简单审批（向后兼容）
+            adjustment.status = 'approved'
+            adjustment.approved_by = request.user
+            adjustment.approved_time = timezone.now()
+            adjustment.approval_notes = approval_notes
+            adjustment.save()
+            _apply_goal_adjustment(adjustment, request.user)
         
         # 审批结果走通知中心，不写入 messages
         return redirect('plan_pages:goal_adjustment_list')
