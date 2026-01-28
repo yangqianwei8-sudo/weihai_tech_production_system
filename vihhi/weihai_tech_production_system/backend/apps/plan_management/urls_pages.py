@@ -62,6 +62,8 @@ urlpatterns = [
     # 目标调整申请
     path("strategic-goals/<int:goal_id>/adjustment/create/", views_pages.goal_adjustment_create, name="goal_adjustment_create"),
     path("goal-adjustments/", views_pages.goal_adjustment_list, name="goal_adjustment_list"),
+    path("goal-adjustments/<int:adjustment_id>/approve/", views_pages.goal_adjustment_approve, name="goal_adjustment_approve"),
+    path("goal-adjustments/<int:adjustment_id>/reject/", views_pages.goal_adjustment_reject, name="goal_adjustment_reject"),
     
     # 计划分析
     path("analysis/completion/", views_pages.plan_completion_analysis, name="plan_completion_analysis"),
