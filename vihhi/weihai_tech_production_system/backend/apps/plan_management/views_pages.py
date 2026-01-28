@@ -6549,6 +6549,129 @@ def goal_adjustment_list(request):
 
 
 @login_required
+def goal_adjustment_approve(request, adjustment_id):
+    """审批通过目标调整申请"""
+    permission_set = get_user_permission_codes(request.user)
+    adjustment = get_object_or_404(GoalAdjustment, id=adjustment_id)
+    goal = adjustment.goal
+    
+    # 权限检查：需要管理目标权限
+    can_approve = _permission_granted('plan_management.manage_goal', permission_set) or request.user.is_superuser
+    if not can_approve:
+        messages.error(request, '您没有权限审批调整申请')
+        return redirect('plan_pages:goal_adjustment_list')
+    
+    # 检查申请状态
+    if adjustment.status != 'pending':
+        messages.error(request, '该调整申请已处理，不能重复审批')
+        return redirect('plan_pages:goal_adjustment_list')
+    
+    if request.method == 'POST':
+        approval_notes = request.POST.get('approval_notes', '')
+        
+        # 更新调整申请状态
+        adjustment.status = 'approved'
+        adjustment.approved_by = request.user
+        adjustment.approved_time = timezone.now()
+        adjustment.approval_notes = approval_notes
+        adjustment.save()
+        
+        # 根据调整类型更新目标的相关字段
+        from django.db import transaction
+        with transaction.atomic():
+            # 时间调整
+            if adjustment.adjustment_type == 'time':
+                if adjustment.new_start_date:
+                    goal.start_date = adjustment.new_start_date
+                if adjustment.new_end_date:
+                    goal.end_date = adjustment.new_end_date
+                goal.save(update_fields=['start_date', 'end_date'])
+            
+            # 负责人调整
+            elif adjustment.adjustment_type == 'responsible':
+                if adjustment.new_responsible_person:
+                    goal.responsible_person = adjustment.new_responsible_person
+                    goal.save(update_fields=['responsible_person'])
+            
+            # 目标值调整
+            elif adjustment.adjustment_type == 'target_value':
+                if adjustment.new_target_value is not None:
+                    goal.target_value = adjustment.new_target_value
+                    goal.save(update_fields=['target_value'])
+            
+            # 内容调整（只更新调整内容，不更新目标字段）
+            # 内容调整通常通过调整内容字段记录，不直接修改目标内容
+        
+        # 记录状态日志
+        from backend.apps.plan_management.models import GoalStatusLog
+        GoalStatusLog.objects.create(
+            goal=goal,
+            old_status=goal.status,
+            new_status=goal.status,
+            changed_by=request.user,
+            change_reason=f'调整申请已批准：{adjustment.get_adjustment_type_display()}'
+        )
+        
+        # 审批结果走通知中心，不写入 messages
+        return redirect('plan_pages:goal_adjustment_list')
+    
+    context = _context(
+        f"审批调整申请 - {goal.name}",
+        "✅",
+        "审批目标调整申请",
+        request=request,
+    )
+    context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='goal_adjustment_list')
+    context['adjustment'] = adjustment
+    context['goal'] = goal
+    
+    return render(request, "plan_management/goal_adjustment_approve.html", context)
+
+
+@login_required
+def goal_adjustment_reject(request, adjustment_id):
+    """审批拒绝目标调整申请"""
+    permission_set = get_user_permission_codes(request.user)
+    adjustment = get_object_or_404(GoalAdjustment, id=adjustment_id)
+    goal = adjustment.goal
+    
+    # 权限检查：需要管理目标权限
+    can_approve = _permission_granted('plan_management.manage_goal', permission_set) or request.user.is_superuser
+    if not can_approve:
+        messages.error(request, '您没有权限审批调整申请')
+        return redirect('plan_pages:goal_adjustment_list')
+    
+    # 检查申请状态
+    if adjustment.status != 'pending':
+        messages.error(request, '该调整申请已处理，不能重复审批')
+        return redirect('plan_pages:goal_adjustment_list')
+    
+    if request.method == 'POST':
+        approval_notes = request.POST.get('approval_notes', '')
+        
+        # 更新调整申请状态
+        adjustment.status = 'rejected'
+        adjustment.approved_by = request.user
+        adjustment.approved_time = timezone.now()
+        adjustment.approval_notes = approval_notes
+        adjustment.save()
+        # 审批结果走通知中心，不写入 messages
+        return redirect('plan_pages:goal_adjustment_list')
+    
+    context = _context(
+        f"拒绝调整申请 - {goal.name}",
+        "❌",
+        "拒绝目标调整申请",
+        request=request,
+    )
+    context['sidebar_nav'] = _build_plan_management_sidebar_nav(permission_set, active_id='goal_adjustment_list')
+    context['adjustment'] = adjustment
+    context['goal'] = goal
+    
+    return render(request, "plan_management/goal_adjustment_reject.html", context)
+
+
+@login_required
 def plan_adjustment_approve(request, adjustment_id):
     """审批通过调整申请"""
     permission_set = get_user_permission_codes(request.user)
